@@ -376,7 +376,7 @@ class MemoryDBBackend(BaseBackend):
     ) -> MemoryDBCluster:
         if cluster_name in self.clusters:
             raise ClusterAlreadyExistsFault(
-                msg="Cluster with specified name already exists."
+                "Cluster with specified name already exists."
             )
 
         subnet_group_name = subnet_group_name or "default"
@@ -421,7 +421,7 @@ class MemoryDBBackend(BaseBackend):
     ) -> MemoryDBSubnetGroup:
         if subnet_group_name in self.subnet_groups:
             raise SubnetGroupAlreadyExistsFault(
-                msg=f"Subnet group {subnet_group_name} already exists."
+                f"Subnet group {subnet_group_name} already exists."
             )
         subnet_group = MemoryDBSubnetGroup(
             self.region_name,
@@ -446,11 +446,11 @@ class MemoryDBBackend(BaseBackend):
         source: str = "manual",
     ) -> MemoryDBSnapshot:
         if cluster_name not in self.clusters:
-            raise ClusterNotFoundFault(msg=f"Cluster not found: {cluster_name}")
+            raise ClusterNotFoundFault(f"Cluster not found: {cluster_name}")
         cluster = self.clusters[cluster_name]
         if snapshot_name in self.snapshots:
             raise SnapshotAlreadyExistsFault(
-                msg="Snapshot with specified name already exists."
+                "Snapshot with specified name already exists."
             )
 
         snapshot = MemoryDBSnapshot(
@@ -475,7 +475,7 @@ class MemoryDBBackend(BaseBackend):
                 cluster = self.clusters[cluster_name]
                 return [cluster]
             else:
-                raise ClusterNotFoundFault(msg=f"Cluster {cluster_name} not found")
+                raise ClusterNotFoundFault(f"Cluster {cluster_name} not found")
         clusters = list(self.clusters.values())
         return clusters
 
@@ -496,7 +496,7 @@ class MemoryDBBackend(BaseBackend):
                 ):
                     return [snapshot]
                 raise SnapshotNotFoundFault(
-                    msg=f"Snapshot with name {snapshot_name} not found"
+                    f"Snapshot with name {snapshot_name} not found"
                 )
 
         if cluster_name:
@@ -517,9 +517,7 @@ class MemoryDBBackend(BaseBackend):
             ]
             if snapshots:
                 return snapshots
-            raise SnapshotNotFoundFault(
-                msg=f"Snapshot with name {snapshot_name} not found"
-            )
+            raise SnapshotNotFoundFault(f"Snapshot with name {snapshot_name} not found")
 
         snapshots = [
             snapshot
@@ -535,7 +533,7 @@ class MemoryDBBackend(BaseBackend):
             if subnet_group_name in self.subnet_groups:
                 return [self.subnet_groups[subnet_group_name]]
             raise SubnetGroupNotFoundFault(
-                msg=f"Subnet group {subnet_group_name} not found."
+                f"Subnet group {subnet_group_name} not found."
             )
 
         subnet_groups = list(self.subnet_groups.values())
@@ -588,7 +586,7 @@ class MemoryDBBackend(BaseBackend):
         list_keys = [i["Key"] for i in list_tags]
         invalid_keys = [key for key in tag_keys if key not in list_keys]
         if invalid_keys:
-            raise TagNotFoundFault(msg=f"These tags are not present : {[invalid_keys]}")
+            raise TagNotFoundFault(f"These tags are not present : {[invalid_keys]}")
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
         return self.tagger.list_tags_for_resource(arn=resource_arn)["Tags"]
 
@@ -627,7 +625,7 @@ class MemoryDBBackend(BaseBackend):
                 acl_name,
             )
             return cluster
-        raise ClusterNotFoundFault(msg="Cluster not found.")
+        raise ClusterNotFoundFault("Cluster not found.")
 
     def delete_cluster(
         self, cluster_name: str, final_snapshot_name: str | None
@@ -655,18 +653,16 @@ class MemoryDBBackend(BaseBackend):
         if subnet_group_name in self.subnet_groups:
             if subnet_group_name == "default":
                 raise InvalidParameterValueException(
-                    msg="default is reserved and cannot be modified."
+                    "default is reserved and cannot be modified."
                 )
             if subnet_group_name in [
                 c.subnet_group_name for c in self.clusters.values()
             ]:
                 raise SubnetGroupInUseFault(
-                    msg=f"Subnet group {subnet_group_name} is currently in use by a cluster."
+                    f"Subnet group {subnet_group_name} is currently in use by a cluster."
                 )
             return self.subnet_groups.pop(subnet_group_name)
-        raise SubnetGroupNotFoundFault(
-            msg=f"Subnet group {subnet_group_name} not found."
-        )
+        raise SubnetGroupNotFoundFault(f"Subnet group {subnet_group_name} not found.")
 
     def create_user(
         self,
@@ -676,7 +672,7 @@ class MemoryDBBackend(BaseBackend):
         tags: list[dict[str, str]] | None = None,
     ) -> MemoryDBUser:
         if user_name in self.users:
-            raise UserAlreadyExistsFault(msg=f"User {user_name} already exists.")
+            raise UserAlreadyExistsFault(f"User {user_name} already exists.")
         user = MemoryDBUser(
             account_id=self.account_id,
             region_name=self.region_name,
@@ -697,7 +693,7 @@ class MemoryDBBackend(BaseBackend):
         if user_name:
             if user_name in self.users:
                 return [self.users[user_name]]
-            raise UserNotFoundFault(msg=f"User {user_name} not found.")
+            raise UserNotFoundFault(f"User {user_name} not found.")
         users = list(self.users.values())
         for f in filters or []:
             name = f["Name"]
@@ -715,18 +711,16 @@ class MemoryDBBackend(BaseBackend):
         access_string: str | None,
     ) -> MemoryDBUser:
         if user_name not in self.users:
-            raise UserNotFoundFault(msg=f"User {user_name} not found.")
+            raise UserNotFoundFault(f"User {user_name} not found.")
         user = self.users[user_name]
         user.update(authentication_mode, access_string)
         return user
 
     def delete_user(self, user_name: str) -> MemoryDBUser:
         if user_name == "default":
-            raise InvalidParameterValueException(
-                msg="The default user cannot be deleted."
-            )
+            raise InvalidParameterValueException("The default user cannot be deleted.")
         if user_name not in self.users:
-            raise UserNotFoundFault(msg=f"User {user_name} not found.")
+            raise UserNotFoundFault(f"User {user_name} not found.")
         user = self.users[user_name]
         user.status = "deleting"
         return self.users.pop(user_name)
