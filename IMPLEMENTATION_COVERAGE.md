@@ -5967,7 +5967,7 @@
 
 ## guardduty
 <details>
-<summary>11% implemented</summary>
+<summary>16% implemented</summary>
 
 - [ ] accept_administrator_invitation
 - [ ] accept_invitation
@@ -5977,7 +5977,7 @@
 - [X] create_detector
 - [X] create_filter
 - [ ] create_investigation
-- [ ] create_ip_set
+- [X] create_ip_set
 - [ ] create_malware_protection_plan
 - [ ] create_members
 - [ ] create_publishing_destination
@@ -5991,7 +5991,7 @@
 - [X] delete_detector
 - [X] delete_filter
 - [ ] delete_invitations
-- [ ] delete_ip_set
+- [X] delete_ip_set
 - [ ] delete_malware_protection_plan
 - [ ] delete_members
 - [ ] delete_publishing_destination
@@ -6017,7 +6017,7 @@
 - [ ] get_findings_statistics
 - [ ] get_investigation
 - [ ] get_invitations_count
-- [ ] get_ip_set
+- [X] get_ip_set
 - [ ] get_malware_protection_plan
 - [ ] get_malware_scan
 - [ ] get_malware_scan_settings
@@ -6040,7 +6040,7 @@
 - [ ] list_findings
 - [ ] list_investigations
 - [ ] list_invitations
-- [ ] list_ip_sets
+- [X] list_ip_sets
 - [ ] list_malware_protection_plans
 - [ ] list_malware_scans
 - [ ] list_members
@@ -6062,7 +6062,7 @@
 - [X] update_detector
 - [X] update_filter
 - [ ] update_findings_feedback
-- [ ] update_ip_set
+- [X] update_ip_set
 - [ ] update_malware_protection_plan
 - [ ] update_malware_scan_settings
 - [ ] update_member_detectors
