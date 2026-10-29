@@ -1,24 +1,15 @@
 """Exceptions raised by the cloudhsmv2 service."""
 
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class CloudHSMv2ClientError(JsonRESTError):
+class CloudHSMv2ClientError(ServiceException):
     """Base class for CloudHSMv2 errors."""
-
-    code = 400
 
 
 class ResourceNotFoundException(CloudHSMv2ClientError):
-    def __init__(self, message: str):
-        super().__init__("ResourceNotFoundException", message)
+    code = "CloudHsmResourceNotFoundException"
 
 
 class InvalidRequestException(CloudHSMv2ClientError):
-    def __init__(self, message: str):
-        super().__init__("InvalidRequestException", message)
-
-
-class ClientError(CloudHSMv2ClientError):
-    def __init__(self, error_type: str, message: str):
-        super().__init__(error_type, message)
+    code = "CloudHsmInvalidRequestException"
