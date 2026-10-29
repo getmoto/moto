@@ -131,12 +131,47 @@ class Protection(BaseModel):
             self.resource_type = resource_types[res_type]
 
 
+class ProtectionGroup(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        protection_group_id: str,
+        aggregation: str,
+        pattern: str,
+        resource_type: str | None,
+        members: list[str] | None,
+    ):
+        self.protection_group_id = protection_group_id
+        self.aggregation = aggregation
+        self.pattern = pattern
+        self.resource_type = resource_type
+        self.members = members or []
+        self.protection_group_arn = (
+            f"arn:aws:shield::{account_id}:protection-group/{protection_group_id}"
+        )
+
+    def update(
+        self,
+        aggregation: str,
+        pattern: str,
+        resource_type: str | None,
+        members: list[str] | None,
+    ) -> None:
+        # UpdateProtectionGroup requires Aggregation and Pattern, so the whole
+        # definition is replaced rather than patched field by field.
+        self.aggregation = aggregation
+        self.pattern = pattern
+        self.resource_type = resource_type
+        self.members = members or []
+
+
 class ShieldBackend(BaseBackend):
     """Implementation of Shield APIs."""
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.protections: dict[str, Protection] = {}
+        self.protection_groups: dict[str, ProtectionGroup] = {}
         self.subscription: Subscription | None = None
         self.tagger = TaggingService()
 
@@ -262,6 +297,118 @@ class ShieldBackend(BaseBackend):
             del self.protections[protection_id]
             return
         raise ResourceNotFoundException("The referenced protection does not exist.")
+
+    def validate_protection_group(
+        self, pattern: str, resource_type: str | None, members: list[str] | None
+    ) -> None:
+        """Raise exception if the pattern does not match the other arguments."""
+        if pattern == "ARBITRARY":
+            if not members:
+                raise InvalidParameterException(
+                    "Invalid parameter. You must specify Members when Pattern is ARBITRARY."
+                )
+            if resource_type:
+                raise InvalidParameterException(
+                    "Invalid parameter. You cannot specify ResourceType when Pattern is ARBITRARY."
+                )
+        elif pattern == "BY_RESOURCE_TYPE":
+            if not resource_type:
+                raise InvalidParameterException(
+                    "Invalid parameter. You must specify ResourceType when Pattern is BY_RESOURCE_TYPE."
+                )
+            if members:
+                raise InvalidParameterException(
+                    "Invalid parameter. You cannot specify Members when Pattern is BY_RESOURCE_TYPE."
+                )
+        elif members or resource_type:
+            raise InvalidParameterException(
+                "Invalid parameter. You cannot specify Members or ResourceType when Pattern is ALL."
+            )
+
+    def create_protection_group(
+        self,
+        protection_group_id: str,
+        aggregation: str,
+        pattern: str,
+        resource_type: str | None,
+        members: list[str] | None,
+        tags: list[dict[str, str]] | None,
+    ) -> None:
+        if protection_group_id in self.protection_groups:
+            raise ResourceAlreadyExistsException(
+                "The referenced protection group already exists."
+            )
+        self.validate_protection_group(pattern, resource_type, members)
+        protection_group = ProtectionGroup(
+            account_id=self.account_id,
+            protection_group_id=protection_group_id,
+            aggregation=aggregation,
+            pattern=pattern,
+            resource_type=resource_type,
+            members=members,
+        )
+        self.protection_groups[protection_group_id] = protection_group
+        if tags:
+            self.tag_resource(protection_group.protection_group_arn, tags)
+
+    def describe_protection_group(self, protection_group_id: str) -> ProtectionGroup:
+        if protection_group_id not in self.protection_groups:
+            raise ResourceNotFoundException(
+                "The referenced protection group does not exist."
+            )
+        return self.protection_groups[protection_group_id]
+
+    def update_protection_group(
+        self,
+        protection_group_id: str,
+        aggregation: str,
+        pattern: str,
+        resource_type: str | None,
+        members: list[str] | None,
+    ) -> None:
+        protection_group = self.describe_protection_group(protection_group_id)
+        self.validate_protection_group(pattern, resource_type, members)
+        protection_group.update(
+            aggregation=aggregation,
+            pattern=pattern,
+            resource_type=resource_type,
+            members=members,
+        )
+
+    def delete_protection_group(self, protection_group_id: str) -> None:
+        self.describe_protection_group(protection_group_id)
+        del self.protection_groups[protection_group_id]
+
+    def list_protection_groups(
+        self, inclusion_filters: dict[str, Any] | None
+    ) -> list[ProtectionGroup]:
+        """
+        Pagination has not yet been implemented
+        """
+        protection_groups = list(self.protection_groups.values())
+        if not inclusion_filters:
+            return protection_groups
+
+        filters = {
+            "protectionGroupIds": ("ProtectionGroupIds", "protection_group_id"),
+            "patterns": ("Patterns", "pattern"),
+            "resourceTypes": ("ResourceTypes", "resource_type"),
+            "aggregations": ("Aggregations", "aggregation"),
+        }
+        for input_name, (key, attribute) in filters.items():
+            values = inclusion_filters.get(key)
+            if not values:
+                continue
+            if len(values) > 1:
+                raise ValidationException(
+                    f"Error validating the following inputs: inclusionFilters.{input_name}"
+                )
+            protection_groups = [
+                group
+                for group in protection_groups
+                if getattr(group, attribute) == values[0]
+            ]
+        return protection_groups
 
     def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
