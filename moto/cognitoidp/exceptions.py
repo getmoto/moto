@@ -62,3 +62,13 @@ class InvalidPasswordException(JsonRESTError):
 class CodeMismatchException(JsonRESTError):
     def __init__(self, message: str):
         super().__init__(error_type="CodeMismatchException", message=message)
+
+
+class UnauthorizedException(JsonRESTError):
+    def __init__(self, message: str):
+        super().__init__(error_type="UnauthorizedException", message=message)
+
+
+class UnsupportedOperationException(JsonRESTError):
+    def __init__(self, message: str):
+        super().__init__(error_type="UnsupportedOperationException", message=message)
