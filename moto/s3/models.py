@@ -2351,6 +2351,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
         existing_keys = bucket.keys.getlist(key_name, [])
         if bucket.is_versioned:
             keys = existing_keys + [new_key]
+        elif bucket.versioning_status == "Suspended":
+            # Only the null version is replaced, other versions are kept
+            keys = [k for k in existing_keys if k.version_id != "null"] + [new_key]
         else:
             keys = [new_key]
         bucket.keys.setlist(key_name, keys)
