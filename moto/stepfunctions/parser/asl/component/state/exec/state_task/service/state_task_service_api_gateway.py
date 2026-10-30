@@ -18,6 +18,9 @@ from moto.stepfunctions.parser.asl.component.common.error_name.custom_error_name
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
     FailureEvent,
 )
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
+    StateCredentials,
+)
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceCondition,
     ResourceRuntimePart,
@@ -100,7 +103,15 @@ class SfnGatewayException(Exception):
 
 class StateTaskServiceApiGateway(StateTaskServiceCallback):
     _SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {
-        SupportedApiCalls.invoke: {"ApiEndpoint", "Method"}
+        SupportedApiCalls.invoke: {
+            "ApiEndpoint",
+            "Method",
+            "Stage",
+            "Path",
+            "QueryParameters",
+            "RequestBody",
+            "Headers",
+        }
     }
 
     _FORBIDDEN_HTTP_HEADERS_PREFIX: Final[set[str]] = {"X-Forwarded", "X-Amz", "X-Amzn"}
@@ -193,10 +204,11 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
                 parameters.get("Stage", ""),
                 PATH_USER_REQUEST,
                 parameters.get("Path", ""),
-                StateTaskServiceApiGateway._query_parameters_of(parameters) or "",
             ]
         )
-        invoke_url = urljoin(url_base, url_tail)
+        # The query string is not a path segment, so it must not be "/"-joined
+        query = StateTaskServiceApiGateway._query_parameters_of(parameters) or ""
+        invoke_url = urljoin(url_base, url_tail) + query
         return invoke_url
 
     @staticmethod
@@ -244,6 +256,7 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
             error_name = f"ApiGateway.{ex_name}"
             cause = str(ex)
         return FailureEvent(
+            env=env,
             error_name=CustomErrorName(error_name),
             event_type=HistoryEventType.TaskFailed,
             event_details=EventDetails(
@@ -261,7 +274,7 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: Any,
+        state_credentials: StateCredentials,
     ):
         task_parameters: TaskParameters = normalised_parameters
 
