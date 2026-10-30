@@ -416,9 +416,10 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         challenge_name = self._get_param("ChallengeName")
         challenge_responses = self._get_param("ChallengeResponses")
+        client_metadata = self._get_param("ClientMetadata")
         backend = self._get_region_agnostic_backend()
         auth_result = backend.admin_respond_to_auth_challenge(
-            session, client_id, challenge_name, challenge_responses
+            session, client_id, challenge_name, challenge_responses, client_metadata
         )
 
         return ActionResult(auth_result)
@@ -428,8 +429,9 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         challenge_name = self._get_param("ChallengeName")
         challenge_responses = self._get_param("ChallengeResponses")
+        client_metadata = self._get_param("ClientMetadata")
         auth_result = self._get_region_agnostic_backend().respond_to_auth_challenge(
-            session, client_id, challenge_name, challenge_responses
+            session, client_id, challenge_name, challenge_responses, client_metadata
         )
 
         return ActionResult(auth_result)
@@ -571,6 +573,18 @@ class CognitoIdpResponse(BaseResponse):
 
         auth_result = self._get_region_agnostic_backend().initiate_auth(
             client_id, auth_flow, auth_parameters
+        )
+
+        return ActionResult(auth_result)
+
+    def get_tokens_from_refresh_token(self) -> ActionResult:
+        client_id = self._get_param("ClientId")
+        refresh_token = self._get_param("RefreshToken")
+        client_secret = self._get_param("ClientSecret")
+        client_metadata = self._get_param("ClientMetadata")
+
+        auth_result = self._get_region_agnostic_backend().get_tokens_from_refresh_token(
+            client_id, refresh_token, client_secret, client_metadata
         )
 
         return ActionResult(auth_result)

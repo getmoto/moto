@@ -159,3 +159,21 @@ def verify_totp(totp: TOTP, code: bytes, valid_window: int = 0) -> None:
             return  # Token is valid.
 
     raise InvalidToken("Supplied TOTP value does not match.")
+
+
+def java_hashset_order(items: list[str]) -> list[str]:
+    """
+    Cognito lists scopes in the iteration order of a Java HashSet:
+    by bucket of the String hashCode, in insertion order within a bucket.
+    """
+    capacity = 16
+    while len(items) > capacity * 0.75:
+        capacity *= 2
+
+    def bucket(item: str) -> int:
+        h = 0
+        for ch in item:
+            h = (31 * h + ord(ch)) & 0xFFFFFFFF
+        return (h ^ (h >> 16)) & (capacity - 1)
+
+    return sorted(items, key=bucket)
