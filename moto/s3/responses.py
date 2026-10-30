@@ -1,3 +1,6 @@
+import base64
+import binascii
+import hashlib
 import io
 import re
 import urllib.parse
@@ -32,6 +35,7 @@ from moto.utilities.utils import PARTITION_NAMES, get_partition
 from ..core.exceptions import SignatureDoesNotMatchError
 from .exceptions import (
     AccessForbidden,
+    BadDigest,
     BucketAccessDeniedError,
     BucketAlreadyExists,
     BucketAlreadyOwnedByYou,
@@ -41,6 +45,7 @@ from .exceptions import (
     IllegalLocationConstraintException,
     IncompatibleLocationConstraintException,
     InvalidContinuationToken,
+    InvalidDigest,
     InvalidLocationConstraintException,
     InvalidMaxPartArgument,
     InvalidMaxPartNumberArgument,
@@ -2295,6 +2300,7 @@ class S3Response(BaseResponse):
         ):
             raise PreconditionFailed("If-None-Match")
 
+        self._check_content_md5()
         checksum_algorithm, checksum_value = self._get_checksum(response_headers)
 
         bucket = self.backend.get_bucket(self.bucket_name)
@@ -2334,6 +2340,19 @@ class S3Response(BaseResponse):
         # Remove content-length - the response body is empty for this request
         response_headers.pop("content-length", None)
         return 200, response_headers, ""
+
+    def _check_content_md5(self) -> None:
+        content_md5 = self.headers.get("Content-MD5")
+        if content_md5 is None:
+            return
+        try:
+            expected = base64.b64decode(content_md5, validate=True)
+        except binascii.Error:
+            raise InvalidDigest()
+        if len(expected) != 16:
+            raise InvalidDigest()
+        if hashlib.md5(self.body or b"").digest() != expected:
+            raise BadDigest()
 
     def _get_checksum(self, response_headers: dict[str, Any]) -> tuple[str, str | None]:
         checksum_algorithm = self.headers.get("x-amz-sdk-checksum-algorithm", "")
@@ -2566,6 +2585,7 @@ class S3Response(BaseResponse):
 
         if part_number > 10000:
             raise InvalidMaxPartNumberArgument(part_number)
+        self._check_content_md5()
         key = self.backend.upload_part(
             self.bucket_name, upload_id, part_number, self.body
         )
