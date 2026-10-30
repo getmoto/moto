@@ -4773,6 +4773,206 @@ def test_initiate_auth_REFRESH_TOKEN(user_pool=None, user_pool_client=None):
     assert id_payload.claims["aud"] == result["client_id"]
 
 
+def _create_user_and_log_in(conn, user_pool_id, client_id):
+    username = str(uuid.uuid4())
+    password = "P2$Sword"
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        TemporaryPassword=password,
+        MessageAction="SUPPRESS",
+    )
+    conn.admin_set_user_password(
+        UserPoolId=user_pool_id, Username=username, Password=password, Permanent=True
+    )
+    tokens = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_PASSWORD_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": password},
+    )["AuthenticationResult"]
+    return username, tokens
+
+
+@pytest.mark.aws_verified
+@cognitoidp_aws_verified(explicit_auth_flows=["USER_PASSWORD_AUTH"])
+def test_get_tokens_from_refresh_token(user_pool=None, user_pool_client=None):
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = user_pool["UserPool"]["Id"]
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
+    username, initial = _create_user_and_log_in(conn, user_pool_id, client_id)
+
+    tokens = conn.get_tokens_from_refresh_token(
+        ClientId=client_id, RefreshToken=initial["RefreshToken"]
+    )["AuthenticationResult"]
+
+    # A new RefreshToken is only returned when refresh token rotation is enabled
+    assert set(tokens) == {"AccessToken", "ExpiresIn", "IdToken", "TokenType"}
+    assert tokens["TokenType"] == "Bearer"
+    assert tokens["ExpiresIn"] == 3600
+
+    initial_access = get_jwt_payload(initial["AccessToken"]).claims
+    access = get_jwt_payload(tokens["AccessToken"]).claims
+    assert access["username"] == username
+    assert access["client_id"] == client_id
+    assert access["origin_jti"] == initial_access["origin_jti"]
+    assert access["jti"] != initial_access["jti"]
+
+    id_claims = get_jwt_payload(tokens["IdToken"]).claims
+    assert id_claims["cognito:username"] == username
+    assert id_claims["aud"] == client_id
+    assert id_claims["origin_jti"] == initial_access["origin_jti"]
+
+
+@pytest.mark.aws_verified
+@cognitoidp_aws_verified(explicit_auth_flows=["USER_PASSWORD_AUTH"])
+def test_get_tokens_from_refresh_token_with_invalid_tokens(
+    user_pool=None, user_pool_client=None
+):
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = user_pool["UserPool"]["Id"]
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
+
+    with pytest.raises(ClientError) as exc:
+        conn.get_tokens_from_refresh_token(ClientId=client_id, RefreshToken="unknown")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "Invalid Refresh Token"
+
+    other_client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName="other",
+        ExplicitAuthFlows=["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"],
+    )["UserPoolClient"]["ClientId"]
+    _, tokens = _create_user_and_log_in(conn, user_pool_id, other_client_id)
+    with pytest.raises(ClientError) as exc:
+        conn.get_tokens_from_refresh_token(
+            ClientId=client_id, RefreshToken=tokens["RefreshToken"]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "Refresh Token has different Client"
+
+    username, tokens = _create_user_and_log_in(conn, user_pool_id, client_id)
+    conn.admin_user_global_sign_out(UserPoolId=user_pool_id, Username=username)
+    with pytest.raises(ClientError) as exc:
+        conn.get_tokens_from_refresh_token(
+            ClientId=client_id, RefreshToken=tokens["RefreshToken"]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "Refresh Token has been revoked"
+
+
+@pytest.mark.aws_verified
+@cognitoidp_aws_verified(explicit_auth_flows=["USER_PASSWORD_AUTH"])
+def test_get_tokens_from_refresh_token_for_disabled_or_deleted_user(
+    user_pool=None, user_pool_client=None
+):
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = user_pool["UserPool"]["Id"]
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
+
+    username, tokens = _create_user_and_log_in(conn, user_pool_id, client_id)
+    conn.admin_disable_user(UserPoolId=user_pool_id, Username=username)
+    with pytest.raises(ClientError) as exc:
+        conn.get_tokens_from_refresh_token(
+            ClientId=client_id, RefreshToken=tokens["RefreshToken"]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "User is disabled."
+
+    username, tokens = _create_user_and_log_in(conn, user_pool_id, client_id)
+    conn.admin_delete_user(UserPoolId=user_pool_id, Username=username)
+    with pytest.raises(ClientError) as exc:
+        conn.get_tokens_from_refresh_token(
+            ClientId=client_id, RefreshToken=tokens["RefreshToken"]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotAuthorizedException"
+    assert (
+        err["Message"] == "The user has been deleted for the associated refresh token"
+    )
+
+
+@pytest.mark.aws_verified
+@cognitoidp_aws_verified(generate_secret=True)
+def test_get_tokens_from_refresh_token_with_client_secret(
+    user_pool=None, user_pool_client=None
+):
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(
+        conn, user_pool=user_pool, user_pool_client=user_pool_client, with_mfa=False
+    )
+    client_id = result["client_id"]
+
+    with pytest.raises(ClientError) as exc:
+        conn.get_tokens_from_refresh_token(
+            ClientId=client_id, RefreshToken=result["refresh_token"]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotAuthorizedException"
+    assert (
+        err["Message"]
+        == f"Client {client_id} is configured for secret but secret was not received"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        conn.get_tokens_from_refresh_token(
+            ClientId=client_id,
+            RefreshToken=result["refresh_token"],
+            ClientSecret="x" + result["client_secret"][1:],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == f"Unable to verify secret hash for client {client_id}"
+
+    tokens = conn.get_tokens_from_refresh_token(
+        ClientId=client_id,
+        RefreshToken=result["refresh_token"],
+        ClientSecret=result["client_secret"],
+    )["AuthenticationResult"]
+    assert get_jwt_payload(tokens["AccessToken"]).claims["client_id"] == client_id
+
+
+@pytest.mark.aws_verified
+@cognitoidp_aws_verified()
+def test_get_tokens_from_refresh_token_for_unknown_client(
+    user_pool=None, user_pool_client=None
+):
+    conn = boto3.client("cognito-idp", "us-west-2")
+    client_id = "1example23456789example2345"
+
+    with pytest.raises(ClientError) as exc:
+        conn.get_tokens_from_refresh_token(ClientId=client_id, RefreshToken="unknown")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"User pool client {client_id} does not exist."
+
+
+@mock_aws
+def test_get_tokens_from_refresh_token_without_credentials():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName=str(uuid.uuid4()),
+        ExplicitAuthFlows=["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"],
+    )["UserPoolClient"]["ClientId"]
+    _, tokens = _create_user_and_log_in(conn, user_pool_id, client_id)
+
+    _get_tokens_without_credentials(conn, client_id, tokens["RefreshToken"])
+
+
+@set_initial_no_auth_action_count(0)
+def _get_tokens_without_credentials(conn, client_id, refresh_token):
+    # Public operation: callable without IAM permissions, like InitiateAuth
+    result = conn.get_tokens_from_refresh_token(
+        ClientId=client_id, RefreshToken=refresh_token
+    )
+    assert result["AuthenticationResult"]["TokenType"] == "Bearer"
+
+
 def get_jwt_payload(access_token):
     old_validate_compact = jws.validate_compact
 

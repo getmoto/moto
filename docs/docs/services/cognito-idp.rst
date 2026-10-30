@@ -106,7 +106,11 @@ Otherwise you get semi-random garbage and HTTP 200 OK, for example:
 - [ ] get_log_delivery_configuration
 - [ ] get_provisioned_limit
 - [ ] get_signing_certificate
-- [ ] get_tokens_from_refresh_token
+- [X] get_tokens_from_refresh_token
+  
+Refresh token rotation is not yet supported - a new RefreshToken is never returned.
+
+
 - [ ] get_ui_customization
 - [X] get_user
 - [ ] get_user_attribute_verification_code
