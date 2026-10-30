@@ -31,6 +31,7 @@ from .exceptions import (
     InvalidParameterException,
     InvalidPasswordException,
     NotAuthorizedError,
+    OAuthError,
     ResourceNotFoundError,
     UnexpectedLambdaException,
     UserLambdaValidationException,
@@ -80,6 +81,7 @@ class TokenGenerationSource(str, enum.Enum):
     AUTHENTICATION = "TokenGeneration_Authentication"
     REFRESH_TOKENS = "TokenGeneration_RefreshTokens"
     NEW_PASSWORD_CHALLENGE = "TokenGeneration_NewPasswordChallenge"
+    CLIENT_CREDENTIALS = "TokenGeneration_ClientCredentials"
 
 
 # Claims that a Pre Token Generation trigger cannot add, override or suppress - AWS ignores these silently
@@ -721,9 +723,10 @@ class CognitoIdpUserPool(BaseModel):
     def pre_token_generation(
         self,
         client_id: str,
-        username: str,
+        username: str | None,
         trigger_source: TokenGenerationSource,
         client_metadata: dict[str, str] | None = None,
+        scopes: list[str] | None = None,
     ) -> dict[str, Any] | None:
         """
         Invokes the Pre Token Generation trigger, if configured.
@@ -741,6 +744,11 @@ class CognitoIdpUserPool(BaseModel):
         else:
             return None
         event_version = version[1]
+        if (
+            trigger_source == TokenGenerationSource.CLIENT_CREDENTIALS
+            and event_version != "3"
+        ):
+            return None
         # AWS names V2_0/V3_0 triggers with their version in error messages, and V1 triggers without one
         trigger_name = (
             "PreTokenGeneration"
@@ -754,6 +762,7 @@ class CognitoIdpUserPool(BaseModel):
             trigger_source,
             event_version,
             client_metadata,
+            scopes or ["aws.cognito.signin.user.admin"],
         )
         payload = self._invoke_pre_token_generation(function_arn, trigger_name, event)
         return self._parse_pre_token_generation_response(payload, event_version)
@@ -761,30 +770,35 @@ class CognitoIdpUserPool(BaseModel):
     def _pre_token_generation_event(
         self,
         client_id: str,
-        username: str,
+        username: str | None,
         trigger_source: TokenGenerationSource,
         event_version: str,
         client_metadata: dict[str, str] | None,
+        scopes: list[str],
     ) -> dict[str, Any]:
-        user = self._get_user(username)
-        groups = sorted(
-            user.groups,
-            key=lambda g: (g.precedence is None, g.precedence or 0, g.group_name),
-        )
-        roles = [g.role_arn for g in groups if g.role_arn]
-        request: dict[str, Any] = {
-            "userAttributes": {
-                **flatten_attrs(user.attributes),
-                "cognito:user_status": user.status,
-            },
-            "groupConfiguration": {
-                "groupsToOverride": [g.group_name for g in groups],
-                "iamRolesToOverride": roles,
-                "preferredRole": roles[0] if roles else None,
-            },
-        }
+        request: dict[str, Any]
+        if username is None:
+            request = {"userAttributes": {}, "groupConfiguration": None}
+        else:
+            user = self._get_user(username)
+            groups = sorted(
+                user.groups,
+                key=lambda g: (g.precedence is None, g.precedence or 0, g.group_name),
+            )
+            roles = [g.role_arn for g in groups if g.role_arn]
+            request = {
+                "userAttributes": {
+                    **flatten_attrs(user.attributes),
+                    "cognito:user_status": user.status,
+                },
+                "groupConfiguration": {
+                    "groupsToOverride": [g.group_name for g in groups],
+                    "iamRolesToOverride": roles,
+                    "preferredRole": roles[0] if roles else None,
+                },
+            }
         if event_version != "1":
-            request["scopes"] = ["aws.cognito.signin.user.admin"]
+            request["scopes"] = scopes
         if client_metadata:
             request["clientMetadata"] = client_metadata
         details = (
@@ -797,7 +811,7 @@ class CognitoIdpUserPool(BaseModel):
             "triggerSource": trigger_source.value,
             "region": self.region,
             "userPoolId": self.id,
-            "userName": username,
+            "userName": username or "ClientCredentials",
             "callerContext": {
                 "awsSdkVersion": "aws-sdk-unknown-unknown",
                 "clientId": client_id,
@@ -942,6 +956,41 @@ class CognitoIdpUserPool(BaseModel):
             if group_override.get("preferredRole"):
                 payload["cognito:preferred_role"] = group_override["preferredRole"]
 
+    def create_client_credentials_token(
+        self,
+        client: CognitoIdpUserPoolClient,
+        scopes: list[str],
+        client_metadata: dict[str, str] | None,
+    ) -> tuple[str, int]:
+        """
+        :returns: (access_token, expires_in)
+        """
+        pre_token = self.pre_token_generation(
+            client.id,
+            None,
+            TokenGenerationSource.CLIENT_CREDENTIALS,
+            client_metadata,
+            scopes,
+        )
+        now = int(time.time())
+        expires_in = client.access_token_validity()
+        payload: dict[str, Any] = {
+            "sub": client.id,
+            "token_use": "access",
+            "scope": " ".join(scopes),
+            "auth_time": now,
+            "iss": f"https://cognito-idp.{self.region}.amazonaws.com/{self.id}",
+            "exp": now + expires_in,
+            "iat": now,
+            "version": 2,
+            "jti": str(random.uuid4()),
+            "client_id": client.id,
+        }
+        if pre_token:
+            self._apply_pre_token_overrides(payload, "access", pre_token)
+        headers = {"kid": "dummy", "alg": "RS256"}  # KID as present in jwks-public.json
+        return jwt.encode(headers, payload, self.json_web_key), expires_in
+
     def get_user_extra_data_by_client_id(
         self, client_id: str, username: str
     ) -> dict[str, Any]:
@@ -1053,6 +1102,20 @@ class CognitoIdpUserPoolClient(BaseModel):
 
     def get_readable_fields(self) -> list[str]:
         return self.extended_config.get("ReadAttributes", [])
+
+    def access_token_validity(self) -> int:
+        """
+        :returns: the validity of an access token in seconds
+        """
+        validity = self.extended_config.get("AccessTokenValidity")
+        if not validity:
+            return 3600
+        unit = (self.extended_config.get("TokenValidityUnits") or {}).get(
+            "AccessToken", "hours"
+        )
+        return (
+            validity * {"seconds": 1, "minutes": 60, "hours": 3600, "days": 86400}[unit]
+        )
 
 
 class CognitoIdpIdentityProvider(BaseModel):
@@ -1277,6 +1340,8 @@ class CognitoIdpBackend(BaseBackend):
     Support for MFA TOTP can be enabled by setting `MOTO_COGNITO_IDP_USER_POOL_ENABLE_TOTP=true`.
     Moto will validate the TOTP MFA provided by the user when registering MFA or subsequently authenticating.
     At this time, Moto uses a single fixed secret across all users.
+
+    The token endpoint of a user pool domain (`https://{domain}.auth.{region}.amazoncognito.com/oauth2/token`, or `/oauth2/token` in ServerMode) supports the `client_credentials` grant.
 
     The Pre Token Generation trigger is invoked when issuing tokens, if configured. All other Lambda triggers are ignored.
     Use `@mock_aws(config={"lambda": {"use_docker": False}})` to test this without Docker, and configure the trigger response using the `/moto-api/static/lambda-simple/response` endpoint.
@@ -2571,6 +2636,52 @@ class CognitoIdpBackend(BaseBackend):
             }
         }
 
+    def get_client_credentials_token(
+        self,
+        client_id: str | None,
+        client_secret: str | None,
+        scope: str | None,
+        client_metadata: dict[str, str] | None,
+    ) -> dict[str, Any]:
+        """
+        Only the client_credentials grant is supported.
+        """
+        user_pool = next(
+            (p for p in self.user_pools.values() if client_id in p.clients), None
+        )
+        if user_pool is None:
+            raise OAuthError("invalid_client")
+        client = user_pool.clients[client_id]  # type: ignore[index]
+        if client_secret != client.secret:
+            raise OAuthError("invalid_client", "invalid_client_secret")
+        if "client_credentials" not in client.extended_config.get(
+            "AllowedOAuthFlows", []
+        ):
+            raise OAuthError("invalid_grant")
+
+        allowed_scopes = client.extended_config.get("AllowedOAuthScopes", [])
+        requested_scopes = (
+            list(dict.fromkeys(scope.split())) if scope else allowed_scopes
+        )
+        existing_scopes = {
+            f"{resource_server.identifier}/{s['ScopeName']}"
+            for resource_server in user_pool.resource_servers.values()
+            for s in resource_server.scopes or []
+        }
+        if any(s not in existing_scopes for s in requested_scopes):
+            raise OAuthError("invalid_scope")
+        if any(s not in allowed_scopes for s in requested_scopes):
+            raise OAuthError("invalid_grant")
+
+        access_token, expires_in = user_pool.create_client_credentials_token(
+            client, java_hashset_order(requested_scopes), client_metadata
+        )
+        return {
+            "access_token": access_token,
+            "expires_in": expires_in,
+            "token_type": "Bearer",
+        }
+
     def associate_software_token(
         self, access_token: str, session: str
     ) -> dict[str, str]:
@@ -2842,6 +2953,18 @@ class RegionAgnosticBackend:
         backend = self._find_backend_for_clientid(client_id)
         return backend.get_tokens_from_refresh_token(
             client_id, refresh_token, client_secret, client_metadata
+        )
+
+    def get_client_credentials_token(
+        self,
+        client_id: str | None,
+        client_secret: str | None,
+        scope: str | None,
+        client_metadata: dict[str, str] | None,
+    ) -> dict[str, Any]:
+        backend = self._find_backend_for_clientid(client_id)  # type: ignore[arg-type]
+        return backend.get_client_credentials_token(
+            client_id, client_secret, scope, client_metadata
         )
 
     def confirm_sign_up(self, client_id: str, username: str) -> str:

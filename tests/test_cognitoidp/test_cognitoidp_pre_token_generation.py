@@ -1,4 +1,5 @@
 import json
+import re
 import uuid
 from unittest import SkipTest
 from unittest.mock import patch
@@ -445,3 +446,140 @@ def test_pre_token_generation_function_error():
     err = exc.value.response["Error"]
     assert err["Code"] == "UserLambdaValidationException"
     assert err["Message"] == "PreTokenGenerationV2_0 failed with error Not allowed."
+
+
+def _create_client_credentials_client(lambda_config):
+    conn = boto3.client("cognito-idp", REGION)
+    user_pool_id = conn.create_user_pool(PoolName="pool", LambdaConfig=lambda_config)[
+        "UserPool"
+    ]["Id"]
+    conn.create_resource_server(
+        UserPoolId=user_pool_id,
+        Identifier="api",
+        Name="api",
+        Scopes=[{"ScopeName": "read", "ScopeDescription": "read"}],
+    )
+    client = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName="m2m",
+        GenerateSecret=True,
+        AllowedOAuthFlows=["client_credentials"],
+        AllowedOAuthScopes=["api/read"],
+        AllowedOAuthFlowsUserPoolClient=True,
+    )["UserPoolClient"]
+    return user_pool_id, client
+
+
+def _client_credentials_token(client, **data):
+    return requests.post(
+        f"https://example.auth.{REGION}.amazoncognito.com/oauth2/token",
+        auth=(client["ClientId"], client["ClientSecret"]),
+        data={"grant_type": "client_credentials", **data},
+    )
+
+
+@mock_aws(config={"lambda": {"use_docker": False}})
+def test_pre_token_generation_client_credentials():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can only test patched code in DecoratorMode")
+    events = []
+
+    def invoke(*args, **kwargs):
+        events.append(json.loads(kwargs["body"]))
+        event = json.loads(kwargs["body"])
+        event["response"] = {
+            "claimsAndScopeOverrideDetails": {
+                "accessTokenGeneration": {"claimsToAddOrOverride": {"tenant": "t1"}}
+            }
+        }
+        return json.dumps(event)
+
+    function_arn = _create_function()
+    user_pool_id, client = _create_client_credentials_client(
+        {
+            "PreTokenGenerationConfig": {
+                "LambdaArn": function_arn,
+                "LambdaVersion": "V3_0",
+            }
+        }
+    )
+    with patch("moto.awslambda_simple.models.LambdaSimpleBackend.invoke", new=invoke):
+        response = _client_credentials_token(
+            client, aws_client_metadata=json.dumps({"key": "value"})
+        )
+
+    assert response.status_code == 200
+    claims = get_jwt_payload(response.json()["access_token"]).claims
+    assert claims["tenant"] == "t1"
+    assert events == [
+        {
+            "version": "3",
+            "triggerSource": "TokenGeneration_ClientCredentials",
+            "region": REGION,
+            "userPoolId": user_pool_id,
+            "userName": "ClientCredentials",
+            "callerContext": {
+                "awsSdkVersion": "aws-sdk-unknown-unknown",
+                "clientId": client["ClientId"],
+            },
+            "request": {
+                "userAttributes": {},
+                "groupConfiguration": None,
+                "scopes": ["api/read"],
+                "clientMetadata": {"key": "value"},
+            },
+            "response": {"claimsAndScopeOverrideDetails": None},
+        }
+    ]
+
+
+@mock_aws(config={"lambda": {"use_docker": False}})
+def test_pre_token_generation_client_credentials_requires_v3():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can only test patched code in DecoratorMode")
+    events = []
+
+    def invoke(*args, **kwargs):
+        events.append(kwargs["body"])
+        return kwargs["body"]
+
+    function_arn = _create_function()
+    _, client = _create_client_credentials_client(
+        {
+            "PreTokenGenerationConfig": {
+                "LambdaArn": function_arn,
+                "LambdaVersion": "V2_0",
+            }
+        }
+    )
+    with patch("moto.awslambda_simple.models.LambdaSimpleBackend.invoke", new=invoke):
+        response = _client_credentials_token(client)
+
+    assert response.status_code == 200
+    assert events == []
+
+
+@mock_aws(config={"lambda": {"use_docker": False}})
+def test_pre_token_generation_client_credentials_unknown_function():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Server mode is covered in test_server.py")
+    function_arn = f"arn:aws:lambda:{REGION}:123456789012:function:unknown"
+    _, client = _create_client_credentials_client(
+        {
+            "PreTokenGenerationConfig": {
+                "LambdaArn": function_arn,
+                "LambdaVersion": "V3_0",
+            }
+        }
+    )
+
+    response = _client_credentials_token(client)
+
+    assert response.status_code == 400
+    # The token endpoint wraps the error of the API
+    assert re.fullmatch(
+        r"PreTokenGenerationV3_0 invocation failed due to error AccessDeniedException\. "
+        r"\(Service: AWSCognitoIdentityProviderInternalService; Status Code: 400; "
+        r"Error Code: UnexpectedLambdaException; Request ID: [0-9a-f-]{36}; Proxy: null\)",
+        response.json()["error"],
+    )
