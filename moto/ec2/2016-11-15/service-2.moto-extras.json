@@ -19,6 +19,15 @@
           "httpStatusCode": 412
         },
         "exception": true
+      },
+      "OperationNotPermitted": {
+        "type": "structure",
+        "members": {},
+        "error": {
+          "code": "OperationNotPermitted",
+          "httpStatusCode": 400
+        },
+        "exception": true
       }
     }
   }
