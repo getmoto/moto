@@ -1722,24 +1722,15 @@ class S3Response(BaseResponse):
                     errors.append((obj["Key"], "AccessDenied", "Access Denied"))
                 else:
                     try:
-                        self._verify_etag_match(
+                        self._verify_etag_match_for_deletion(
                             obj["Key"],
                             obj.get("ETag", None),
                             version_id=obj.get("VersionId", None),
                             failed_condition="ETag",
                         )
                         objects_to_delete.append(obj)
-                    except PreconditionFailed:
-                        errors.append(
-                            (
-                                obj["Key"],
-                                "PreconditionFailed",
-                                "At least one of the pre-conditions you specified did not hold",
-                            )
-                        )
-                    except MissingKey:
-                        # Deletion is idempotent, and we need the format from `delete_objects`
-                        objects_to_delete.append(obj)
+                    except (PreconditionFailed, MissingKey) as e:
+                        errors.append((obj["Key"], e.code, e.message))
             deleted, errored = self.backend.delete_objects(
                 bucket_name, objects_to_delete, bypass_retention
             )
@@ -3072,7 +3063,7 @@ class S3Response(BaseResponse):
             return self.delete_object_tagging()
         return self.delete_object()
 
-    def _verify_etag_match(
+    def _verify_etag_match_for_deletion(
         self,
         key_name: str,
         etag: str | None,
@@ -3086,6 +3077,9 @@ class S3Response(BaseResponse):
                 self.bucket_name, key_name, version_id=version_id
             )
         ):
+            # When attempting to delete an object, S3 should throw a NoSuchKey error
+            # if the object is deleted and ETag matching is specified; this is unlike
+            # deletion where ETag is unspecified, that should be idempotent.
             raise MissingKey
         # Check if the ETags are the same. S3 doesn't seem to care about quotes, so we shouldn't either
         if etag.replace('"', "") != obj.etag.replace('"', ""):
@@ -3097,7 +3091,7 @@ class S3Response(BaseResponse):
         version_id = self._get_param("versionId")
         if_match = self.headers.get("If-Match")
 
-        self._verify_etag_match(
+        self._verify_etag_match_for_deletion(
             key_name,
             if_match,
             version_id=version_id,
