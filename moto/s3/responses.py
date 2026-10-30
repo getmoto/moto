@@ -19,6 +19,7 @@ from moto.core.utils import (
     ensure_boolean,
     extract_region_from_aws_authorization,
     path_url,
+    rfc_1123_datetime,
     str_to_rfc_1123_datetime,
 )
 from moto.s3bucket_path.utils import (
@@ -1997,7 +1998,19 @@ class S3Response(BaseResponse):
         return self.get_object()
 
     def get_object(self) -> TYPE_RESPONSE:
-        key, not_modified = self._get_key()
+        try:
+            key, not_modified = self._get_key()
+        except (MissingKey, MissingVersion):
+            version_id = self.querystring.get("versionId", [None])[0]
+            marker = self.backend.get_object(
+                self.bucket_name,
+                self.parse_key_name(),
+                version_id=version_id,
+                return_delete_marker=True,
+            )
+            if not isinstance(marker, FakeDeleteMarker):
+                raise
+            return self._get_delete_marker_response(marker, version_id)
         response_headers = self._get_cors_headers_other()
 
         if key.version_id != "null":
@@ -2049,6 +2062,24 @@ class S3Response(BaseResponse):
                 response_headers["content-range"] = f"bytes 0-{key.size - 1}/{key.size}"
                 return 206, response_headers, key.value
         return 200, response_headers, key.value
+
+    def _get_delete_marker_response(
+        self, marker: FakeDeleteMarker, version_id: str | None
+    ) -> TYPE_RESPONSE:
+        # The current version is a delete marker: 404, as if the object was deleted
+        # The requested version is a delete marker: 405
+        error: S3ClientError
+        if version_id:
+            error = MethodNotAllowed(method="GET", resource_type="DeleteMarker")
+        else:
+            error = MissingKey(key=self.parse_key_name())
+        status, headers, body = self.serialized(ActionResult(error))
+        headers["x-amz-delete-marker"] = "true"
+        headers["x-amz-version-id"] = marker.version_id
+        if version_id:
+            headers["allow"] = "DELETE"
+            headers["last-modified"] = rfc_1123_datetime(marker.last_modified)
+        return status, headers, body
 
     def get_object_attributes(self) -> TYPE_RESPONSE:
         # Get the Key, but do not validate StorageClass - we can retrieve the attributes of Glacier-objects
