@@ -4056,6 +4056,40 @@ def test_revoke_token():
 
 
 @mock_aws
+def test_revoke_token_revokes_sign_in_access_token():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn, with_mfa=False)
+
+    session = conn.initiate_auth(
+        ClientId=result["client_id"],
+        AuthFlow="USER_PASSWORD_AUTH",
+        AuthParameters={
+            "USERNAME": result["username"],
+            "PASSWORD": result["password"],
+            "SECRET_HASH": result["secret_hash"],
+        },
+    )["AuthenticationResult"]
+
+    _revoke_token_without_iam(
+        conn,
+        Token=session["RefreshToken"],
+        ClientId=result["client_id"],
+        ClientSecret=result["client_secret"],
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.get_user(AccessToken=session["AccessToken"])
+    err = ex.value.response["Error"]
+    assert err["Code"] == "NotAuthorizedException"
+
+
+@set_initial_no_auth_action_count(0)
+def _revoke_token_without_iam(conn, **kwargs):
+    # AWS does not evaluate IAM policies for RevokeToken - accessible by anyone
+    conn.revoke_token(**kwargs)
+
+
+@mock_aws
 def test_revoke_token_keeps_other_sessions():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn, with_mfa=False)

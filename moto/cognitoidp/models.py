@@ -659,10 +659,12 @@ class CognitoIdpUserPool(BaseModel):
         token_tuple = self.refresh_tokens.get(refresh_token)
         if token_tuple is None:
             return
-        _, _, origin_jti = token_tuple
+        client_id, username, origin_jti = token_tuple
         self.refresh_tokens[refresh_token] = None
         # Access tokens issued from this refresh token share its origin_jti
-        for access_token in list(self.access_tokens):
+        for access_token, owner in list(self.access_tokens.items()):
+            if owner != (client_id, username):
+                continue
             claims = jwt.decode(access_token, self.json_web_key).claims
             if claims.get("origin_jti") == origin_jti:
                 self.access_tokens.pop(access_token)
