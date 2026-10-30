@@ -4025,6 +4025,169 @@ def test_global_sign_out_unknown_accesstoken():
 
 
 @mock_aws
+def test_revoke_token():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn, with_mfa=False)
+
+    conn.revoke_token(
+        Token=result["refresh_token"],
+        ClientId=result["client_id"],
+        ClientSecret=result["client_secret"],
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.initiate_auth(
+            ClientId=result["client_id"],
+            AuthFlow="REFRESH_TOKEN",
+            AuthParameters={
+                "REFRESH_TOKEN": result["refresh_token"],
+                "SECRET_HASH": result["secret_hash"],
+            },
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "NotAuthorizedException"
+    assert err["Message"] == "Refresh Token has been revoked"
+
+    # Access tokens issued from the revoked refresh token are revoked too
+    with pytest.raises(ClientError) as ex:
+        conn.get_user(AccessToken=result["access_token"])
+    err = ex.value.response["Error"]
+    assert err["Code"] == "NotAuthorizedException"
+
+
+@mock_aws
+def test_revoke_token_keeps_other_sessions():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn, with_mfa=False)
+
+    # Sign in a second time, creating a separate refresh token
+    other_session = conn.initiate_auth(
+        ClientId=result["client_id"],
+        AuthFlow="USER_PASSWORD_AUTH",
+        AuthParameters={
+            "USERNAME": result["username"],
+            "PASSWORD": result["password"],
+            "SECRET_HASH": result["secret_hash"],
+        },
+    )["AuthenticationResult"]
+
+    conn.revoke_token(
+        Token=result["refresh_token"],
+        ClientId=result["client_id"],
+        ClientSecret=result["client_secret"],
+    )
+
+    user = conn.get_user(AccessToken=other_session["AccessToken"])
+    assert user["Username"] == result["username"]
+
+    refreshed = conn.initiate_auth(
+        ClientId=result["client_id"],
+        AuthFlow="REFRESH_TOKEN",
+        AuthParameters={
+            "REFRESH_TOKEN": other_session["RefreshToken"],
+            "SECRET_HASH": result["secret_hash"],
+        },
+    )["AuthenticationResult"]
+    assert refreshed["AccessToken"] is not None
+
+
+@mock_aws
+def test_revoke_token_twice():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn, with_mfa=False)
+
+    for _ in range(2):
+        conn.revoke_token(
+            Token=result["refresh_token"],
+            ClientId=result["client_id"],
+            ClientSecret=result["client_secret"],
+        )
+
+
+@mock_aws
+def test_revoke_token_revocation_disabled():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool = conn.create_user_pool(PoolName=str(uuid.uuid4()))
+    user_pool_client = conn.create_user_pool_client(
+        UserPoolId=user_pool["UserPool"]["Id"],
+        ClientName=str(uuid.uuid4()),
+        GenerateSecret=True,
+        EnableTokenRevocation=False,
+    )
+    result = user_authentication_flow(
+        conn, user_pool=user_pool, user_pool_client=user_pool_client, with_mfa=False
+    )
+
+    with pytest.raises(ClientError) as ex:
+        conn.revoke_token(
+            Token=result["refresh_token"],
+            ClientId=result["client_id"],
+            ClientSecret=result["client_secret"],
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "UnsupportedOperationException"
+    assert err["Message"] == "Token revocation is not enabled for this app client"
+
+
+@mock_aws
+def test_revoke_token_wrong_client_secret():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn, with_mfa=False)
+
+    with pytest.raises(ClientError) as ex:
+        conn.revoke_token(
+            Token=result["refresh_token"],
+            ClientId=result["client_id"],
+            ClientSecret="wrong-secret-wrong-secret",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "UnauthorizedException"
+    assert err["Message"] == "Invalid client secret"
+
+
+@mock_aws
+def test_revoke_token_unknown_token():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn, with_mfa=False)
+
+    with pytest.raises(ClientError) as ex:
+        conn.revoke_token(
+            Token="unknown-token",
+            ClientId=result["client_id"],
+            ClientSecret=result["client_secret"],
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "UnauthorizedException"
+    assert err["Message"] == "Invalid token"
+
+
+@mock_aws
+def test_revoke_token_issued_to_other_client():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    result = user_authentication_flow(conn, with_mfa=False)
+    other_client = conn.create_user_pool_client(
+        UserPoolId=result["user_pool_id"], ClientName=str(uuid.uuid4())
+    )["UserPoolClient"]
+
+    with pytest.raises(ClientError) as ex:
+        conn.revoke_token(
+            Token=result["refresh_token"], ClientId=other_client["ClientId"]
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "UnauthorizedException"
+    assert err["Message"] == "Invalid token"
+
+
+@mock_aws
+def test_revoke_token_unknown_client():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    with pytest.raises(ClientError) as ex:
+        conn.revoke_token(Token="unknown-token", ClientId="unknownclient")
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
 def test_admin_update_user_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 

@@ -30,6 +30,8 @@ from .exceptions import (
     InvalidPasswordException,
     NotAuthorizedError,
     ResourceNotFoundError,
+    UnauthorizedException,
+    UnsupportedOperationException,
     UsernameExistsException,
     UserNotConfirmedException,
     UserNotFoundError,
@@ -652,6 +654,18 @@ class CognitoIdpUserPool(BaseModel):
         )
         id_token, _ = self.create_id_token(client_id, username, origin_jti=origin_jti)
         return access_token, id_token, expires_in
+
+    def revoke_refresh_token(self, refresh_token: str) -> None:
+        token_tuple = self.refresh_tokens.get(refresh_token)
+        if token_tuple is None:
+            return
+        _, _, origin_jti = token_tuple
+        self.refresh_tokens[refresh_token] = None
+        # Access tokens issued from this refresh token share its origin_jti
+        for access_token in list(self.access_tokens):
+            claims = jwt.decode(access_token, self.json_web_key).claims
+            if claims.get("origin_jti") == origin_jti:
+                self.access_tokens.pop(access_token)
 
     def get_user_extra_data_by_client_id(
         self, client_id: str, username: str
@@ -1899,6 +1913,36 @@ class CognitoIdpBackend(BaseBackend):
 
         raise NotAuthorizedError(access_token)
 
+    def revoke_token(
+        self, token: str, client_id: str, client_secret: str | None
+    ) -> None:
+        user_pool = None
+        for p in self.user_pools.values():
+            if client_id in p.clients:
+                user_pool = p
+        if user_pool is None:
+            raise ResourceNotFoundError(client_id)
+
+        client = user_pool.clients[client_id]
+        if not client.extended_config.get("EnableTokenRevocation"):
+            raise UnsupportedOperationException(
+                "Token revocation is not enabled for this app client"
+            )
+        if client.generate_secret and client_secret != client.secret:
+            raise UnauthorizedException("Invalid client secret")
+
+        if token not in user_pool.refresh_tokens:
+            raise UnauthorizedException("Invalid token")
+        token_tuple = user_pool.refresh_tokens[token]
+        if token_tuple is None:
+            # Already revoked
+            return
+        token_client_id, _, _ = token_tuple
+        if token_client_id != client_id:
+            raise UnauthorizedException("Invalid token")
+
+        user_pool.revoke_refresh_token(token)
+
     def create_resource_server(
         self,
         user_pool_id: str,
@@ -2520,6 +2564,12 @@ class RegionAgnosticBackend:
         return backend.set_user_mfa_preference(
             access_token, software_token_mfa_settings, sms_mfa_settings
         )
+
+    def revoke_token(
+        self, token: str, client_id: str, client_secret: str | None
+    ) -> None:
+        backend = self._find_backend_for_clientid(client_id)
+        return backend.revoke_token(token, client_id, client_secret)
 
     def update_user_attributes(
         self, access_token: str, attributes: list[dict[str, str]]
