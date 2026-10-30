@@ -44,7 +44,20 @@ stepfunctions
 - [X] send_task_heartbeat
 - [X] send_task_success
 - [X] start_execution
-- [ ] start_sync_execution
+- [X] start_sync_execution
+  
+        Only EXPRESS state machines are supported, as on AWS. The execution
+        completes immediately: its status follows SF_EXECUTION_HISTORY_TYPE
+        (SUCCEEDED, or FAILED when set to FAILURE). As with StartExecution, the
+        definition is not run; enable the parser for real outputs. Synchronous
+        Express executions are not stored, so DescribeExecution cannot find them.
+
+        In ServerMode, create the client with
+        `botocore.config.Config(inject_host_prefix=False)`: the operation's
+        endpoint has the host prefix "sync-", which would otherwise be added
+        to the server's host name.
+        
+
 - [X] stop_execution
 - [X] tag_resource
 - [ ] test_state

@@ -249,6 +249,7 @@ backend_url_patterns = [
     ("ssm", re.compile("https?://ssm\\.(.+)\\.amazonaws\\.com\\.cn")),
     ("ssoadmin", re.compile("https?://sso\\.(.+)\\.amazonaws\\.com")),
     ("stepfunctions", re.compile("https?://states\\.(.+)\\.amazonaws.com")),
+    ("stepfunctions", re.compile("https?://sync-states\\.(.+)\\.amazonaws.com")),
     ("sts", re.compile("https?://sts\\.(.*\\.)?amazonaws\\.com")),
     ("support", re.compile("https?://support\\.(.+)\\.amazonaws\\.com")),
     ("swf", re.compile("https?://swf\\.(.+)\\.amazonaws\\.com")),
