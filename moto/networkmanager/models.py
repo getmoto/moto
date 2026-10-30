@@ -378,13 +378,12 @@ class NetworkManagerBackend(BaseBackend):
         self,
         global_network_id: str,
         link_ids: list[str],
-        site_id: str,
-        type: str,
-        provider: str,
+        site_id: str | None,
+        type: str | None,
+        provider: str | None,
     ) -> list[Link]:
         if global_network_id not in self.global_networks:
             raise ValidationError("Incorrect input.")
-        # TODO: Implement filtering by site_id, type, provider
         gn_links = self.links.get(global_network_id) or {}
         queried = []
         if not link_ids:
@@ -394,6 +393,12 @@ class NetworkManagerBackend(BaseBackend):
                 if id in gn_links:
                     q = gn_links[id]
                     queried.append(q)
+        if site_id:
+            queried = [link for link in queried if link.site_id == site_id]
+        if type:
+            queried = [link for link in queried if link.type == type]
+        if provider:
+            queried = [link for link in queried if link.provider == provider]
         return queried
 
     def delete_link(self, global_network_id: str, link_id: str) -> Link:
@@ -443,7 +448,6 @@ class NetworkManagerBackend(BaseBackend):
     ) -> list[Device]:
         if global_network_id not in self.global_networks:
             raise ValidationError("Incorrect input.")
-        # TODO: Implement filtering by site_id
         gn_devices = self.devices.get(global_network_id) or {}
         queried = []
         if not device_ids:
@@ -453,7 +457,8 @@ class NetworkManagerBackend(BaseBackend):
                 if id in gn_devices:
                     q = gn_devices[id]
                     queried.append(q)
-
+        if site_id:
+            queried = [device for device in queried if device.site_id == site_id]
         return queried
 
     def delete_device(self, global_network_id: str, device_id: str) -> Device:
