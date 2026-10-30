@@ -261,3 +261,14 @@ class SecretsManagerResponse(BaseResponse):
             secret_id, replica_regions
         )
         return json.dumps({"ARN": arn, "ReplicationStatus": statuses})
+
+    def validate_resource_policy(self) -> str:
+        secret_id = self._get_param("SecretId")
+        resource_policy = self._get_param("ResourcePolicy")
+        resp = self.backend.validate_resource_policy(secret_id, resource_policy)
+        return json.dumps(resp)
+
+    def stop_replication_to_replica(self) -> str:
+        secret_id = self._get_param("SecretId")
+        arn = self.backend.stop_replication_to_replica(secret_id)
+        return json.dumps({"ARN": arn})
