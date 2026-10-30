@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+import json
 import re
 import time
 from collections import OrderedDict
@@ -26,10 +27,13 @@ from .exceptions import (
     CodeMismatchException,
     ExpiredCodeException,
     GroupExistsException,
+    InvalidLambdaResponseException,
     InvalidParameterException,
     InvalidPasswordException,
     NotAuthorizedError,
     ResourceNotFoundError,
+    UnexpectedLambdaException,
+    UserLambdaValidationException,
     UsernameExistsException,
     UserNotConfirmedException,
     UserNotFoundError,
@@ -41,6 +45,7 @@ from .utils import (
     expand_attrs,
     flatten_attrs,
     generate_id,
+    java_hashset_order,
     validate_username_format,
     verify_totp,
 )
@@ -69,6 +74,47 @@ class AuthFlow(str, enum.Enum):
     @classmethod
     def list(cls) -> list[str]:
         return [e.value for e in cls]
+
+
+class TokenGenerationSource(str, enum.Enum):
+    AUTHENTICATION = "TokenGeneration_Authentication"
+    REFRESH_TOKENS = "TokenGeneration_RefreshTokens"
+    NEW_PASSWORD_CHALLENGE = "TokenGeneration_NewPasswordChallenge"
+
+
+# Claims that a Pre Token Generation trigger cannot add, override or suppress - AWS ignores these silently
+PRE_TOKEN_PROTECTED_CLAIMS: Final[dict[str, set[str]]] = {
+    "access": {
+        "aud",
+        "auth_time",
+        "client_id",
+        "cognito:username",
+        "event_id",
+        "exp",
+        "iat",
+        "iss",
+        "jti",
+        "origin_jti",
+        "scope",
+        "sub",
+        "token_use",
+        "username",
+        "version",
+    },
+    "id": {
+        "aud",
+        "auth_time",
+        "cognito:username",
+        "event_id",
+        "exp",
+        "iat",
+        "iss",
+        "jti",
+        "origin_jti",
+        "sub",
+        "token_use",
+    },
+}
 
 
 class CognitoIdpUserPoolAttribute(BaseModel):
@@ -537,6 +583,7 @@ class CognitoIdpUserPool(BaseModel):
         token_use: str,
         expires_in: int = 60 * 60,
         extra_data: dict[str, Any] | None = None,
+        pre_token: dict[str, Any] | None = None,
     ) -> tuple[str, int]:
         now = int(time.time())
         payload = {
@@ -565,6 +612,8 @@ class CognitoIdpUserPool(BaseModel):
                 payload["cognito:username"] = username
 
         payload.update(extra_data or {})
+        if pre_token:
+            self._apply_pre_token_overrides(payload, token_use, pre_token)
         headers = {"kid": "dummy", "alg": "RS256"}  # KID as present in jwks-public.json
 
         return (
@@ -589,7 +638,11 @@ class CognitoIdpUserPool(BaseModel):
             self.schema_attributes[attribute.name] = attribute
 
     def create_id_token(
-        self, client_id: str, username: str, origin_jti: str
+        self,
+        client_id: str,
+        username: str,
+        origin_jti: str,
+        pre_token: dict[str, Any] | None = None,
     ) -> tuple[str, int]:
         """
         :returns: (id_token, expires_in)
@@ -603,7 +656,7 @@ class CognitoIdpUserPool(BaseModel):
         if len(user.groups) > 0:
             extra_data["cognito:groups"] = [group.group_name for group in user.groups]
         id_token, expires_in = self.create_jwt(
-            client_id, username, "id", extra_data=extra_data
+            client_id, username, "id", extra_data=extra_data, pre_token=pre_token
         )
         self.id_tokens[id_token] = (client_id, username)
         return id_token, expires_in
@@ -618,7 +671,11 @@ class CognitoIdpUserPool(BaseModel):
         return refresh_token, origin_jti
 
     def create_access_token(
-        self, client_id: str, username: str, origin_jti: str
+        self,
+        client_id: str,
+        username: str,
+        origin_jti: str,
+        pre_token: dict[str, Any] | None = None,
     ) -> tuple[str, int]:
         """
         :returns: (access_token, expires_in)
@@ -632,13 +689,16 @@ class CognitoIdpUserPool(BaseModel):
             extra_data["cognito:groups"] = [group.group_name for group in user.groups]
 
         access_token, expires_in = self.create_jwt(
-            client_id, username, "access", extra_data=extra_data
+            client_id, username, "access", extra_data=extra_data, pre_token=pre_token
         )
         self.access_tokens[access_token] = (client_id, username)
         return access_token, expires_in
 
     def create_tokens_from_refresh_token(
-        self, refresh_token: str
+        self,
+        refresh_token: str,
+        trigger_source: TokenGenerationSource = TokenGenerationSource.REFRESH_TOKENS,
+        client_metadata: dict[str, str] | None = None,
     ) -> tuple[str, str, int]:
         res = self.refresh_tokens[refresh_token]
         if res is None:
@@ -647,11 +707,240 @@ class CognitoIdpUserPool(BaseModel):
         if not username:
             raise NotAuthorizedError(refresh_token)
 
-        access_token, expires_in = self.create_access_token(
-            client_id, username, origin_jti=origin_jti
+        pre_token = self.pre_token_generation(
+            client_id, username, trigger_source, client_metadata
         )
-        id_token, _ = self.create_id_token(client_id, username, origin_jti=origin_jti)
+        access_token, expires_in = self.create_access_token(
+            client_id, username, origin_jti=origin_jti, pre_token=pre_token
+        )
+        id_token, _ = self.create_id_token(
+            client_id, username, origin_jti=origin_jti, pre_token=pre_token
+        )
         return access_token, id_token, expires_in
+
+    def pre_token_generation(
+        self,
+        client_id: str,
+        username: str,
+        trigger_source: TokenGenerationSource,
+        client_metadata: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
+        """
+        Invokes the Pre Token Generation trigger, if configured.
+
+        :returns: the claim overrides per token type, or None if the trigger does not apply
+        """
+        lambda_config = self.extended_config.get("LambdaConfig") or {}
+        version_config = lambda_config.get("PreTokenGenerationConfig") or {}
+        if version_config.get("LambdaArn"):
+            function_arn = version_config["LambdaArn"]
+            version = version_config.get("LambdaVersion") or "V1_0"
+        elif lambda_config.get("PreTokenGeneration"):
+            function_arn = lambda_config["PreTokenGeneration"]
+            version = "V1_0"
+        else:
+            return None
+        event_version = version[1]
+        # AWS names V2_0/V3_0 triggers with their version in error messages, and V1 triggers without one
+        trigger_name = (
+            "PreTokenGeneration"
+            if event_version == "1"
+            else f"PreTokenGeneration{version}"
+        )
+
+        event = self._pre_token_generation_event(
+            client_id,
+            username,
+            trigger_source,
+            event_version,
+            client_metadata,
+        )
+        payload = self._invoke_pre_token_generation(function_arn, trigger_name, event)
+        return self._parse_pre_token_generation_response(payload, event_version)
+
+    def _pre_token_generation_event(
+        self,
+        client_id: str,
+        username: str,
+        trigger_source: TokenGenerationSource,
+        event_version: str,
+        client_metadata: dict[str, str] | None,
+    ) -> dict[str, Any]:
+        user = self._get_user(username)
+        groups = sorted(
+            user.groups,
+            key=lambda g: (g.precedence is None, g.precedence or 0, g.group_name),
+        )
+        roles = [g.role_arn for g in groups if g.role_arn]
+        request: dict[str, Any] = {
+            "userAttributes": {
+                **flatten_attrs(user.attributes),
+                "cognito:user_status": user.status,
+            },
+            "groupConfiguration": {
+                "groupsToOverride": [g.group_name for g in groups],
+                "iamRolesToOverride": roles,
+                "preferredRole": roles[0] if roles else None,
+            },
+        }
+        if event_version != "1":
+            request["scopes"] = ["aws.cognito.signin.user.admin"]
+        if client_metadata:
+            request["clientMetadata"] = client_metadata
+        details = (
+            "claimsOverrideDetails"
+            if event_version == "1"
+            else "claimsAndScopeOverrideDetails"
+        )
+        return {
+            "version": event_version,
+            "triggerSource": trigger_source.value,
+            "region": self.region,
+            "userPoolId": self.id,
+            "userName": username,
+            "callerContext": {
+                "awsSdkVersion": "aws-sdk-unknown-unknown",
+                "clientId": client_id,
+            },
+            "request": request,
+            "response": {details: None},
+        }
+
+    def _invoke_pre_token_generation(
+        self, function_arn: str, trigger_name: str, event: dict[str, Any]
+    ) -> str:
+        from moto.awslambda.exceptions import UnknownFunctionException
+        from moto.awslambda.utils import get_backend
+
+        lambda_backend = get_backend(self.account_id, function_arn.split(":")[3])
+        try:
+            # The Docker-less backend does not verify that the function exists
+            lambda_backend.get_function(function_arn)
+        except UnknownFunctionException:
+            raise UnexpectedLambdaException(
+                f"{trigger_name} invocation failed due to error AccessDeniedException."
+            )
+        response_headers: dict[str, Any] = {}
+        payload = lambda_backend.invoke(
+            function_name=function_arn,
+            qualifier=None,
+            body=json.dumps(event),
+            headers={},
+            response_headers=response_headers,
+        )
+        payload = (
+            payload.decode("utf-8") if isinstance(payload, bytes) else (payload or "")
+        )
+        if "x-amz-function-error" in response_headers:
+            try:
+                message = json.loads(payload)["errorMessage"]
+            except (ValueError, TypeError, KeyError):
+                message = payload
+            raise UserLambdaValidationException(
+                f"{trigger_name} failed with error {message}."
+            )
+        return payload
+
+    def _parse_pre_token_generation_response(
+        self, payload: str, event_version: str
+    ) -> dict[str, Any]:
+        try:
+            response = json.loads(payload)
+        except ValueError:
+            response = None
+        if response is None:
+            raise InvalidLambdaResponseException(
+                "Invalid lambda function output : Invalid JSON"
+            )
+        unrecognizable = InvalidLambdaResponseException("Unrecognizable lambda output")
+        if not isinstance(response, dict):
+            raise unrecognizable
+        if response.get("version") != event_version:
+            raise InvalidLambdaResponseException(
+                f"Invalid version in Lambda response. Version should be {event_version}"
+            )
+
+        overrides = response.get("response") or {}
+        if not isinstance(overrides, dict):
+            raise unrecognizable
+        if event_version == "1":
+            details = overrides.get("claimsOverrideDetails") or {}
+            if not isinstance(details, dict):
+                raise unrecognizable
+            # V1 only applies to the ID token, and only accepts scalar claim values
+            id_details = {
+                key: details[key]
+                for key in ("claimsToAddOrOverride", "claimsToSuppress")
+                if key in details
+            }
+            claims = id_details.get("claimsToAddOrOverride") or {}
+            if not isinstance(claims, dict) or any(
+                isinstance(value, (dict, list)) for value in claims.values()
+            ):
+                raise unrecognizable
+            id_details["claimsToAddOrOverride"] = {
+                key: str(value).lower() if isinstance(value, bool) else str(value)
+                for key, value in claims.items()
+                if value is not None
+            }
+            token_details = {"id": id_details, "access": {}}
+        else:
+            details = overrides.get("claimsAndScopeOverrideDetails") or {}
+            if not isinstance(details, dict):
+                raise unrecognizable
+            token_details = {
+                "id": details.get("idTokenGeneration") or {},
+                "access": details.get("accessTokenGeneration") or {},
+            }
+        for token_detail in token_details.values():
+            if not isinstance(token_detail, dict):
+                raise unrecognizable
+            if not isinstance(token_detail.get("claimsToAddOrOverride") or {}, dict):
+                raise unrecognizable
+            for key in ("claimsToSuppress", "scopesToAdd", "scopesToSuppress"):
+                if not isinstance(token_detail.get(key) or [], list):
+                    raise unrecognizable
+        return {**token_details, "groups": details.get("groupOverrideDetails")}
+
+    def _apply_pre_token_overrides(
+        self, payload: dict[str, Any], token_use: str, pre_token: dict[str, Any]
+    ) -> None:
+        protected = PRE_TOKEN_PROTECTED_CLAIMS[token_use]
+        details = pre_token[token_use]
+        for claim in details.get("claimsToSuppress") or []:
+            if claim not in protected:
+                payload.pop(claim, None)
+        for claim, value in (details.get("claimsToAddOrOverride") or {}).items():
+            # Groups can only be changed through the groupOverrideDetails
+            if (
+                claim not in protected
+                and claim != "cognito:groups"
+                and value is not None
+            ):
+                payload[claim] = value
+
+        scopes_to_add = details.get("scopesToAdd") or []
+        scopes_to_suppress = details.get("scopesToSuppress") or []
+        if token_use == "access" and (scopes_to_add or scopes_to_suppress):
+            scopes = [
+                s
+                for s in payload.get("scope", "").split()
+                if s not in scopes_to_suppress
+            ]
+            scopes += [s for s in scopes_to_add if s not in scopes]
+            payload["scope"] = " ".join(java_hashset_order(scopes))
+
+        group_override = pre_token.get("groups") or {}
+        if "groupsToOverride" in group_override:
+            if group_override["groupsToOverride"]:
+                payload["cognito:groups"] = group_override["groupsToOverride"]
+            else:
+                payload.pop("cognito:groups", None)
+        if token_use == "id":
+            if group_override.get("iamRolesToOverride"):
+                payload["cognito:roles"] = group_override["iamRolesToOverride"]
+            if group_override.get("preferredRole"):
+                payload["cognito:preferred_role"] = group_override["preferredRole"]
 
     def get_user_extra_data_by_client_id(
         self, client_id: str, username: str
@@ -988,6 +1277,9 @@ class CognitoIdpBackend(BaseBackend):
     Support for MFA TOTP can be enabled by setting `MOTO_COGNITO_IDP_USER_POOL_ENABLE_TOTP=true`.
     Moto will validate the TOTP MFA provided by the user when registering MFA or subsequently authenticating.
     At this time, Moto uses a single fixed secret across all users.
+
+    The Pre Token Generation trigger is invoked when issuing tokens, if configured. All other Lambda triggers are ignored.
+    Use `@mock_aws(config={"lambda": {"use_docker": False}})` to test this without Docker, and configure the trigger response using the `/moto-api/static/lambda-simple/response` endpoint.
     """
 
     def __init__(self, region_name: str, account_id: str):
@@ -1470,10 +1762,12 @@ class CognitoIdpBackend(BaseBackend):
         user_pool: CognitoIdpUserPool,
         client: CognitoIdpUserPoolClient,
         username: str,
+        trigger_source: TokenGenerationSource = TokenGenerationSource.AUTHENTICATION,
+        client_metadata: dict[str, str] | None = None,
     ) -> dict[str, dict[str, Any]]:
         refresh_token, _ = user_pool.create_refresh_token(client.id, username)
         access_token, id_token, expires_in = user_pool.create_tokens_from_refresh_token(
-            refresh_token
+            refresh_token, trigger_source, client_metadata
         )
 
         return {
@@ -1603,6 +1897,7 @@ class CognitoIdpBackend(BaseBackend):
         client_id: str,
         challenge_name: str,
         challenge_responses: dict[str, str],
+        client_metadata: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         # Responds to an authentication challenge, as an administrator.
         # The only differences between this admin endpoint and public endpoint are not relevant and so we can safely call
@@ -1611,7 +1906,7 @@ class CognitoIdpBackend(BaseBackend):
         #  - ContextData is passed in; we don't use it
 
         return self.respond_to_auth_challenge(
-            session, client_id, challenge_name, challenge_responses
+            session, client_id, challenge_name, challenge_responses, client_metadata
         )
 
     def respond_to_auth_challenge(
@@ -1620,6 +1915,7 @@ class CognitoIdpBackend(BaseBackend):
         client_id: str,
         challenge_name: str,
         challenge_responses: dict[str, str],
+        client_metadata: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         if challenge_name == "PASSWORD_VERIFIER":
             session = challenge_responses.get("PASSWORD_CLAIM_SECRET_BLOCK")  # type: ignore[assignment]
@@ -1662,7 +1958,13 @@ class CognitoIdpBackend(BaseBackend):
                     }
 
             del self.sessions[session]
-            return self._log_user_in(user_pool, client, username)
+            return self._log_user_in(
+                user_pool,
+                client,
+                username,
+                TokenGenerationSource.NEW_PASSWORD_CHALLENGE,
+                client_metadata,
+            )
         elif challenge_name == "PASSWORD_VERIFIER":
             username: str = challenge_responses.get("USERNAME")  # type: ignore[no-redef]
             user = self.admin_get_user(user_pool.id, username)
@@ -1718,7 +2020,9 @@ class CognitoIdpBackend(BaseBackend):
                 }
 
             del self.sessions[session]
-            return self._log_user_in(user_pool, client, username)
+            return self._log_user_in(
+                user_pool, client, username, client_metadata=client_metadata
+            )
         elif challenge_name == "SOFTWARE_TOKEN_MFA" or challenge_name == "SMS_MFA":
             username: str = challenge_responses.get("USERNAME")  # type: ignore[no-redef]
             self.admin_get_user(user_pool.id, username)
@@ -1745,11 +2049,15 @@ class CognitoIdpBackend(BaseBackend):
                     raise CodeMismatchException("MFA Code Mismatch")
 
             del self.sessions[session]
-            return self._log_user_in(user_pool, client, username)
+            return self._log_user_in(
+                user_pool, client, username, client_metadata=client_metadata
+            )
 
         elif challenge_name == "MFA_SETUP":
             username, user_pool = self.sessions[session]
-            return self._log_user_in(user_pool, client, username)
+            return self._log_user_in(
+                user_pool, client, username, client_metadata=client_metadata
+            )
 
         else:
             return {}
@@ -2145,11 +2453,14 @@ class CognitoIdpBackend(BaseBackend):
             new_refresh_token, origin_jti = user_pool.create_refresh_token(
                 client_id, username
             )
+            pre_token = user_pool.pre_token_generation(
+                client_id, username, TokenGenerationSource.AUTHENTICATION
+            )
             access_token, expires_in = user_pool.create_access_token(
-                client_id, username, origin_jti=origin_jti
+                client_id, username, origin_jti=origin_jti, pre_token=pre_token
             )
             id_token, _ = user_pool.create_id_token(
-                client_id, username, origin_jti=origin_jti
+                client_id, username, origin_jti=origin_jti, pre_token=pre_token
             )
 
             return {
@@ -2200,7 +2511,11 @@ class CognitoIdpBackend(BaseBackend):
             return None  # type: ignore[return-value]
 
     def get_tokens_from_refresh_token(
-        self, client_id: str, refresh_token: str, client_secret: str | None
+        self,
+        client_id: str,
+        refresh_token: str,
+        client_secret: str | None,
+        client_metadata: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """
         Refresh token rotation is not yet supported - a new RefreshToken is never returned.
@@ -2243,7 +2558,9 @@ class CognitoIdpBackend(BaseBackend):
             access_token,
             id_token,
             expires_in,
-        ) = user_pool.create_tokens_from_refresh_token(refresh_token)
+        ) = user_pool.create_tokens_from_refresh_token(
+            refresh_token, client_metadata=client_metadata
+        )
 
         return {
             "AuthenticationResult": {
@@ -2516,11 +2833,15 @@ class RegionAgnosticBackend:
         return backend.initiate_auth(client_id, auth_flow, auth_parameters)
 
     def get_tokens_from_refresh_token(
-        self, client_id: str, refresh_token: str, client_secret: str | None
+        self,
+        client_id: str,
+        refresh_token: str,
+        client_secret: str | None,
+        client_metadata: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         backend = self._find_backend_for_clientid(client_id)
         return backend.get_tokens_from_refresh_token(
-            client_id, refresh_token, client_secret
+            client_id, refresh_token, client_secret, client_metadata
         )
 
     def confirm_sign_up(self, client_id: str, username: str) -> str:
@@ -2537,10 +2858,11 @@ class RegionAgnosticBackend:
         client_id: str,
         challenge_name: str,
         challenge_responses: dict[str, str],
+        client_metadata: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         backend = self._find_backend_for_clientid(client_id)
         return backend.admin_respond_to_auth_challenge(
-            session, client_id, challenge_name, challenge_responses
+            session, client_id, challenge_name, challenge_responses, client_metadata
         )
 
     def respond_to_auth_challenge(
@@ -2549,10 +2871,11 @@ class RegionAgnosticBackend:
         client_id: str,
         challenge_name: str,
         challenge_responses: dict[str, str],
+        client_metadata: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         backend = self._find_backend_for_clientid(client_id)
         return backend.respond_to_auth_challenge(
-            session, client_id, challenge_name, challenge_responses
+            session, client_id, challenge_name, challenge_responses, client_metadata
         )
 
     def associate_software_token(
