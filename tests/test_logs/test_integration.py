@@ -16,6 +16,36 @@ from tests.markers import requires_docker
 
 
 @mock_aws
+def test_describe_subscription_filters_sorted_by_name():
+    client = boto3.client("logs", region_name="us-east-1")
+    kinesis = boto3.client("kinesis", region_name="us-east-1")
+    group = "miruky-zhrubjlsbufthpop"
+    stream = "miruky-fvkjlebcgtfkiumz"
+    names = ["miruky-llbqybvscvrtiora", "miruky-adohfpnhefnocvap"]
+    client.create_log_group(logGroupName=group)
+    kinesis.create_stream(StreamName=stream, ShardCount=1)
+    arn = kinesis.describe_stream(StreamName=stream)["StreamDescription"]["StreamARN"]
+    assert (
+        client.describe_subscription_filters(logGroupName=group)["subscriptionFilters"]
+        == []
+    )
+    for name in names:
+        client.put_subscription_filter(
+            logGroupName=group, filterName=name, filterPattern="", destinationArn=arn
+        )
+
+    result = client.describe_subscription_filters(logGroupName=group)[
+        "subscriptionFilters"
+    ]
+    assert [item["filterName"] for item in result] == sorted(names)
+    client.delete_subscription_filter(logGroupName=group, filterName=names[1])
+    result = client.describe_subscription_filters(logGroupName=group)[
+        "subscriptionFilters"
+    ]
+    assert [item["filterName"] for item in result] == [names[0]]
+
+
+@mock_aws
 def test_put_subscription_filter_update():
     # given
     region_name = "us-east-1"
