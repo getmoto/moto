@@ -57,6 +57,7 @@ backend_url_patterns = [
     ("codepipeline", re.compile("https?://codepipeline\\.(.+)\\.amazonaws\\.com")),
     ("cognitoidentity", re.compile("https?://cognito-identity\\.(.+)\\.amazonaws.com")),
     ("cognitoidp", re.compile("https?://cognito-idp\\.(.+)\\.amazonaws.com")),
+    ("cognitoidp", re.compile("https?://[^.]+\\.auth\\.(.+)\\.amazoncognito\\.com")),
     ("comprehend", re.compile("https?://comprehend\\.(.+)\\.amazonaws\\.com")),
     ("config", re.compile("https?://config\\.(.+)\\.amazonaws\\.com")),
     ("connect", re.compile("https?://connect\\.(.+)\\.amazonaws\\.com")),

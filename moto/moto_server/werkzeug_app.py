@@ -143,7 +143,8 @@ class DomainDispatcherApplication:
         auth = environ.get("HTTP_AUTHORIZATION")
         target = environ.get("HTTP_X_AMZ_TARGET")
         service = None
-        if auth:
+        # Basic authentication is used by the OAuth 2.0 endpoints of Cognito, and is not a signature
+        if auth and not auth.startswith("Basic "):
             # Signed request
             # Parse auth header to find service assuming a SigV4 request
             # https://docs.aws.amazon.com/general/latest/gr/sigv4-signed-request-examples.html
@@ -383,6 +384,11 @@ class DomainDispatcherApplication:
                 return "cognito-idp", "us-east-1"
             region = pool_id.rsplit("_", 1)[0]
             return "cognito-idp", region
+        # The OAuth 2.0 token endpoint of a Cognito user pool domain:
+        #   POST /oauth2/token
+        # The user pool is found through the client ID, so the region does not matter.
+        if path_info.rstrip("/") == "/oauth2/token":
+            return "cognito-idp", "us-east-1"
         return None, None
 
     def __call__(self, environ: dict[str, Any], start_response: Any) -> Any:

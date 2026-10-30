@@ -1,6 +1,7 @@
 import json
 from collections.abc import Iterable
 
+import boto3
 import pytest
 import requests
 
@@ -365,6 +366,50 @@ def test_openid_configuration_endpoint_on_moto_server(moto_server_url: str):
     assert len(keys) >= 1
 
 
+def test_oauth2_token_endpoint_on_moto_server(moto_server_url: str):
+    """POST /oauth2/token is authenticated with the client credentials,
+    and has to be routed without a signature.
+    """
+    conn = boto3.client(
+        "cognito-idp",
+        region_name="eu-west-1",
+        endpoint_url=moto_server_url,
+        aws_access_key_id="ak",
+        aws_secret_access_key="sk",
+    )
+    user_pool_id = conn.create_user_pool(PoolName="pool")["UserPool"]["Id"]
+    conn.create_resource_server(
+        UserPoolId=user_pool_id,
+        Identifier="api",
+        Name="api",
+        Scopes=[{"ScopeName": "read", "ScopeDescription": "read"}],
+    )
+    client = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName="m2m",
+        GenerateSecret=True,
+        AllowedOAuthFlows=["client_credentials"],
+        AllowedOAuthScopes=["api/read"],
+        AllowedOAuthFlowsUserPoolClient=True,
+    )["UserPoolClient"]
+
+    response = requests.post(
+        f"{moto_server_url}/oauth2/token",
+        auth=(client["ClientId"], client["ClientSecret"]),
+        data={"grant_type": "client_credentials", "scope": "api/read"},
+    )
+    assert response.status_code == 200
+    assert response.json()["token_type"] == "Bearer"
+
+    response = requests.post(
+        f"{moto_server_url}/oauth2/token",
+        auth=(client["ClientId"], "wrong"),
+        data={"grant_type": "client_credentials"},
+    )
+    assert response.status_code == 400
+    assert response.json()["error"] == "invalid_client"
+
+
 def test_jwks_endpoint_post_rejected(moto_server_url: str):
     """POST to JWKS path should route to cognito-idp but be rejected."""
     url = f"{moto_server_url}/us-east-1_abc123/.well-known/jwks.json"
@@ -424,3 +469,8 @@ class TestGetServiceFromUnsignedPath:
         )
         assert service == "cognito-idp"
         assert region == "ap-southeast-1"
+
+    def test_oauth2_token_path(self):
+        service, region = self.method("/oauth2/token")
+        assert service == "cognito-idp"
+        assert region == "us-east-1"
