@@ -2,7 +2,9 @@ import json
 from collections.abc import Callable
 from typing import Any, Final
 
+import botocore.session
 from botocore.exceptions import ClientError
+from botocore.model import OperationModel
 
 from moto.stepfunctions.parser.api import (
     DescribeExecutionOutput,
@@ -47,6 +49,19 @@ _SUPPORTED_INTEGRATION_PATTERNS: Final[set[ResourceCondition]] = {
 _SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {
     "startexecution": {"Input", "Name", "StateMachineArn"}
 }
+# Unlike most other service integrations (e.g. SNS, SQS, DynamoDB) whose boto3 API
+# members are already Pascal-cased and therefore pass through the ASL Parameters
+# unchanged, the Step Functions API itself uses lowerCamel member names
+# (stateMachineArn, name, input, traceHeader). The ASL Parameters/Task output are
+# always Pascal-cased, so the request/response of the boto3 `stepfunctions` calls
+# made on behalf of this service integration need to be normalised explicitly.
+_STEPFUNCTIONS_SERVICE_MODEL: Final = botocore.session.get_session().get_service_model(
+    "stepfunctions"
+)
+_BOTO_OPERATION_NAMES: Final[dict[str, str]] = {
+    "start_execution": "StartExecution",
+    "describe_execution": "DescribeExecution",
+}
 
 
 class StateTaskServiceSfn(StateTaskServiceCallback):
@@ -89,25 +104,53 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
             )
         return super()._from_error(env=env, ex=ex)
 
+    @staticmethod
+    def _get_operation_model(action_name: str) -> OperationModel | None:
+        operation_name = _BOTO_OPERATION_NAMES.get(action_name)
+        if operation_name is None:
+            return None
+        return _STEPFUNCTIONS_SERVICE_MODEL.operation_model(operation_name)
+
     def _normalise_parameters(
         self,
         parameters: dict,
         boto_service_name: str | None = None,
         service_action_name: str | None = None,
     ) -> None:
-        if service_action_name is None:
-            if self._get_boto_service_action() == "start_execution":
-                optional_input = parameters.get("Input")
-                if not isinstance(optional_input, str):
-                    # AWS Sfn's documentation states:
-                    # If you don't include any JSON input data, you still must include the two braces.
-                    if optional_input is None:
-                        optional_input = {}
-                    parameters["Input"] = to_json_str(
-                        optional_input, separators=(",", ":")
-                    )
+        resolved_action_name = service_action_name or self._get_boto_service_action()
+        if resolved_action_name == "start_execution":
+            optional_input = parameters.get("Input")
+            if not isinstance(optional_input, str):
+                # AWS Sfn's documentation states:
+                # If you don't include any JSON input data, you still must include the two braces.
+                if optional_input is None:
+                    optional_input = {}
+                parameters["Input"] = to_json_str(optional_input, separators=(",", ":"))
+        # Convert the ASL (Pascal-cased) parameter keys to the boto3 `stepfunctions`
+        # client's own (lowerCamel) member names, e.g. StateMachineArn -> stateMachineArn.
+        operation_model = self._get_operation_model(resolved_action_name)
+        if operation_model is not None:
+            self._to_boto_request(parameters, operation_model.input_shape)
         super()._normalise_parameters(
             parameters=parameters,
+            boto_service_name=boto_service_name,
+            service_action_name=service_action_name,
+        )
+
+    def _normalise_response(
+        self,
+        response: Any,
+        boto_service_name: str | None = None,
+        service_action_name: str | None = None,
+    ) -> None:
+        resolved_action_name = service_action_name or self._get_boto_service_action()
+        # Convert the boto3 `stepfunctions` client's (lowerCamel) response member
+        # names back to the ASL (Pascal-cased) names, e.g. executionArn -> ExecutionArn.
+        operation_model = self._get_operation_model(resolved_action_name)
+        if operation_model is not None:
+            self._from_boto_response(response, operation_model.output_shape)
+        super()._normalise_response(
+            response=response,
             boto_service_name=boto_service_name,
             service_action_name=service_action_name,
         )
