@@ -31,20 +31,26 @@ def test_describe_thing_type():
 def test_list_thing_types():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
-    for i in range(0, 100):
+    for i in range(0, 250):
         client.create_thing_type(thingTypeName=str(i + 1))
 
     thing_types = client.list_thing_types()
     assert "nextToken" in thing_types
-    assert len(thing_types["thingTypes"]) == 50
+    assert len(thing_types["thingTypes"]) == 100
     assert thing_types["thingTypes"][0]["thingTypeName"] == "1"
-    assert thing_types["thingTypes"][-1]["thingTypeName"] == "50"
+    assert thing_types["thingTypes"][-1]["thingTypeName"] == "100"
 
     thing_types = client.list_thing_types(nextToken=thing_types["nextToken"])
-    assert len(thing_types["thingTypes"]) == 50
+    assert "nextToken" in thing_types
+    assert len(thing_types["thingTypes"]) == 100
+    assert thing_types["thingTypes"][0]["thingTypeName"] == "101"
+    assert thing_types["thingTypes"][-1]["thingTypeName"] == "200"
+
+    thing_types = client.list_thing_types(nextToken=thing_types["nextToken"])
     assert "nextToken" not in thing_types
-    assert thing_types["thingTypes"][0]["thingTypeName"] == "51"
-    assert thing_types["thingTypes"][-1]["thingTypeName"] == "100"
+    assert len(thing_types["thingTypes"]) == 50
+    assert thing_types["thingTypes"][0]["thingTypeName"] == "201"
+    assert thing_types["thingTypes"][-1]["thingTypeName"] == "250"
 
 
 @mock_aws
