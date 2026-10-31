@@ -2394,6 +2394,34 @@ class S3Response(BaseResponse):
                     raise PreconditionFailed(
                         failed_condition="x-amz-copy-source-If-None-Match"
                     )
+            last_modified = key_to_copy.last_modified.replace(microsecond=0)
+            if_match = self.headers.get("x-amz-copy-source-if-match")
+            # S3 ignores If-Unmodified-Since when If-Match is given and holds
+            if if_match is not None:
+                if if_match not in [key_to_copy.etag, key_to_copy.etag[1:-1]]:
+                    raise PreconditionFailed(
+                        failed_condition="x-amz-copy-source-If-Match"
+                    )
+            elif "x-amz-copy-source-if-unmodified-since" in self.headers and (
+                last_modified
+                > str_to_rfc_1123_datetime(
+                    self.headers["x-amz-copy-source-if-unmodified-since"]
+                )
+            ):
+                raise PreconditionFailed(
+                    failed_condition="x-amz-copy-source-If-Unmodified-Since"
+                )
+            if (
+                "x-amz-copy-source-if-modified-since" in self.headers
+                and "x-amz-copy-source-if-none-match" not in self.headers
+                and last_modified
+                <= str_to_rfc_1123_datetime(
+                    self.headers["x-amz-copy-source-if-modified-since"]
+                )
+            ):
+                raise PreconditionFailed(
+                    failed_condition="x-amz-copy-source-If-Modified-Since"
+                )
 
             if key_to_copy.storage_class in ARCHIVE_STORAGE_CLASSES:
                 if key_to_copy.response_dict.get(
