@@ -1,11 +1,12 @@
 """Unit tests for appmesh-supported APIs."""
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
 from moto import mock_aws
 
@@ -34,6 +35,22 @@ MESH_NAME = "mock_mesh"
 def fixture_transfer_client():
     with mock_aws():
         yield boto3.client("appmesh", region_name="us-east-1")
+
+
+@mock_aws
+def test_meshes_have_their_own_creation_time_and_uid(client):
+    # Days up to 12 are where a day/month string is read back the wrong way round.
+    with freeze_time("2026-10-05 04:22:36"):
+        first = client.create_mesh(meshName="mesh-a")["mesh"]["metadata"]
+    with freeze_time("2027-01-12 09:00:00"):
+        second = client.create_mesh(meshName="mesh-b")["mesh"]["metadata"]
+    assert first["createdAt"] == datetime(2026, 10, 5, 4, 22, 36, tzinfo=timezone.utc)
+    assert second["createdAt"] == datetime(2027, 1, 12, 9, 0, tzinfo=timezone.utc)
+    assert first["uid"] != second["uid"]
+
+    described = client.describe_mesh(meshName="mesh-b")["mesh"]["metadata"]
+    assert described["createdAt"] == second["createdAt"]
+    assert described["lastUpdatedAt"] == second["lastUpdatedAt"]
 
 
 @mock_aws
