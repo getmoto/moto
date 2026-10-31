@@ -168,6 +168,129 @@ def test_multipart_upload(key: str):
 
 @mock_aws
 @reduced_min_part_size
+def test_get_and_head_object_by_part_number():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
+
+    part1 = b"0" * REDUCED_PART_SIZE
+    part2 = b"1"
+    multipart = client.create_multipart_upload(Bucket=bucket_name, Key="the-key")
+    up1 = client.upload_part(
+        Body=BytesIO(part1),
+        PartNumber=1,
+        Bucket=bucket_name,
+        Key="the-key",
+        UploadId=multipart["UploadId"],
+    )
+    up2 = client.upload_part(
+        Body=BytesIO(part2),
+        PartNumber=2,
+        Bucket=bucket_name,
+        Key="the-key",
+        UploadId=multipart["UploadId"],
+    )
+    etag = client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key="the-key",
+        MultipartUpload={
+            "Parts": [
+                {"ETag": up1["ETag"], "PartNumber": 1},
+                {"ETag": up2["ETag"], "PartNumber": 2},
+            ]
+        },
+        UploadId=multipart["UploadId"],
+    )["ETag"]
+
+    total = len(part1) + len(part2)
+    parts = {
+        1: (part1, f"bytes 0-{len(part1) - 1}/{total}"),
+        2: (part2, f"bytes {len(part1)}-{total - 1}/{total}"),
+    }
+    for part_number, (body, content_range) in parts.items():
+        resp = client.get_object(
+            Bucket=bucket_name, Key="the-key", PartNumber=part_number
+        )
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 206
+        assert resp["ContentRange"] == content_range
+        assert resp["PartsCount"] == 2
+        assert resp["ContentLength"] == len(body)
+        assert resp["Body"].read() == body
+
+        resp = client.head_object(
+            Bucket=bucket_name, Key="the-key", PartNumber=part_number
+        )
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 206
+        assert resp["ContentRange"] == content_range
+        assert resp["PartsCount"] == 2
+        assert resp["ContentLength"] == len(body)
+        assert resp["ETag"] == etag
+
+    resp = client.head_object(
+        Bucket=bucket_name, Key="the-key", PartNumber=2, IfMatch=etag
+    )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 206
+    with pytest.raises(ClientError) as exc:
+        client.head_object(
+            Bucket=bucket_name, Key="the-key", PartNumber=2, IfMatch=up2["ETag"]
+        )
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+
+    with pytest.raises(ClientError) as exc:
+        client.get_object(Bucket=bucket_name, Key="the-key", PartNumber=3)
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 416
+    assert exc.value.response["Error"]["Code"] == "InvalidPartNumber"
+
+    # a HEAD response carries no body, so the error code is the status
+    with pytest.raises(ClientError) as exc:
+        client.head_object(Bucket=bucket_name, Key="the-key", PartNumber=3)
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 416
+
+
+@mock_aws
+@reduced_min_part_size
+def test_get_object_by_part_number_ignores_uncompleted_parts():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
+
+    part1 = b"0" * REDUCED_PART_SIZE
+    part3 = b"1"
+    multipart = client.create_multipart_upload(Bucket=bucket_name, Key="the-key")
+    uploads = {}
+    for part_number, body in ((1, part1), (2, b"2" * REDUCED_PART_SIZE), (3, part3)):
+        uploads[part_number] = client.upload_part(
+            Body=BytesIO(body),
+            PartNumber=part_number,
+            Bucket=bucket_name,
+            Key="the-key",
+            UploadId=multipart["UploadId"],
+        )
+    client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key="the-key",
+        MultipartUpload={
+            "Parts": [
+                {"ETag": uploads[1]["ETag"], "PartNumber": 1},
+                {"ETag": uploads[3]["ETag"], "PartNumber": 3},
+            ]
+        },
+        UploadId=multipart["UploadId"],
+    )
+
+    total = len(part1) + len(part3)
+    resp = client.get_object(Bucket=bucket_name, Key="the-key", PartNumber=3)
+    assert resp["ContentRange"] == f"bytes {len(part1)}-{total - 1}/{total}"
+    assert resp["PartsCount"] == 2
+    assert resp["Body"].read() == part3
+
+    with pytest.raises(ClientError) as exc:
+        client.get_object(Bucket=bucket_name, Key="the-key", PartNumber=2)
+    assert exc.value.response["Error"]["Code"] == "InvalidPartNumber"
+
+
+@mock_aws
+@reduced_min_part_size
 def test_multipart_upload_checksum_has_composite_suffix():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)

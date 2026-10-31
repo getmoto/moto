@@ -111,6 +111,13 @@ class InvalidPartOrder(S3ClientError):
         )
 
 
+class InvalidPartNumber(S3ClientError):
+    code = "InvalidPartNumber"
+
+    def __init__(self) -> None:
+        super().__init__("The requested part number is not satisfiable")
+
+
 class InvalidPart(S3ClientError):
     code = "InvalidPart"
 
