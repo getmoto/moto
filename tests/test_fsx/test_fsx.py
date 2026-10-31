@@ -331,3 +331,54 @@ def test_list_tags_for_resource():
     resp = client.list_tags_for_resource(ResourceARN=resource_arn)
     assert len(resp["Tags"]) == 2
     assert resp["Tags"] == tags
+
+
+@pytest.mark.parametrize(
+    "max_results,expected_page_size",
+    [(None, 50), (1, 1), (17, 17), (50, 50), (100, 50), (2147483647, 50)],
+)
+def test_describe_filesystems_pagination(client, max_results, expected_page_size):
+    file_system_ids = [
+        client.create_file_system(
+            FileSystemType="LUSTRE",
+            StorageCapacity=1200,
+            SubnetIds=[FAKE_SUBNET_ID],
+        )["FileSystem"]["FileSystemId"]
+        for _ in range(51)
+    ]
+    kwargs = {} if max_results is None else {"MaxResults": max_results}
+    response = client.describe_file_systems(**kwargs)
+    assert len(response["FileSystems"]) == expected_page_size
+    received_ids = [fs["FileSystemId"] for fs in response["FileSystems"]]
+    while "NextToken" in response:
+        response = client.describe_file_systems(
+            NextToken=response["NextToken"], **kwargs
+        )
+        assert 0 < len(response["FileSystems"]) <= expected_page_size
+        received_ids.extend(fs["FileSystemId"] for fs in response["FileSystems"])
+    assert received_ids == file_system_ids
+
+
+@pytest.mark.parametrize(
+    "max_results,expected_page_size",
+    [(None, 50), (1, 1), (17, 17), (50, 50), (100, 50), (2147483647, 50)],
+)
+def test_describe_backups_pagination(client, max_results, expected_page_size):
+    file_system_id = client.create_file_system(
+        FileSystemType="LUSTRE",
+        StorageCapacity=1200,
+        SubnetIds=[FAKE_SUBNET_ID],
+    )["FileSystem"]["FileSystemId"]
+    backup_ids = [
+        client.create_backup(FileSystemId=file_system_id)["Backup"]["BackupId"]
+        for _ in range(51)
+    ]
+    kwargs = {} if max_results is None else {"MaxResults": max_results}
+    response = client.describe_backups(**kwargs)
+    assert len(response["Backups"]) == expected_page_size
+    received_ids = [backup["BackupId"] for backup in response["Backups"]]
+    while "NextToken" in response:
+        response = client.describe_backups(NextToken=response["NextToken"], **kwargs)
+        assert 0 < len(response["Backups"]) <= expected_page_size
+        received_ids.extend(backup["BackupId"] for backup in response["Backups"])
+    assert received_ids == backup_ids
