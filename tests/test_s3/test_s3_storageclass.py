@@ -1,10 +1,12 @@
+from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 
@@ -57,6 +59,31 @@ def test_s3_storage_class_intelligent_tiering():
     objects = s3_client.list_objects(Bucket=bucket_name)
 
     assert objects["Contents"][0]["StorageClass"] == "INTELLIGENT_TIERING"
+
+
+@mock_aws
+def test_s3_intelligent_tiering_object_still_reports_storage_class_after_access_tier_change():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Freezing time only possible in DecoratorMode")
+
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
+
+    with freeze_time("2023-01-01 12:00:00"):
+        s3_client.put_object(
+            Bucket=bucket_name,
+            Key="my_key",
+            Body="my_value",
+            StorageClass="INTELLIGENT_TIERING",
+        )
+
+    # Access-tier transitions (Frequent -> Infrequent -> Archive Instant)
+    # are internal bookkeeping only - the StorageClass S3 reports for the
+    # object never changes away from INTELLIGENT_TIERING because of them.
+    with freeze_time("2023-04-05 12:00:00"):
+        head = s3_client.head_object(Bucket=bucket_name, Key="my_key")
+    assert head["StorageClass"] == "INTELLIGENT_TIERING"
 
 
 @mock_aws
