@@ -483,6 +483,7 @@ class FakeMultipart(BaseModel):
 
         last = None
         count = 0
+        completed: list[int] = []
         for pn, etag in body:
             part = self.parts.get(pn)
             part_etag = None
@@ -498,9 +499,17 @@ class FakeMultipart(BaseModel):
             checksum_builder.addPart(part.value)
             last = part
             count += 1
+            completed.append(pn)
 
         if count == 0:
             raise MalformedXML
+
+        # Parts left out of the completion request are not part of the object
+        for pn in self.parts:
+            if pn not in completed:
+                self.parts[pn].dispose()
+        self.parts = {pn: self.parts[pn] for pn in completed}
+        self.partlist = [pn for pn in self.partlist if pn in self.parts]
 
         full_etag = md5_hash()
         full_etag.update(bytes(md5s))
@@ -529,6 +538,14 @@ class FakeMultipart(BaseModel):
         if part_id not in self.partlist:
             insort(self.partlist, part_id)
         return key
+
+    def part_at(self, part_number: int) -> tuple[FakeKey, int] | None:
+        """The part and its byte offset in the completed object, or None."""
+        part = self.parts.get(part_number)
+        if part is None:
+            return None
+        start = sum(self.parts[pn].size for pn in self.partlist if pn < part_number)
+        return part, start
 
     def list_parts(self, part_number_marker: int, max_parts: int) -> Iterator[FakeKey]:
         max_marker = part_number_marker + max_parts
@@ -2450,7 +2467,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
         bucket_name: str,
         key_name: str,
         version_id: str | None = None,
-        part_number: str | None = None,
         return_delete_marker: bool = False,
     ) -> FakeKey | None:
         bucket = self.get_bucket(bucket_name)
@@ -2467,9 +2483,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
                         key = key_version
                         break
 
-            if part_number and key and key.multipart:
-                key = key.multipart.parts[part_number]
-
         if isinstance(key, FakeKey):
             key.advance()
             return key
@@ -2483,10 +2496,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
         bucket_name: str,
         key_name: str,
         version_id: str | None = None,
-        part_number: str | None = None,
     ) -> FakeKey | None:
         obj = self.get_object(
-            bucket_name, key_name, version_id, part_number, return_delete_marker=True
+            bucket_name, key_name, version_id, return_delete_marker=True
         )
         if isinstance(obj, FakeDeleteMarker):
             raise HeadOnDeleteMarker(obj)

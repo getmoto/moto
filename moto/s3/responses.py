@@ -47,6 +47,7 @@ from .exceptions import (
     InvalidNamespaceHeaderException,
     InvalidNotificationARN,
     InvalidObjectState,
+    InvalidPartNumber,
     InvalidPartOrder,
     InvalidRange,
     LockNotEnabled,
@@ -2041,8 +2042,23 @@ class S3Response(BaseResponse):
         part_number = self._get_int_param("partNumber")
         if part_number:
             if key.multipart:
-                # TODO
-                pass
+                part_range = key.multipart.part_at(part_number)
+                if part_range is None:
+                    # the S3 error model has no InvalidPartNumber shape, so the
+                    # serializer's default 400 is overridden with 416
+                    _, headers, body = self.serialized(
+                        ActionResult(InvalidPartNumber())
+                    )
+                    return 416, headers, body
+                part, start = part_range
+                response_headers["content-length"] = str(part.size)
+                response_headers["content-range"] = (
+                    f"bytes {start}-{start + part.size - 1}/{key.size}"
+                )
+                response_headers["x-amz-mp-parts-count"] = str(
+                    len(key.multipart.partlist)
+                )
+                return 206, response_headers, key.value[start : start + part.size]
             else:
                 if part_number > 1:
                     raise RangeNotSatisfiable
@@ -2652,9 +2668,7 @@ class S3Response(BaseResponse):
         if_unmodified_since = headers.get("If-Unmodified-Since", None)
 
         try:
-            key = self.backend.head_object(
-                bucket_name, key_name, version_id=version_id, part_number=part_number
-            )
+            key = self.backend.head_object(bucket_name, key_name, version_id=version_id)
         except HeadOnDeleteMarker as exc:
             headers = {
                 "x-amz-delete-marker": "true",
@@ -2692,15 +2706,25 @@ class S3Response(BaseResponse):
                 )
 
             if part_number:
-                full_key = self.backend.head_object(bucket_name, key_name, version_id)
-                if full_key.multipart:  # type: ignore
-                    mp_part_count = str(len(full_key.multipart.partlist))  # type: ignore
-                    response_headers["x-amz-mp-parts-count"] = mp_part_count
+                if key.multipart:
+                    part_range = key.multipart.part_at(part_number)
+                    if part_range is None:
+                        return 416, {"Content-Type": APP_XML}, ""
+                    part, start = part_range
+                    # a part HEAD reports the object's headers, with the part's size
+                    response_headers["content-length"] = str(part.size)
+                    response_headers["content-range"] = (
+                        f"bytes {start}-{start + part.size - 1}/{key.size}"
+                    )
+                    response_headers["x-amz-mp-parts-count"] = str(
+                        len(key.multipart.partlist)
+                    )
+                    return 206, response_headers, ""
                 else:
                     if part_number > 1:
                         raise RangeNotSatisfiable
                     response_headers["content-range"] = (
-                        f"bytes 0-{full_key.size - 1}/{full_key.size}"  # type: ignore
+                        f"bytes 0-{key.size - 1}/{key.size}"
                     )
                     return 206, response_headers, ""
 
