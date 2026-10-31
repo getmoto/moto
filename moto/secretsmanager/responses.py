@@ -178,11 +178,15 @@ class SecretsManagerResponse(BaseResponse):
         include_planned_deletion = self._get_param(
             "IncludePlannedDeletion", if_none=False
         )
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
         secret_list, next_token = self.backend.list_secrets(
             filters=filters,
             max_results=max_results,
             next_token=next_token,
             include_planned_deletion=include_planned_deletion,
+            sort_by=sort_by,
+            sort_order=sort_order,
         )
         return json.dumps({"SecretList": secret_list, "NextToken": next_token})
 

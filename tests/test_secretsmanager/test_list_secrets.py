@@ -540,6 +540,41 @@ def test_with_include_planned_deleted_secrets():
     assert secrets["SecretList"][0]["SecretVersionsToStages"] is not None
 
 
+@mock_aws
+def test_list_secrets_sort_order():
+    conn = boto_client()
+
+    for name in ["b-secret", "a-secret", "c-secret"]:
+        conn.create_secret(Name=name, SecretString="secret")
+
+    def names(**kwargs):
+        return [s["Name"] for s in conn.list_secrets(**kwargs)["SecretList"]]
+
+    # Secrets are listed by CreatedDate
+    assert names(SortOrder="asc") == ["b-secret", "a-secret", "c-secret"]
+    assert names(SortOrder="desc") == ["c-secret", "a-secret", "b-secret"]
+
+    assert names(SortBy="name") == ["a-secret", "b-secret", "c-secret"]
+    assert names(SortBy="name", SortOrder="asc") == [
+        "a-secret",
+        "b-secret",
+        "c-secret",
+    ]
+    assert names(SortBy="name", SortOrder="desc") == [
+        "c-secret",
+        "b-secret",
+        "a-secret",
+    ]
+
+    # Sorting is applied before pagination
+    page = conn.list_secrets(SortBy="name", SortOrder="desc", MaxResults=2)
+    assert [s["Name"] for s in page["SecretList"]] == ["c-secret", "b-secret"]
+    page = conn.list_secrets(
+        SortBy="name", SortOrder="desc", MaxResults=2, NextToken=page["NextToken"]
+    )
+    assert [s["Name"] for s in page["SecretList"]] == ["a-secret"]
+
+
 @pytest.mark.parametrize(
     "input,output",
     [
