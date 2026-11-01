@@ -2333,6 +2333,8 @@ class S3Response(BaseResponse):
         response_headers.update(new_key.response_dict)
         # Remove content-length - the response body is empty for this request
         response_headers.pop("content-length", None)
+        # x-amz-sdk-checksum-algorithm is a request header and should not be included in the response.
+        response_headers.pop("x-amz-sdk-checksum-algorithm", None)
         return 200, response_headers, ""
 
     def _get_checksum(self, response_headers: dict[str, Any]) -> tuple[str, str | None]:
