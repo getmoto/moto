@@ -572,6 +572,54 @@
   "Location": "aps1-az1"
  },
  {
+  "InstanceType": "c8gd.12xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "c8gd.16xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "c8gd.24xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "c8gd.2xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "c8gd.48xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "c8gd.4xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "c8gd.8xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "c8gd.large",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "c8gd.medium",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "c8gd.metal-24xl",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "c8gd.metal-48xl",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "c8gd.xlarge",
+  "Location": "aps1-az1"
+ },
+ {
   "InstanceType": "c8gn.12xlarge",
   "Location": "aps1-az1"
  },
@@ -2193,6 +2241,10 @@
  },
  {
   "InstanceType": "p5en.48xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "p6-b200.48xlarge",
   "Location": "aps1-az1"
  },
  {
@@ -3873,6 +3925,54 @@
  },
  {
   "InstanceType": "c8g.xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "c8gd.12xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "c8gd.16xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "c8gd.24xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "c8gd.2xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "c8gd.48xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "c8gd.4xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "c8gd.8xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "c8gd.large",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "c8gd.medium",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "c8gd.metal-24xl",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "c8gd.metal-48xl",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "c8gd.xlarge",
   "Location": "aps1-az2"
  },
  {
