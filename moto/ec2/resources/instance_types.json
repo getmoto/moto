@@ -24446,7 +24446,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -27867,7 +27867,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 150000,
     "BaselineIops": 720000,
@@ -31566,7 +31566,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -36114,7 +36114,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 150000,
     "BaselineIops": 720000,
@@ -36222,7 +36222,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsCards": [
     {
      "BaselineBandwidthInMbps": 150000,
@@ -38066,7 +38066,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -38191,7 +38191,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 80000,
     "BaselineIops": 480000,
@@ -39863,7 +39863,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -39971,7 +39971,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsCards": [
     {
      "BaselineBandwidthInMbps": 60000,
@@ -42384,7 +42384,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 72000,
     "BaselineIops": 288000,
@@ -44127,7 +44127,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 72000,
     "BaselineIops": 288000,
@@ -46800,8 +46800,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -47124,8 +47124,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -47269,8 +47269,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -47572,8 +47572,8 @@
      },
      "Name": "T4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -47851,8 +47851,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -48135,8 +48135,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -48277,8 +48277,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -48556,8 +48556,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -48693,8 +48693,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -48835,8 +48835,8 @@
      },
      "Name": "A10G",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -49019,8 +49019,13 @@
    "NetworkPerformance": "25 Gigabit",
    "SecondaryNetworkSupported": false
   },
-  "NitroEnclavesSupport": "unsupported",
-  "NitroTpmSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PhcSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -49160,8 +49165,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -49207,8 +49212,13 @@
    "NetworkPerformance": "Up to 10 Gigabit",
    "SecondaryNetworkSupported": false
   },
-  "NitroEnclavesSupport": "unsupported",
-  "NitroTpmSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PhcSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -49339,8 +49349,13 @@
    "NetworkPerformance": "Up to 10 Gigabit",
    "SecondaryNetworkSupported": false
   },
-  "NitroEnclavesSupport": "unsupported",
-  "NitroTpmSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PhcSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -49432,8 +49447,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -49479,8 +49494,13 @@
    "NetworkPerformance": "12 Gigabit",
    "SecondaryNetworkSupported": false
   },
-  "NitroEnclavesSupport": "unsupported",
-  "NitroTpmSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PhcSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -49588,8 +49608,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -49706,8 +49726,8 @@
      },
      "Name": "T4g",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -49753,8 +49773,13 @@
    "NetworkPerformance": "Up to 10 Gigabit",
    "SecondaryNetworkSupported": false
   },
-  "NitroEnclavesSupport": "unsupported",
-  "NitroTpmSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PhcSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -49834,8 +49859,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -49942,8 +49967,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 48,
    "ValidCores": [
-    1,
-    2,
     3,
     6,
     9,
@@ -49993,8 +50016,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -50101,9 +50124,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 64,
    "ValidCores": [
-    1,
-    2,
-    3,
     4,
     8,
     12,
@@ -50261,11 +50281,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 96,
    "ValidCores": [
-    1,
-    2,
-    3,
-    4,
-    5,
     6,
     12,
     18,
@@ -50315,8 +50330,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -50571,10 +50586,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 192,
    "ValidCores": [
-    4,
-    6,
-    8,
-    10,
     12,
     24,
     36,
@@ -50884,7 +50895,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 32,
    "ValidCores": [
-    1,
     2,
     4,
     6,
@@ -50934,8 +50944,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -51237,8 +51247,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -51564,8 +51574,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -51712,8 +51722,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -52217,8 +52227,8 @@
      },
      "Name": "L40S",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -52363,8 +52373,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -52808,8 +52818,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -52954,8 +52964,8 @@
      },
      "Name": "RTX PRO 4500",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -53153,8 +53163,8 @@
      },
      "Name": "RTX PRO 4500",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -53575,8 +53585,8 @@
      },
      "Name": "RTX PRO 4500",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -53999,8 +54009,8 @@
      },
      "Name": "RTX PRO 4500",
      "Workloads": [
-      "ml-ai",
-      "graphics"
+      "graphics",
+      "ml-ai"
      ]
     }
    ],
@@ -54355,8 +54365,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -54565,8 +54575,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -55100,8 +55110,8 @@
      },
      "Name": "RTX PRO Server 6000",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -55265,8 +55275,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -55417,8 +55427,8 @@
      },
      "Name": "L4",
      "Workloads": [
-      "graphics",
-      "ml-ai"
+      "ml-ai",
+      "graphics"
      ]
     }
    ],
@@ -55525,7 +55535,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 32,
    "ValidCores": [
-    1,
     2,
     4,
     6,
@@ -63146,7 +63155,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 30000,
     "BaselineIops": 120000,
@@ -63258,7 +63267,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -63560,7 +63569,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 25.0,
+     "BaselineBandwidthInGbps": 50.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "InterfaceTypes": [
       "interface"
@@ -63571,7 +63580,7 @@
      "PeakBandwidthInGbps": 50.0
     }
    ],
-   "NetworkPerformance": "Up to 50 Gigabit",
+   "NetworkPerformance": "50 Gigabit",
    "SecondaryNetworkSupported": false
   },
   "NitroEnclavesSupport": "supported",
@@ -63713,7 +63722,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 37.5,
+     "BaselineBandwidthInGbps": 75.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "InterfaceTypes": [
       "interface"
@@ -63724,7 +63733,7 @@
      "PeakBandwidthInGbps": 75.0
     }
    ],
-   "NetworkPerformance": "Up to 75 Gigabit",
+   "NetworkPerformance": "75 Gigabit",
    "SecondaryNetworkSupported": false
   },
   "NitroEnclavesSupport": "supported",
@@ -63878,7 +63887,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 50.0,
+     "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "InterfaceTypes": [
       "interface"
@@ -63889,7 +63898,7 @@
      "PeakBandwidthInGbps": 100.0
     }
    ],
-   "NetworkPerformance": "Up to 100 Gigabit",
+   "NetworkPerformance": "100 Gigabit",
    "SecondaryNetworkSupported": false
   },
   "NitroEnclavesSupport": "supported",
@@ -64326,7 +64335,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 100.0,
+     "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "InterfaceTypes": [
       "interface",
@@ -64335,11 +64344,11 @@
      ],
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
-     "NetworkPerformance": "100 Gigabit",
-     "PeakBandwidthInGbps": 100.0
+     "NetworkPerformance": "Up to 200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
     },
     {
-     "BaselineBandwidthInGbps": 100.0,
+     "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "InterfaceTypes": [
       "interface",
@@ -64348,8 +64357,8 @@
      ],
      "MaximumNetworkInterfaces": 7,
      "NetworkCardIndex": 1,
-     "NetworkPerformance": "100 Gigabit",
-     "PeakBandwidthInGbps": 100.0
+     "NetworkPerformance": "Up to 200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
     }
    ],
    "NetworkPerformance": "200 Gigabit",
@@ -64517,7 +64526,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 12.5,
+     "BaselineBandwidthInGbps": 25.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "InterfaceTypes": [
       "interface"
@@ -64528,7 +64537,7 @@
      "PeakBandwidthInGbps": 25.0
     }
    ],
-   "NetworkPerformance": "Up to 25 Gigabit",
+   "NetworkPerformance": "25 Gigabit",
    "SecondaryNetworkSupported": false
   },
   "NitroEnclavesSupport": "supported",
@@ -64734,7 +64743,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 30000,
     "BaselineIops": 120000,
@@ -64787,7 +64796,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 50.0,
+     "BaselineBandwidthInGbps": 100.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "InterfaceTypes": [
       "interface"
@@ -64798,7 +64807,7 @@
      "PeakBandwidthInGbps": 100.0
     }
    ],
-   "NetworkPerformance": "Up to 100 Gigabit",
+   "NetworkPerformance": "100 Gigabit",
    "SecondaryNetworkSupported": false
   },
   "NitroEnclavesSupport": "unsupported",
@@ -64846,7 +64855,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -64902,7 +64911,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 100.0,
+     "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "InterfaceTypes": [
       "interface",
@@ -64911,11 +64920,11 @@
      ],
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
-     "NetworkPerformance": "100 Gigabit",
-     "PeakBandwidthInGbps": 100.0
+     "NetworkPerformance": "Up to 200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
     },
     {
-     "BaselineBandwidthInGbps": 100.0,
+     "BaselineBandwidthInGbps": 200.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "InterfaceTypes": [
       "interface",
@@ -64924,8 +64933,8 @@
      ],
      "MaximumNetworkInterfaces": 7,
      "NetworkCardIndex": 1,
-     "NetworkPerformance": "100 Gigabit",
-     "PeakBandwidthInGbps": 100.0
+     "NetworkPerformance": "Up to 200 Gigabit",
+     "PeakBandwidthInGbps": 200.0
     }
    ],
    "NetworkPerformance": "200 Gigabit",
@@ -66569,7 +66578,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -68199,7 +68208,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 30000,
     "BaselineIops": 120000,
@@ -68313,7 +68322,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -97204,7 +97213,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -101694,7 +101703,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 150000,
     "BaselineIops": 720000,
@@ -105393,7 +105402,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -109941,7 +109950,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 150000,
     "BaselineIops": 720000,
@@ -110049,7 +110058,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsCards": [
     {
      "BaselineBandwidthInMbps": 150000,
@@ -111893,7 +111902,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -112018,7 +112027,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 80000,
     "BaselineIops": 480000,
@@ -113810,7 +113819,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 150000,
     "BaselineIops": 720000,
@@ -113930,7 +113939,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsCards": [
     {
      "BaselineBandwidthInMbps": 150000,
@@ -115745,7 +115754,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -115865,7 +115874,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsCards": [
     {
      "BaselineBandwidthInMbps": 60000,
@@ -117560,7 +117569,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -117668,7 +117677,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsCards": [
     {
      "BaselineBandwidthInMbps": 60000,
@@ -120081,7 +120090,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 72000,
     "BaselineIops": 288000,
@@ -121824,7 +121833,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 72000,
     "BaselineIops": 288000,
@@ -151700,7 +151709,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -155121,7 +155130,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 150000,
     "BaselineIops": 720000,
@@ -158820,7 +158829,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -163368,7 +163377,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 150000,
     "BaselineIops": 720000,
@@ -163476,7 +163485,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsCards": [
     {
      "BaselineBandwidthInMbps": 150000,
@@ -165320,7 +165329,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -165445,7 +165454,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 80000,
     "BaselineIops": 480000,
@@ -167237,7 +167246,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 150000,
     "BaselineIops": 720000,
@@ -167357,7 +167366,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsCards": [
     {
      "BaselineBandwidthInMbps": 150000,
@@ -169172,7 +169181,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -169292,7 +169301,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsCards": [
     {
      "BaselineBandwidthInMbps": 60000,
@@ -170987,7 +170996,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -171095,7 +171104,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsCards": [
     {
      "BaselineBandwidthInMbps": 60000,
@@ -172757,7 +172766,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 72000,
     "BaselineIops": 288000,
@@ -174500,7 +174509,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 72000,
     "BaselineIops": 288000,
@@ -177843,7 +177852,7 @@
  "t8i.medium": {
   "AutoRecoverySupported": true,
   "BareMetal": false,
-  "BurstablePerformanceSupported": false,
+  "BurstablePerformanceSupported": true,
   "CurrentGeneration": true,
   "DedicatedHostsSupported": false,
   "EbsInfo": {
@@ -177958,7 +177967,7 @@
  "t8i.micro": {
   "AutoRecoverySupported": true,
   "BareMetal": false,
-  "BurstablePerformanceSupported": false,
+  "BurstablePerformanceSupported": true,
   "CurrentGeneration": true,
   "DedicatedHostsSupported": false,
   "EbsInfo": {
@@ -178073,7 +178082,7 @@
  "t8i.nano": {
   "AutoRecoverySupported": true,
   "BareMetal": false,
-  "BurstablePerformanceSupported": false,
+  "BurstablePerformanceSupported": true,
   "CurrentGeneration": true,
   "DedicatedHostsSupported": false,
   "EbsInfo": {
@@ -178188,7 +178197,7 @@
  "t8i.small": {
   "AutoRecoverySupported": true,
   "BareMetal": false,
-  "BurstablePerformanceSupported": false,
+  "BurstablePerformanceSupported": true,
   "CurrentGeneration": true,
   "DedicatedHostsSupported": false,
   "EbsInfo": {
@@ -179910,7 +179919,8 @@
   ],
   "SupportedUsageClasses": [
    "capacity-block",
-   "on-demand"
+   "on-demand",
+   "spot"
   ],
   "SupportedVirtualizationTypes": [
    "hvm"
@@ -190872,7 +190882,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 60000,
     "BaselineIops": 240000,
@@ -190985,7 +190995,7 @@
   "CurrentGeneration": true,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
-   "AttachmentLimitType": "shared",
+   "AttachmentLimitType": "dedicated",
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 80000,
     "BaselineIops": 480000,
