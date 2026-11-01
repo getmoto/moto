@@ -2864,6 +2864,22 @@
   "Location": "sa-east-1"
  },
  {
+  "InstanceType": "t8i.medium",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "t8i.micro",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "t8i.nano",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "t8i.small",
+  "Location": "sa-east-1"
+ },
+ {
   "InstanceType": "trn2.3xlarge",
   "Location": "sa-east-1"
  },
