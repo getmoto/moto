@@ -226,6 +226,15 @@
         "error": {"httpStatusCode": 403},
         "exception": true
       },
+      "InvalidPartNumber": {
+        "type": "structure",
+        "members": {
+          "PartNumberRequested": {"shape": "PartNumber"},
+          "ActualPartCount": {"shape": "PartsCount"}
+        },
+        "error": {"httpStatusCode": 416},
+        "exception": true
+      },
       "InvalidRange": {
         "type": "structure",
         "members": {
