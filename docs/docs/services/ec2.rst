@@ -225,7 +225,7 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [ ] delete_ipam_scope
 - [X] delete_key_pair
 - [X] delete_launch_template
-- [ ] delete_launch_template_versions
+- [X] delete_launch_template_versions
 - [ ] delete_local_gateway_route
 - [ ] delete_local_gateway_route_table
 - [ ] delete_local_gateway_route_table_virtual_interface_group_association
