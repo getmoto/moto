@@ -7,6 +7,8 @@ from yaml.parser import ParserError
 from yaml.scanner import ScannerError
 
 from moto.core.common_models import CloudFormationModel
+from moto.core.common_types import TYPE_RESPONSE
+from moto.core.request import Request
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.s3.exceptions import S3ClientError
 
@@ -125,13 +127,27 @@ class CloudFormationResponse(BaseResponse):
     def cloudformation_backend(self) -> CloudFormationBackend:
         return cloudformation_backends[self.current_account][self.region]
 
-    @classmethod
-    def cfnresponse(cls, *args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
-        request, full_url, headers = args
-        full_url += "&Action=ProcessCfnResponse"
-        cf = CloudFormationResponse()
-        cf.automated_parameter_parsing = False
-        return cf._dispatch(request=request, full_url=full_url, headers=headers)
+    @staticmethod
+    def cfnresponse(request: Request, full_url: str, headers: Any) -> TYPE_RESPONSE:
+        """Receives the response of a custom resource provider, sent to the ResponseURL of the custom resource request.
+
+        This isn't an AWS API operation, so the request is handled here instead of being dispatched.
+        The body is the JSON responseBody of the cfn-response module:
+        https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-lambda-function-code-cfnresponsemodule.html
+        """
+        response_body = json.loads(request.get_data())
+        if response_body["Status"] == "SUCCESS":
+            stack_id = response_body["StackId"]
+            # arn:{partition}:cloudformation:{region}:{account_id}:stack/{stack_name}/{uuid}
+            _, _, _, region, account_id, _ = stack_id.split(":", 5)
+            backend = cloudformation_backends[account_id][region]
+            stack = backend.get_stack(stack_id)
+            custom_resource = stack.get_custom_resource(
+                response_body["LogicalResourceId"]
+            )
+            custom_resource.set_data(response_body.get("Data", {}))
+            stack.verify_readiness()
+        return 200, {}, ""
 
     def _get_stack_from_s3_url(self, template_url: str) -> str:
         return get_stack_from_s3_url(
@@ -164,19 +180,6 @@ class CloudFormationResponse(BaseResponse):
             else:
                 raise MissingParameterError(parameter["ParameterKey"])
         return result
-
-    def process_cfn_response(self) -> tuple[int, dict[str, int], str]:
-        status = self._get_param("Status")
-        if status == "SUCCESS":
-            stack_id = self._get_param("StackId")
-            logical_resource_id = self._get_param("LogicalResourceId")
-            outputs = self._get_param("Data")
-            stack = self.cloudformation_backend.get_stack(stack_id)
-            custom_resource = stack.get_custom_resource(logical_resource_id)
-            custom_resource.set_data(outputs)
-            stack.verify_readiness()
-
-        return 200, {"status": 200}, json.dumps("{}")
 
     def create_stack(self) -> ActionResult:
         stack_name = self._get_param("StackName")
