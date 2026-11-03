@@ -199,8 +199,7 @@ class BaseResponse(ActionAuthenticatorMixin):
     ) -> None:
         """
         full_url and headers are carried by the request itself.  They remain
-        parameters for the callers that deliberately pass something else - see
-        CloudFormationResponse.process_cfn_response, which appends an Action.
+        parameters for the callers that pass them through explicitly.
 
         use_raw_body overrides the class-level default for a single call.
         """
