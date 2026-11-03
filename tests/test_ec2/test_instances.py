@@ -40,6 +40,19 @@ def test_add_servers():
         assert i["ImageId"] == EXAMPLE_AMI_ID
 
 
+@mock_aws
+def test_run_instances_launches_max_count():
+    client = boto3.client("ec2", region_name="us-east-1")
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=3)
+    assert len(resp["Instances"]) == 3
+
+    reservations = client.describe_instances(
+        InstanceIds=[i["InstanceId"] for i in resp["Instances"]]
+    )["Reservations"]
+    assert len(reservations) == 1
+    assert len(reservations[0]["Instances"]) == 3
+
+
 @freeze_time("2014-01-01 05:00:00")
 @mock_aws
 def test_instance_launch_and_terminate():
