@@ -1,7 +1,6 @@
 """Handles incoming workspacesweb requests, invokes methods, returns responses."""
 
 import json
-from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
 
@@ -13,6 +12,7 @@ class WorkSpacesWebResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="workspaces-web")
+        self.automated_parameter_parsing = True
 
     @property
     def workspacesweb_backend(self) -> WorkSpacesWebBackend:
@@ -119,7 +119,7 @@ class WorkSpacesWebResponse(BaseResponse):
         return 200, {}, "{}"
 
     def associate_browser_settings(self) -> str:
-        browser_settings_arn = unquote(self._get_param("browserSettingsArn"))
+        browser_settings_arn = self._get_param("browserSettingsArn")
         portal_arn = self._get_param("portalArn")
         browser_settings_arn, portal_arn = (
             self.workspacesweb_backend.associate_browser_settings(
@@ -132,7 +132,7 @@ class WorkSpacesWebResponse(BaseResponse):
         )
 
     def associate_network_settings(self) -> str:
-        network_settings_arn = unquote(self._get_param("networkSettingsArn"))
+        network_settings_arn = self._get_param("networkSettingsArn")
         portal_arn = self._get_param("portalArn")
         network_settings_arn, portal_arn = (
             self.workspacesweb_backend.associate_network_settings(
@@ -194,11 +194,9 @@ class WorkSpacesWebResponse(BaseResponse):
         return 200, {}, "{}"
 
     def create_user_access_logging_settings(self) -> str:
-        params = self._get_params()
-        params = json.loads(list(params.keys())[0])
-        client_token = params.get("clientToken")
-        kinesis_stream_arn = params.get("kinesisStreamArn")
-        tags = params.get("tags")
+        client_token = self._get_param("clientToken")
+        kinesis_stream_arn = self._get_param("kinesisStreamArn")
+        tags = self._get_param("tags")
         user_access_logging_settings_arn = (
             self.workspacesweb_backend.create_user_access_logging_settings(
                 client_token=client_token,
@@ -235,7 +233,7 @@ class WorkSpacesWebResponse(BaseResponse):
         return 200, {}, "{}"
 
     def associate_user_settings(self) -> str:
-        user_settings_arn = unquote(self._get_param("userSettingsArn"))
+        user_settings_arn = self._get_param("userSettingsArn")
         portal_arn = self._get_param("portalArn")
         user_settings_arn, portal_arn = (
             self.workspacesweb_backend.associate_user_settings(
@@ -248,8 +246,8 @@ class WorkSpacesWebResponse(BaseResponse):
         )
 
     def associate_user_access_logging_settings(self) -> str:
-        user_access_logging_settings_arn = unquote(
-            self._get_param("userAccessLoggingSettingsArn")
+        user_access_logging_settings_arn = self._get_param(
+            "userAccessLoggingSettingsArn"
         )
         portal_arn = self._get_param("portalArn")
         user_access_logging_settings_arn, portal_arn = (
