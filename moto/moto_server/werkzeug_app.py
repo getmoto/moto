@@ -240,9 +240,7 @@ class DomainDispatcherApplication:
             for service_name, response_class in service_to_response.items():
                 resp = response_class()
                 resp.region = region
-                action = resp._get_action_from_method_and_request_uri(
-                    Request(environ.copy())
-                )
+                action = resp._get_action_from_request(Request(environ.copy()))
                 if action:
                     service = service_name
                     break
@@ -264,9 +262,7 @@ class DomainDispatcherApplication:
             for service_name, response_class in service_to_response.items():
                 resp = response_class()
                 resp.region = region
-                action = resp._get_action_from_method_and_request_uri(
-                    Request(environ.copy())
-                )
+                action = resp._get_action_from_request(Request(environ.copy()))
                 if action:
                     service = service_name
                     break
