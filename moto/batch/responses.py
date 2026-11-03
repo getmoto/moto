@@ -1,5 +1,4 @@
 import json
-from urllib.parse import unquote, urlsplit
 
 from moto.core.models import default_user_config
 from moto.core.responses import BaseResponse
@@ -20,11 +19,7 @@ class BatchResponse(BaseResponse):
         else:
             return batch_backends[self.current_account][self.region]
 
-    def _get_action(self) -> str:
-        # Return element after the /v1/*
-        return urlsplit(self.uri).path.lstrip("/").split("/")[1]
-
-    def createcomputeenvironment(self) -> str:
+    def create_compute_environment(self) -> str:
         compute_env_name = self._get_param("computeEnvironmentName")
         compute_resource = self._get_param("computeResources")
         service_role = self._get_param("serviceRole")
@@ -45,7 +40,7 @@ class BatchResponse(BaseResponse):
 
         return json.dumps(result)
 
-    def describecomputeenvironments(self) -> str:
+    def describe_compute_environments(self) -> str:
         compute_environments = self._get_param("computeEnvironments")
 
         envs = self.batch_backend.describe_compute_environments(compute_environments)
@@ -53,14 +48,14 @@ class BatchResponse(BaseResponse):
         result = {"computeEnvironments": envs}
         return json.dumps(result)
 
-    def deletecomputeenvironment(self) -> str:
+    def delete_compute_environment(self) -> str:
         compute_environment = self._get_param("computeEnvironment")
 
         self.batch_backend.delete_compute_environment(compute_environment)
 
         return ""
 
-    def updatecomputeenvironment(self) -> str:
+    def update_compute_environment(self) -> str:
         compute_env_name = self._get_param("computeEnvironment")
         compute_resource = self._get_param("computeResources")
         service_role = self._get_param("serviceRole")
@@ -77,7 +72,7 @@ class BatchResponse(BaseResponse):
 
         return json.dumps(result)
 
-    def createjobqueue(self) -> str:
+    def create_job_queue(self) -> str:
         compute_env_order = self._get_param("computeEnvironmentOrder")
         queue_name = self._get_param("jobQueueName")
         schedule_policy = self._get_param("schedulingPolicyArn")
@@ -98,7 +93,7 @@ class BatchResponse(BaseResponse):
 
         return json.dumps(result)
 
-    def describejobqueues(self) -> str:
+    def describe_job_queues(self) -> str:
         job_queues = self._get_param("jobQueues")
 
         queues = self.batch_backend.describe_job_queues(job_queues)
@@ -106,7 +101,7 @@ class BatchResponse(BaseResponse):
         result = {"jobQueues": queues}
         return json.dumps(result)
 
-    def updatejobqueue(self) -> str:
+    def update_job_queue(self) -> str:
         compute_env_order = self._get_param("computeEnvironmentOrder")
         queue_name = self._get_param("jobQueue")
         schedule_policy = self._get_param("schedulingPolicyArn")
@@ -125,14 +120,14 @@ class BatchResponse(BaseResponse):
 
         return json.dumps(result)
 
-    def deletejobqueue(self) -> str:
+    def delete_job_queue(self) -> str:
         queue_name = self._get_param("jobQueue")
 
         self.batch_backend.delete_job_queue(queue_name)
 
         return ""
 
-    def registerjobdefinition(self) -> str:
+    def register_job_definition(self) -> str:
         container_properties = self._get_param("containerProperties")
         node_properties = self._get_param("nodeProperties")
         eks_properties = self._get_param("eksProperties")
@@ -166,14 +161,14 @@ class BatchResponse(BaseResponse):
 
         return json.dumps(result)
 
-    def deregisterjobdefinition(self) -> str:
+    def deregister_job_definition(self) -> str:
         queue_name = self._get_param("jobDefinition")
 
         self.batch_backend.deregister_job_definition(queue_name)
 
         return ""
 
-    def describejobdefinitions(self) -> str:
+    def describe_job_definitions(self) -> str:
         job_def_name = self._get_param("jobDefinitionName")
         job_def_list = self._get_param("jobDefinitions")
         status = self._get_param("status")
@@ -185,7 +180,7 @@ class BatchResponse(BaseResponse):
         result = {"jobDefinitions": [job.describe() for job in job_defs]}
         return json.dumps(result)
 
-    def submitjob(self) -> str:
+    def submit_job(self) -> str:
         container_overrides = self._get_param("containerOverrides")
         eks_properties_override = self._get_param("eksPropertiesOverride")
         depends_on = self._get_param("dependsOn")
@@ -214,12 +209,12 @@ class BatchResponse(BaseResponse):
 
         return json.dumps(result)
 
-    def describejobs(self) -> str:
+    def describe_jobs(self) -> str:
         jobs = self._get_param("jobs")
 
         return json.dumps({"jobs": self.batch_backend.describe_jobs(jobs)})
 
-    def listjobs(self) -> str:
+    def list_jobs(self) -> str:
         job_queue = self._get_param("jobQueue")
         job_status = self._get_param("jobStatus")
         filters = self._get_param("filters")
@@ -235,7 +230,7 @@ class BatchResponse(BaseResponse):
         result = {"jobSummaryList": [job.describe_short() for job in jobs]}
         return json.dumps(result)
 
-    def terminatejob(self) -> str:
+    def terminate_job(self) -> str:
         job_id = self._get_param("jobId")
         reason = self._get_param("reason")
 
@@ -243,27 +238,31 @@ class BatchResponse(BaseResponse):
 
         return ""
 
-    def canceljob(self) -> str:
+    def cancel_job(self) -> str:
         job_id = self._get_param("jobId")
         reason = self._get_param("reason")
         self.batch_backend.cancel_job(job_id, reason)
 
         return ""
 
-    def tags(self) -> str:
-        resource_arn = unquote(self.path).split("/v1/tags/")[-1]
+    def tag_resource(self) -> str:
+        resource_arn = self._get_param("resourceArn")
         tags = self._get_param("tags")
-        if self.method == "POST":
-            self.batch_backend.tag_resource(resource_arn, tags)
-        if self.method == "GET":
-            tags = self.batch_backend.list_tags_for_resource(resource_arn)
-            return json.dumps({"tags": tags})
-        if self.method == "DELETE":
-            tag_keys = self.querystring.get("tagKeys")
-            self.batch_backend.untag_resource(resource_arn, tag_keys)  # type: ignore[arg-type]
+        self.batch_backend.tag_resource(resource_arn, tags)
         return ""
 
-    def createschedulingpolicy(self) -> str:
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._get_param("resourceArn")
+        tags = self.batch_backend.list_tags_for_resource(resource_arn)
+        return json.dumps({"tags": tags})
+
+    def untag_resource(self) -> str:
+        resource_arn = self._get_param("resourceArn")
+        tag_keys = self.querystring.get("tagKeys")
+        self.batch_backend.untag_resource(resource_arn, tag_keys)  # type: ignore[arg-type]
+        return ""
+
+    def create_scheduling_policy(self) -> str:
         body = json.loads(self.body)
         name = body.get("name")
         fairshare_policy = body.get("fairsharePolicy") or {}
@@ -273,23 +272,23 @@ class BatchResponse(BaseResponse):
         )
         return json.dumps(policy.to_dict(create=True))
 
-    def describeschedulingpolicies(self) -> str:
+    def describe_scheduling_policies(self) -> str:
         body = json.loads(self.body)
         arns = body.get("arns") or []
         policies = self.batch_backend.describe_scheduling_policies(arns)
         return json.dumps({"schedulingPolicies": [pol.to_dict() for pol in policies]})
 
-    def listschedulingpolicies(self) -> str:
+    def list_scheduling_policies(self) -> str:
         arns = self.batch_backend.list_scheduling_policies()
         return json.dumps({"schedulingPolicies": [{"arn": arn} for arn in arns]})
 
-    def deleteschedulingpolicy(self) -> str:
+    def delete_scheduling_policy(self) -> str:
         body = json.loads(self.body)
         arn = body["arn"]
         self.batch_backend.delete_scheduling_policy(arn)
         return ""
 
-    def updateschedulingpolicy(self) -> str:
+    def update_scheduling_policy(self) -> str:
         body = json.loads(self.body)
         arn = body.get("arn")
         fairshare_policy = body.get("fairsharePolicy") or {}
