@@ -179,7 +179,7 @@ class LaunchTemplates(EC2BaseResponse):
             "LaunchTemplateData": {
                 "BlockDeviceMappings": [
                     {
-                        "DeviceName": "string",
+                        "DeviceName": device_name,
                         "Ebs": {
                             "Encrypted": device.encrypted,
                             "DeleteOnTermination": device.delete_on_termination,
@@ -218,11 +218,7 @@ class LaunchTemplates(EC2BaseResponse):
                         "DeleteOnTermination": nic.delete_on_termination,
                         "Description": "",
                         "DeviceIndex": nic.device_index,
-                        "Groups": [
-                            {"GroupId": group.group_id}
-                            for group in nic.group_set
-                            if nic.group_set
-                        ],
+                        "Groups": [group.group_id for group in nic.group_set],
                         "InterfaceType": nic.interface_type,
                         "PrivateIpAddresses": [
                             {
