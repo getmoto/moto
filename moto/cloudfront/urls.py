@@ -7,22 +7,5 @@ url_bases = [
     r"https?://cloudfront\.(.+)\.amazonaws\.com",
 ]
 url_paths = {
-    "{0}/2020-05-31/distribution$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/distribution/(?P<distribution_id>[^/]+)$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/distribution/(?P<distribution_id>[^/]+)/config$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/distribution/(?P<distribution_id>[^/]+)/invalidation": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/distribution/(?P<distribution_id>[^/]+)/invalidation/(?P<invalidation_id>[^/]+)": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/key-group$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/key-group/(?P<key_name>[^/]+)$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/tagging$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/origin-access-control$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/origin-access-control/(?P<oac_id>[^/]+)$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/origin-access-control/(?P<oac_id>[^/]+)/config$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/public-key$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/public-key/(?P<key_name>[^/]+)$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/function$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/function/(?P<function_name>[^/]+)$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/function/(?P<function_name>[^/]+)/describe$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/key-value-store$": CloudFrontResponse.dispatch,
-    "{0}/2020-05-31/key-value-store/(?P<key_name>[^/]+)$": CloudFrontResponse.dispatch,
+    "{0}/.*$": CloudFrontResponse.dispatch,
 }
