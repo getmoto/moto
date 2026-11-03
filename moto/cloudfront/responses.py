@@ -12,17 +12,6 @@ class CloudFrontResponse(BaseResponse):
     def backend(self) -> CloudFrontBackend:
         return cloudfront_backends[self.current_account][self.partition]
 
-    def _get_action(self) -> str:
-        # This is needed because the uri matcher doesn't take queryargs into account
-        action = super()._get_action()
-        if action == "CreateDistribution" and "WithTags" in self.querystring:
-            action = "CreateDistributionWithTags"
-        elif action is None and "Operation" in self.querystring:
-            op_to_action = {"Tag": "TagResource", "Untag": "UntagResource"}
-            operation = self.querystring.get("Operation")[0]
-            action = op_to_action.get(operation, action)
-        return action
-
     def create_distribution(self) -> ActionResult:
         distribution_config = self._get_param("DistributionConfig", {})
         distribution, location, e_tag = self.backend.create_distribution(
