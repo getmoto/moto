@@ -9,6 +9,7 @@ from .models import ConfigBackend, config_backends
 class ConfigResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="config")
+        self.automated_parameter_parsing = True
 
     @property
     def config_backend(self) -> ConfigBackend:
@@ -21,9 +22,7 @@ class ConfigResponse(BaseResponse):
         return ""
 
     def put_configuration_aggregator(self) -> str:
-        aggregator = self.config_backend.put_configuration_aggregator(
-            json.loads(self.body)
-        )
+        aggregator = self.config_backend.put_configuration_aggregator(self.params)
         schema = {"ConfigurationAggregator": aggregator}
         return json.dumps(schema)
 
@@ -260,10 +259,9 @@ class ConfigResponse(BaseResponse):
         return ""
 
     def select_resource_config(self) -> str:
-        params = self._get_params()
-        expression: str = params.get("Expression", "")
-        limit = params.get("Limit")
-        next_token = params.get("NextToken")
+        expression: str = self._get_param("Expression", "")
+        limit = self._get_param("Limit")
+        next_token = self._get_param("NextToken")
         results, query_info, next_token = self.config_backend.select_resource_config(
             expression=expression,
             limit=limit,
@@ -280,14 +278,13 @@ class ConfigResponse(BaseResponse):
         return json.dumps(response)
 
     def put_resource_config(self) -> str:
-        params = json.loads(self.body)
-        resource_type: str = params.get("ResourceType", "")
-        schema_version_id: str = params.get("SchemaVersionId", "")
-        resource_id: str = params.get("ResourceId", "")
-        resource_name: str = params.get("ResourceName", "")
-        configuration = params.get("Configuration", {})
+        resource_type: str = self._get_param("ResourceType", "")
+        schema_version_id: str = self._get_param("SchemaVersionId", "")
+        resource_id: str = self._get_param("ResourceId", "")
+        resource_name: str = self._get_param("ResourceName", "")
+        configuration = self._get_param("Configuration", {})
         configuration_str: str = json.dumps(configuration) if configuration else ""
-        tags: dict[str, str] = params.get("Tags", {})
+        tags: dict[str, str] = self._get_param("Tags", {})
         self.config_backend.put_resource_config(
             resource_type=resource_type,
             schema_version_id=schema_version_id,
@@ -299,9 +296,8 @@ class ConfigResponse(BaseResponse):
         return json.dumps({})
 
     def delete_resource_config(self) -> str:
-        params = json.loads(self.body)
-        resource_type = params.get("ResourceType", "")
-        resource_id = params.get("ResourceId", "")
+        resource_type = self._get_param("ResourceType", "")
+        resource_id = self._get_param("ResourceId", "")
 
         self.config_backend.delete_resource_config(
             resource_type=resource_type,
