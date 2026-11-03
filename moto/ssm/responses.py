@@ -192,7 +192,7 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         response: dict[str, Any] = {"Parameters": [], "InvalidParameters": []}
 
-        for parameter in result.values():
+        for parameter in sorted(result.values(), key=lambda parameter: parameter.name):
             param_data = parameter.response_object(with_decryption, self.region)
             response["Parameters"].append(param_data)
 

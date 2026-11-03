@@ -67,6 +67,28 @@ def test_delete_parameters():
 
 
 @mock_aws
+@pytest.mark.parametrize("name_format", ["name", "arn", "mixed"])
+def test_get_parameters_returns_alphabetical_order(name_format):
+    client = boto3.client("ssm", region_name=SSM_REGION)
+    names = ["/app/zulu", "/app/alpha", "/app/delta", "/app/bravo"]
+    requested = []
+    for index, name in enumerate(names):
+        client.put_parameter(Name=name, Value=f"value-{index}", Type="String")
+        if name_format == "arn" or (name_format == "mixed" and index % 2):
+            requested.append(f"arn:aws:ssm:{SSM_REGION}:{ACCOUNT_ID}:parameter{name}")
+        else:
+            requested.append(name)
+
+    response = client.get_parameters(Names=[*requested, requested[0], "/missing"])
+
+    assert [parameter["Name"] for parameter in response["Parameters"]] == sorted(names)
+    assert {
+        parameter["Name"]: parameter["Value"] for parameter in response["Parameters"]
+    } == {name: f"value-{index}" for index, name in enumerate(names)}
+    assert response["InvalidParameters"] == ["/missing"]
+
+
+@mock_aws
 def test_get_parameters_by_path():
     client = boto3.client("ssm", region_name=SSM_REGION)
 
