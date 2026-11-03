@@ -11,6 +11,7 @@ from ..exceptions import (
     InvalidLaunchTemplateNameNotFoundError,
     InvalidLaunchTemplateNameNotFoundWithNameError,
     InvalidLaunchTemplateVersionNotFound,
+    InvalidParameterCombination,
     InvalidParameterValue,
     MissingParameter,
     MissingParameterError,
@@ -81,13 +82,16 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         self.tags = self.get_tags()
 
         self.versions: list[LaunchTemplateVersion] = []
+        # Version numbers are never reused, even after a version is deleted
+        self.next_version_number = 1
         self.create_version(template_data, version_description)
         self.default_version_number = 1
 
     def create_version(
         self, data: dict[str, Any], description: str
     ) -> LaunchTemplateVersion:
-        num = len(self.versions) + 1
+        num = self.next_version_number
+        self.next_version_number += 1
         version = LaunchTemplateVersion(self, num, data, description)
         self.versions.append(version)
         return version
@@ -100,13 +104,13 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
             return self.versions[-1]
         if str(num).lower() == "$default":
             return self.default_version()
-        try:
-            return self.versions[int(num) - 1]
-        except IndexError:
-            raise InvalidLaunchTemplateVersionNotFound(template_id=self.id, version=num)
+        for version in self.versions:
+            if str(num) == str(version.number):
+                return version
+        raise InvalidLaunchTemplateVersionNotFound(template_id=self.id, version=num)
 
     def default_version(self) -> LaunchTemplateVersion:
-        return self.versions[self.default_version_number - 1]
+        return self.get_version(self.default_version_number)
 
     def latest_version(self) -> LaunchTemplateVersion:
         return self.versions[-1]
@@ -282,6 +286,55 @@ class LaunchTemplateBackend:
         self.launch_template_name_to_ids.pop(template.name, None)
         return template
 
+    def delete_launch_template_versions(
+        self, template_name: str | None, template_id: str | None, versions: list[str]
+    ) -> tuple[LaunchTemplate, list[int], list[int]]:
+        """
+        Returns the template, the deleted version numbers,
+        and the version numbers that could not be found.
+        """
+        if template_name and template_id:
+            raise InvalidParameterCombination(
+                "Either provide launch template ID or launch template name to modify the template."
+            )
+        if template_name:
+            template = self.get_launch_template_by_name(template_name)
+        elif template_id:
+            template = self.get_launch_template(template_id)
+        else:
+            raise MissingParameter(
+                "Either a launch template ID or a launch template name must be specified in the request."
+            )
+        if not versions:
+            raise InvalidParameterValue(
+                "The launch template version list cannot be empty."
+            )
+
+        # Validate the entire request before deleting anything
+        requested: list[int] = []
+        for v in versions:
+            if v == "$Latest":
+                number = template.latest_version_number
+            elif v == "$Default":
+                number = template.default_version_number
+            elif v.isdigit() and int(v) > 0:
+                number = int(v)
+            else:
+                raise InvalidParameterValue(f"Invalid value for version: {v}")
+            if number == template.default_version_number:
+                raise InvalidParameterValue(
+                    "The default version cannot be deleted. Either specify another version as default or delete the launch template."
+                )
+            if number not in requested:
+                requested.append(number)
+
+        existing = [version.number for version in template.versions]
+        deleted = [number for number in requested if number in existing]
+        not_found = [number for number in requested if number not in existing]
+        # Update remaining template versions after delete.
+        template.versions = [v for v in template.versions if v.number not in deleted]
+        return template, deleted, not_found
+
     def describe_launch_templates(
         self,
         template_names: list[str] | None = None,
@@ -341,17 +394,13 @@ class LaunchTemplateBackend:
                     ret_versions.append((template, template.get_version("$Latest")))
                 if "$Default" in versions:
                     ret_versions.append((template, template.get_version("$Default")))
-        elif min_version:
-            if max_version:
-                vMax = max_version
-            else:
-                vMax = min_version + max_results
-
-            vMin = min_version - 1
-            ret_versions = [(template, ver) for ver in template.versions[vMin:vMax]]
-        elif max_version:
-            vMax = max_version
-            ret_versions = [(template, ver) for ver in template.versions[:vMax]]
+        elif min_version or max_version:
+            ret_versions = [
+                (template, ver)
+                for ver in template.versions
+                if (not min_version or ver.number >= min_version)
+                and (not max_version or ver.number <= max_version)
+            ]
         elif template is not None:
             ret_versions = [(template, ver) for ver in template.versions]
 
