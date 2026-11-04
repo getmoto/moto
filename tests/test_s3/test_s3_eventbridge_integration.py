@@ -7,6 +7,8 @@ from uuid import uuid4
 import boto3
 import pytest
 import requests
+from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -379,3 +381,50 @@ def test_delete_object_acl_update_notification():
     assert event_message["detail"]["bucket"]["name"] == bucket_name
     assert event_message["detail"]["object"]["key"] == "keyname"
     assert event_message["detail"]["reason"] == "ObjectAcl"
+
+
+@mock_aws
+def test_object_restore_expired_notification():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("freeze_time does not work well with the Proxy or Server")
+
+    with freeze_time("2026-01-01 00:00:00"):
+        resource_names = _seteup_bucket_notification_eventbridge()
+        bucket_name = resource_names["bucket_name"]
+        log_group_name = resource_names["log_group_name"]
+        s3_client = boto3.client("s3", region_name=REGION_NAME)
+
+        s3_client.put_object(
+            Bucket=bucket_name, Key="a.txt", Body=b"hello", StorageClass="GLACIER"
+        )
+        s3_client.restore_object(
+            Bucket=bucket_name, Key="a.txt", RestoreRequest={"Days": 1}
+        )
+        # Confirm it's readable while restored - shouldn't fire the expiry event
+        # yet. Reading it also completes the restore (Initiated + Completed).
+        s3_client.get_object(Bucket=bucket_name, Key="a.txt")
+
+    events = _get_send_events(log_group_name=log_group_name)
+    detail_types = [json.loads(e["message"])["detail-type"] for e in events]
+    assert "Object Restore Expired" not in detail_types
+    assert detail_types.count("Object Restore Initiated") == 1
+    assert detail_types.count("Object Restore Completed") == 1
+
+    # Past the 1 day restore window
+    with freeze_time("2026-01-03 00:00:00"):
+        with pytest.raises(ClientError) as exc:
+            s3_client.get_object(Bucket=bucket_name, Key="a.txt")
+        assert exc.value.response["Error"]["Code"] == "InvalidObjectState"
+
+    events = _get_send_events(log_group_name=log_group_name)
+    expiry_events = [
+        json.loads(e["message"])
+        for e in events
+        if json.loads(e["message"])["detail-type"] == "Object Restore Expired"
+    ]
+    assert len(expiry_events) == 1
+    expiry_event = expiry_events[0]
+    assert expiry_event["source"] == "aws.s3"
+    assert expiry_event["detail"]["bucket"]["name"] == bucket_name
+    assert expiry_event["detail"]["object"]["key"] == "a.txt"
+    assert expiry_event["detail"]["reason"] == "ObjectRestore"
