@@ -480,7 +480,7 @@
 
 ## appmesh
 <details>
-<summary>84% implemented</summary>
+<summary>86% implemented</summary>
 
 - [X] create_gateway_route
 - [X] create_mesh
@@ -512,7 +512,7 @@
 - [X] list_virtual_routers
 - [ ] list_virtual_services
 - [X] tag_resource
-- [ ] untag_resource
+- [X] untag_resource
 - [X] update_gateway_route
 - [X] update_mesh
 - [X] update_route
