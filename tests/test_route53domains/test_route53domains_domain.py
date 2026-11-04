@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 
 from moto import mock_aws
 
@@ -55,15 +55,10 @@ def generate_domain_parameters() -> dict:
     }
 
 
-@pytest.fixture(name="invalid_domain_parameters")
-def generate_invalid_domain_parameters(domain_parameters: dict) -> dict:
-    domain_parameters["DomainName"] = "a"
-    domain_parameters["DurationInYears"] = 500
-    return domain_parameters
-
-
 @mock_aws
-def test_register_domain(domain_parameters: dict):
+@pytest.mark.parametrize("duration_in_years", [1, 7, 10])
+def test_register_domain(domain_parameters: dict, duration_in_years: int):
+    domain_parameters = {**domain_parameters, "DurationInYears": duration_in_years}
     route53domains_client = boto3.client("route53domains", region_name="global")
     res = route53domains_client.register_domain(**domain_parameters)
 
@@ -96,10 +91,19 @@ def test_register_domain_creates_hosted_zone(
     )
 
 
+@pytest.mark.parametrize(
+    "invalids",
+    [
+        pytest.param({"DomainName": "a"}, id="bad_domain_name"),
+        pytest.param({"DurationInYears": 11}, id="duration_just_past"),
+        pytest.param({"DurationInYears": 500}, id="duration_too_large"),
+    ],
+)
 @mock_aws
 def test_register_domain_fails_on_invalid_input(
-    invalid_domain_parameters: dict,
+    domain_parameters: dict, invalids: dict
 ):
+    invalid_domain_parameters = {**domain_parameters, **invalids}
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53_client = boto3.client("route53", region_name="global")
     with pytest.raises(ClientError) as exc:
@@ -107,6 +111,30 @@ def test_register_domain_fails_on_invalid_input(
 
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidInput"
+
+    res = route53_client.list_hosted_zones()
+    assert len(res["HostedZones"]) == 0
+
+
+@pytest.mark.parametrize("duration_in_years", [-3, 0])
+@mock_aws
+def test_register_domain_fails_on_bad_parameter(
+    domain_parameters: dict, duration_in_years: int
+):
+    invalid_domain_parameters = {
+        **domain_parameters,
+        "DurationInYears": duration_in_years,
+    }
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    route53_client = boto3.client("route53", region_name="global")
+    with pytest.raises(
+        ParamValidationError,
+        match=(
+            f"Parameter validation failed:\n"
+            f"Invalid value for parameter DurationInYears, value: {duration_in_years}, valid min value: 1"
+        ),
+    ):
+        route53domains_client.register_domain(**invalid_domain_parameters)
 
     res = route53_client.list_hosted_zones()
     assert len(res["HostedZones"]) == 0
