@@ -1,11 +1,13 @@
 from datetime import datetime
+from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 
@@ -641,3 +643,76 @@ def test_lifecycle_empty_configuration():
     assert ex.value.response["Error"]["Message"] == (
         "The lifecycle configuration does not exist"
     )
+
+
+@mock_aws
+def test_lifecycle_transition_applies_to_object():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("freeze_time can't simulate time passing in Server/ProxyMode")
+    client = boto3.client("s3", DEFAULT_REGION_NAME)
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
+
+    with freeze_time("2026-01-01 00:00:00"):
+        client.put_bucket_lifecycle_configuration(
+            Bucket=bucket_name,
+            LifecycleConfiguration={
+                "Rules": [
+                    {
+                        "ID": "archive-rule",
+                        "Status": "Enabled",
+                        "Filter": {"Prefix": "logs/"},
+                        "Transitions": [{"Days": 30, "StorageClass": "GLACIER"}],
+                    }
+                ]
+            },
+        )
+        client.put_object(Bucket=bucket_name, Key="logs/a.txt", Body=b"hello")
+        client.put_object(Bucket=bucket_name, Key="other/b.txt", Body=b"unaffected")
+
+    # Not old enough yet - still STANDARD
+    with freeze_time("2026-01-15 00:00:00"):
+        obj = client.head_object(Bucket=bucket_name, Key="logs/a.txt")
+        assert obj.get("StorageClass", "STANDARD") == "STANDARD"
+
+    # Past the 30 day threshold
+    with freeze_time("2026-02-05 00:00:00"):
+        obj = client.head_object(Bucket=bucket_name, Key="logs/a.txt")
+        assert obj["StorageClass"] == "GLACIER"
+
+        # list_objects_v2 should reflect the same transitioned state
+        listing = client.list_objects_v2(Bucket=bucket_name, Prefix="logs/")
+        assert listing["Contents"][0]["StorageClass"] == "GLACIER"
+
+        # Object outside the rule's prefix is unaffected
+        other = client.head_object(Bucket=bucket_name, Key="other/b.txt")
+        assert other.get("StorageClass", "STANDARD") == "STANDARD"
+
+
+@mock_aws
+def test_lifecycle_transition_disabled_rule_is_ignored():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("freeze_time can't simulate time passing in Server/ProxyMode")
+    client = boto3.client("s3", DEFAULT_REGION_NAME)
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
+
+    with freeze_time("2026-01-01 00:00:00"):
+        client.put_bucket_lifecycle_configuration(
+            Bucket=bucket_name,
+            LifecycleConfiguration={
+                "Rules": [
+                    {
+                        "ID": "disabled-rule",
+                        "Status": "Disabled",
+                        "Filter": {"Prefix": ""},
+                        "Transitions": [{"Days": 1, "StorageClass": "GLACIER"}],
+                    }
+                ]
+            },
+        )
+        client.put_object(Bucket=bucket_name, Key="a.txt", Body=b"hello")
+
+    with freeze_time("2026-02-05 00:00:00"):
+        obj = client.head_object(Bucket=bucket_name, Key="a.txt")
+        assert obj.get("StorageClass", "STANDARD") == "STANDARD"
