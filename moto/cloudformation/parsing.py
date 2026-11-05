@@ -205,7 +205,7 @@ def clean_json(resource_json: Any, resources_map: "ResourceMap") -> Any:
                         {
                             "Fn::GetAtt": re.findall(r'(?<=\${)[^"]*?(?=})', sub)[
                                 0
-                            ].split(".")
+                            ].split(".", 1)
                         },
                         resources_map,
                     )
