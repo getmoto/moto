@@ -10,13 +10,14 @@ from collections import OrderedDict
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, TypedDict
-from urllib.parse import unquote
 from xml.etree import ElementTree as ETree
 from xml.etree.ElementTree import ParseError as XMLParseError
 
 from botocore import xform_name
 from botocore.utils import is_json_value_header
 from botocore.utils import parse_timestamp as botocore_parse_timestamp
+
+from moto.core import cbor
 
 if TYPE_CHECKING:
     from werkzeug.datastructures import Headers, MultiDict
@@ -42,6 +43,10 @@ def default_blob_parser(value):
     # We don't decode this to a str because it's possible that
     # the blob contains binary data that can't be decoded.
     return base64.b64decode(value)
+
+
+def default_cbor_blob_parser(value):
+    return value
 
 
 def _text_content(func):
@@ -371,6 +376,39 @@ class JSONParser(BaseJSONParser):
         return self._parse_shape(shape, parsed_json)
 
 
+class RpcV2CBORParser(BaseJSONParser):
+    # https://smithy.io/2.0/additional-specs/protocols/smithy-rpc-v2-cbor.html
+    # The decoded CBOR body is a tree of plain Python values, just like a decoded
+    # JSON body, so the JSON structure/list/map handling can be reused as-is.
+
+    def __init__(
+        self,
+        operation_model: OperationModel,
+        timestamp_parser=None,
+        blob_parser=None,
+        map_type=None,
+    ):
+        # Blobs are sent as raw CBOR byte strings, not base64-encoded text.
+        if blob_parser is None:
+            blob_parser = default_cbor_blob_parser
+        super().__init__(operation_model, timestamp_parser, blob_parser, map_type)
+
+    def _do_parse(self, request_dict, shape):
+        body = request_dict["body"]
+        try:
+            parsed_cbor = cbor.loads(body) if body else {}
+        except (cbor.CBORDecodeError, UnicodeDecodeError) as e:
+            raise RequestParserError(f"Unable to parse CBOR request body: {e}")
+        return self._parse_shape(shape, parsed_cbor)
+
+    def _parse_timestamp(self, shape, value):
+        # Timestamps arrive as tag 1 (epoch seconds), which the decoder turns into
+        # an aware datetime.  The timestamp parser expects the epoch value.
+        if isinstance(value, datetime):
+            value = value.timestamp()
+        return self._timestamp_parser(value)
+
+
 class BaseRestParser(RequestParser):
     def _do_parse(self, request_dict, shape):
         final_parsed = {}
@@ -383,6 +421,18 @@ class BaseRestParser(RequestParser):
         member_shapes = shape.members
         self._parse_non_payload_attrs(request_dict, shape, member_shapes, final_parsed)
         self._parse_payload(request_dict, shape, member_shapes, final_parsed)
+        self._parse_host_labels(request_dict, member_shapes, final_parsed)
+
+    def _parse_host_labels(self, request_dict, member_shapes, final_parsed):
+        # The router includes host label values (e.g. AccountId from
+        # {AccountId}.s3-control.<region>.amazonaws.com) in `url_params` when the
+        # request host has them.  They take precedence over an alternate location
+        # (e.g. the x-amz-account-id header) when present, but fallback to the
+        # alternate location if the host doesn't have them (e.g. localhost/server mode).
+        url_params = request_dict["url_params"]
+        for name, member_shape in member_shapes.items():
+            if member_shape.serialization.get("hostLabel") and name in url_params:
+                final_parsed[name] = self._parse_shape(member_shape, url_params[name])
 
     def _parse_payload(self, response, shape, member_shapes, final_parsed):
         if "payload" in shape.serialization:
@@ -431,10 +481,7 @@ class BaseRestParser(RequestParser):
             elif location == "uri":
                 member_name = member_shape.serialization.get("name", name)
                 uri_params = response["url_params"]
-                # URI regex group names can't contain hyphens, so BaseResponse.uri_to_regexp
-                # converts e.g. {broker-id} into the group name broker_id.
-                value = uri_params.get(member_name.replace("-", "_"))
-                value = unquote(value)
+                value = uri_params.get(member_name)
                 final_parsed[name] = self._parse_shape(member_shape, value)
             elif location == "querystring":
                 qs = response["values"]
@@ -678,6 +725,7 @@ PROTOCOL_PARSERS = {
     "query": QueryParser,
     "rest-json": RestJSONParser,
     "rest-xml": RestXMLParser,
+    "smithy-rpc-v2-cbor": RpcV2CBORParser,
 }
 
 

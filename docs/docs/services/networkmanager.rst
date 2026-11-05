@@ -81,6 +81,7 @@ networkmanager
 - [ ] get_transit_gateway_registrations
 - [ ] get_transit_gateway_route_table_attachment
 - [ ] get_vpc_attachment
+- [ ] list_attachment_nat_configurations
 - [ ] list_attachment_routing_policy_associations
 - [ ] list_attachments
 - [ ] list_connect_peers
@@ -102,6 +103,7 @@ networkmanager
 - [ ] start_route_analysis
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_attachment_nat_configuration
 - [ ] update_connection
 - [ ] update_core_network
 - [ ] update_device

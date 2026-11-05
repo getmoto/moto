@@ -3,10 +3,12 @@
   "merge": {
     "metadata": {
       "errorNamespace": "com.amazonaws.sqs",
+      "jsonVersion": "1.0",
       "protocols": [
         "json",
         "query"
       ],
+      "targetPrefix": "AmazonSQS",
       "xmlNamespace": "http://queue.amazonaws.com/doc/2012-11-05/"
     },
     "operations": {

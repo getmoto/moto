@@ -13,6 +13,7 @@ class SageMakerRuntimeResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="sagemaker-runtime")
+        self.automated_parameter_parsing = True
 
     @property
     def sagemakerruntime_backend(self) -> SageMakerRuntimeBackend:
@@ -20,7 +21,6 @@ class SageMakerRuntimeResponse(BaseResponse):
         return sagemakerruntime_backends[self.current_account][self.region]
 
     def invoke_endpoint(self) -> TYPE_RESPONSE:
-        params = self._get_params()
         unique_repr = {
             key: value
             for key, value in self.headers.items()
@@ -28,7 +28,7 @@ class SageMakerRuntimeResponse(BaseResponse):
         }
         unique_repr["Accept"] = self.headers.get("Accept")
         unique_repr["Body"] = self.body
-        endpoint_name = params.get("EndpointName")
+        endpoint_name = self._get_param("EndpointName")
         (
             body,
             content_type,
@@ -46,9 +46,9 @@ class SageMakerRuntimeResponse(BaseResponse):
         return 200, headers, body
 
     def invoke_endpoint_async(self) -> TYPE_RESPONSE:
-        endpoint_name = self.path.split("/")[2]
-        input_location = self.headers.get("X-Amzn-SageMaker-InputLocation")
-        inference_id = self.headers.get("X-Amzn-SageMaker-Inference-Id")
+        endpoint_name = self._get_param("EndpointName")
+        input_location = self._get_param("InputLocation")
+        inference_id = self._get_param("InferenceId")
         output_location, failure_location = (
             self.sagemakerruntime_backend.invoke_endpoint_async(
                 endpoint_name, input_location

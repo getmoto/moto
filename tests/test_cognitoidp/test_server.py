@@ -332,6 +332,39 @@ def test_jwks_endpoint_non_default_region(moto_server_url: str):
     assert len(data["keys"]) >= 1
 
 
+def test_openid_configuration_endpoint_without_auth_header():
+    """Test that the discovery document works directly on the cognitoidp backend."""
+    backend = server.create_backend_app("cognito-idp")
+    test_client = backend.test_client()
+
+    res = test_client.get("/us-east-1_abc123/.well-known/openid-configuration")
+    assert res.status_code == 200
+    data = json.loads(res.data)
+    assert (
+        data["issuer"] == "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_abc123"
+    )
+
+
+def test_openid_configuration_endpoint_on_moto_server(moto_server_url: str):
+    """A plain GET to /{pool_id}/.well-known/openid-configuration used to fail
+    with a 500, as it could not be routed to the cognito-idp backend.
+    """
+    url = f"{moto_server_url}/eu-west-1_xyz789/.well-known/openid-configuration"
+    response = requests.get(url)
+    assert response.status_code == 200
+    data = response.json()
+    # The issuer matches the 'iss' claim of the tokens, whatever the host
+    assert (
+        data["issuer"] == "https://cognito-idp.eu-west-1.amazonaws.com/eu-west-1_xyz789"
+    )
+    # The JWKS URI can be followed on the server that was called
+    assert (
+        data["jwks_uri"] == f"{moto_server_url}/eu-west-1_xyz789/.well-known/jwks.json"
+    )
+    keys = requests.get(data["jwks_uri"]).json()["keys"]
+    assert len(keys) >= 1
+
+
 def test_jwks_endpoint_post_rejected(moto_server_url: str):
     """POST to JWKS path should route to cognito-idp but be rejected."""
     url = f"{moto_server_url}/us-east-1_abc123/.well-known/jwks.json"
@@ -384,3 +417,10 @@ class TestGetServiceFromUnsignedPath:
         assert service == "cognito-idp"
         # .well-known has no underscore, so falls back to us-east-1
         assert region == "us-east-1"
+
+    def test_openid_configuration_path(self):
+        service, region = self.method(
+            "/ap-southeast-1_xyz789/.well-known/openid-configuration"
+        )
+        assert service == "cognito-idp"
+        assert region == "ap-southeast-1"

@@ -47,25 +47,6 @@ class Cluster:
         self.tag_list = tag_list or []
         self.mode = mode
 
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "BackupPolicy": self.backup_policy,
-            "BackupRetentionPolicy": self.backup_retention_policy,
-            "ClusterId": self.cluster_id,
-            "CreateTimestamp": self.create_timestamp,
-            "Hsms": self.hsms,
-            "HsmType": self.hsm_type,
-            "SourceBackupId": self.source_backup_id,
-            "State": self.state,
-            "StateMessage": self.state_message,
-            "SubnetMapping": self.subnet_mapping,
-            "VpcId": self.vpc_id,
-            "NetworkType": self.network_type,
-            "Certificates": self.certificates,
-            "TagList": self.tag_list,
-            "Mode": self.mode,
-        }
-
 
 class Backup:
     def __init__(
@@ -97,32 +78,6 @@ class Backup:
         self.hsm_type = hsm_type
         self.mode = mode
 
-    def to_dict(self) -> dict[str, Any]:
-        result = {
-            "BackupId": self.backup_id,
-            "BackupArn": self.backup_arn,
-            "BackupState": self.backup_state,
-            "ClusterId": self.cluster_id,
-            "CreateTimestamp": self.create_timestamp,
-            "NeverExpires": self.never_expires,
-            "TagList": self.tag_list,
-            "HsmType": self.hsm_type,
-            "Mode": self.mode,
-        }
-
-        if self.copy_timestamp:
-            result["CopyTimestamp"] = self.copy_timestamp
-        if self.source_region:
-            result["SourceRegion"] = self.source_region
-        if self.source_backup:
-            result["SourceBackup"] = self.source_backup
-        if self.source_cluster:
-            result["SourceCluster"] = self.source_cluster
-        if self.delete_timestamp:
-            result["DeleteTimestamp"] = self.delete_timestamp
-
-        return result
-
 
 class CloudHSMV2Backend(BaseBackend):
     """Implementation of CloudHSMV2 APIs."""
@@ -139,7 +94,7 @@ class CloudHSMV2Backend(BaseBackend):
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
-            "unique_attribute": "ClusterId",
+            "unique_attribute": "cluster_id",
             "fail_on_invalid_token": False,
         },
     }
@@ -164,9 +119,7 @@ class CloudHSMV2Backend(BaseBackend):
 
         return tags, None
 
-    def tag_resource(
-        self, resource_id: str, tag_list: list[dict[str, str]]
-    ) -> dict[str, Any]:
+    def tag_resource(self, resource_id: str, tag_list: list[dict[str, str]]) -> None:
         if resource_id not in self.tags:
             self.tags[resource_id] = []
 
@@ -180,17 +133,11 @@ class CloudHSMV2Backend(BaseBackend):
             if not tag_exists:
                 self.tags[resource_id].append(new_tag)
 
-        return {}
-
-    def untag_resource(
-        self, resource_id: str, tag_key_list: list[str]
-    ) -> dict[str, Any]:
+    def untag_resource(self, resource_id: str, tag_key_list: list[str]) -> None:
         if resource_id in self.tags:
             self.tags[resource_id] = [
                 tag for tag in self.tags[resource_id] if tag["Key"] not in tag_key_list
             ]
-
-        return {}
 
     def create_cluster(
         self,
@@ -201,7 +148,7 @@ class CloudHSMV2Backend(BaseBackend):
         network_type: str | None,
         tag_list: list[dict[str, str]] | None,
         mode: str | None,
-    ) -> dict[str, Any]:
+    ) -> Cluster:
         cluster = Cluster(
             backup_retention_policy=backup_retention_policy,
             hsm_type=hsm_type,
@@ -223,9 +170,9 @@ class CloudHSMV2Backend(BaseBackend):
         )
         self.backups[backup.backup_id] = backup
 
-        return cluster.to_dict()
+        return cluster
 
-    def delete_cluster(self, cluster_id: str) -> dict[str, Any]:
+    def delete_cluster(self, cluster_id: str) -> Cluster:
         if cluster_id not in self.clusters:
             raise ResourceNotFoundException(f"Cluster {cluster_id} not found")
 
@@ -233,12 +180,12 @@ class CloudHSMV2Backend(BaseBackend):
         cluster.state = "DELETED"
         cluster.state_message = "Cluster deleted"
         del self.clusters[cluster_id]
-        return cluster.to_dict()
+        return cluster
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_clusters(
         self, filters: dict[str, list[str]] | None = None
-    ) -> list[dict[str, str]]:
+    ) -> list[Cluster]:
         clusters = list(self.clusters.values())
 
         if filters:
@@ -250,8 +197,7 @@ class CloudHSMV2Backend(BaseBackend):
                 elif key == "vpcIds":
                     clusters = [c for c in clusters if c.vpc_id in values]
 
-        clusters = sorted(clusters, key=lambda x: x.create_timestamp)
-        return [c.to_dict() for c in clusters]
+        return sorted(clusters, key=lambda x: x.create_timestamp)
 
     def get_resource_policy(self, resource_arn: str) -> str | None:
         return self.resource_policies.get(resource_arn)
@@ -285,9 +231,8 @@ class CloudHSMV2Backend(BaseBackend):
         )
         return backups
 
-    def put_resource_policy(self, resource_arn: str, policy: str) -> dict[str, str]:
+    def put_resource_policy(self, resource_arn: str, policy: str) -> None:
         self.resource_policies[resource_arn] = policy
-        return {"ResourceArn": resource_arn, "Policy": policy}
 
 
 cloudhsmv2_backends = BackendDict(CloudHSMV2Backend, "cloudhsmv2")

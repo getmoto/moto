@@ -16,6 +16,7 @@ lakeformation
 
 - [X] add_lf_tags_to_resource
 - [ ] assume_decorated_role_with_saml
+- [ ] attach_rls_policy
 - [X] batch_grant_permissions
 - [X] batch_revoke_permissions
 - [ ] cancel_transaction
@@ -25,16 +26,19 @@ lakeformation
 - [ ] create_lake_formation_opt_in
 - [X] create_lf_tag
 - [ ] create_lf_tag_expression
+- [ ] create_rls_policy
 - [ ] delete_data_cells_filter
 - [ ] delete_lake_formation_identity_center_configuration
 - [ ] delete_lake_formation_opt_in
 - [X] delete_lf_tag
 - [ ] delete_lf_tag_expression
 - [ ] delete_objects_on_cancel
+- [ ] delete_rls_policy
 - [X] deregister_resource
 - [ ] describe_lake_formation_identity_center_configuration
 - [X] describe_resource
 - [ ] describe_transaction
+- [ ] detach_rls_policy
 - [ ] extend_transaction
 - [ ] get_data_cells_filter
 - [ ] get_data_lake_principal
@@ -45,6 +49,7 @@ lakeformation
 - [ ] get_query_state
 - [ ] get_query_statistics
 - [X] get_resource_lf_tags
+- [ ] get_rls_policy
 - [ ] get_table_objects
 - [ ] get_temporary_data_location_credentials
 - [ ] get_temporary_glue_partition_credentials
@@ -66,6 +71,8 @@ No pagination has been implemented yet.
 
 
 - [X] list_resources
+- [ ] list_rls_policies
+- [ ] list_rls_policy_attachments
 - [ ] list_table_storage_optimizers
 - [ ] list_transactions
 - [X] put_data_lake_settings
@@ -81,6 +88,7 @@ No pagination has been implemented yet.
 - [X] update_lf_tag
 - [ ] update_lf_tag_expression
 - [ ] update_resource
+- [ ] update_rls_policy
 - [ ] update_table_objects
 - [ ] update_table_storage_optimizer
 

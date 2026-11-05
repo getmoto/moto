@@ -30,6 +30,7 @@ route53domains
 - [ ] enable_domain_transfer_lock
 - [ ] get_contact_reachability_status
 - [ ] get_domain_detail
+- [ ] get_domain_prices
 - [ ] get_domain_suggestions
 - [ ] get_operation_detail
 - [X] list_domains

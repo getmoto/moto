@@ -99,7 +99,7 @@ def test_create_invalid_subnet_group_fails():
     with pytest.raises(ClientError) as ex:
         client.create_subnet_group(SubnetGroupName="foo-bar", SubnetIds=["foo", "bar"])
     err = ex.value.response["Error"]
-    assert err["Code"] == "InvalidSubnetError"
+    assert err["Code"] == "InvalidSubnet"
 
 
 @mock_aws

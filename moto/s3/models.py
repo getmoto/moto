@@ -54,6 +54,7 @@ from moto.s3.exceptions import (
     InvalidNotificationEvent,
     InvalidObjectState,
     InvalidPart,
+    InvalidPartNumber,
     InvalidPublicAccessBlockConfiguration,
     InvalidRequest,
     InvalidStorageClass,
@@ -463,6 +464,8 @@ class FakeMultipart(BaseModel):
         self.acl = acl
         self.parts: dict[int, FakeKey] = {}
         self.partlist: list[int] = []  # ordered list of part ID's
+        # Sizes of the parts that make up the completed object, in order.
+        self.completed_part_sizes: list[int] = []
         rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
         self.id = (
             rand_b64.decode("utf-8").replace("=", "").replace("+", "").replace("/", "")
@@ -483,6 +486,7 @@ class FakeMultipart(BaseModel):
 
         last = None
         count = 0
+        part_sizes = []
         for pn, etag in body:
             part = self.parts.get(pn)
             part_etag = None
@@ -496,11 +500,14 @@ class FakeMultipart(BaseModel):
             md5s.extend(decode_hex(part_etag)[0])  # type: ignore
             total.extend(part.value)
             checksum_builder.addPart(part.value)
+            part_sizes.append(part.size)
             last = part
             count += 1
 
         if count == 0:
             raise MalformedXML
+
+        self.completed_part_sizes = part_sizes
 
         full_etag = md5_hash()
         full_etag.update(bytes(md5s))
@@ -529,6 +536,21 @@ class FakeMultipart(BaseModel):
         if part_id not in self.partlist:
             insort(self.partlist, part_id)
         return key
+
+    @property
+    def parts_count(self) -> int:
+        return len(self.completed_part_sizes)
+
+    def get_part_range(self, part_number: int) -> tuple[int, int]:
+        """
+        Return the (first, last) byte offsets of the given part within the completed object.
+        """
+        if not 1 <= part_number <= self.parts_count:
+            raise InvalidPartNumber(
+                part_number_requested=part_number, actual_part_count=self.parts_count
+            )
+        start = sum(self.completed_part_sizes[: part_number - 1])
+        return start, start + self.completed_part_sizes[part_number - 1] - 1
 
     def list_parts(self, part_number_marker: int, max_parts: int) -> Iterator[FakeKey]:
         max_marker = part_number_marker + max_parts
@@ -2450,7 +2472,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
         bucket_name: str,
         key_name: str,
         version_id: str | None = None,
-        part_number: str | None = None,
         return_delete_marker: bool = False,
     ) -> FakeKey | None:
         bucket = self.get_bucket(bucket_name)
@@ -2467,9 +2488,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
                         key = key_version
                         break
 
-            if part_number and key and key.multipart:
-                key = key.multipart.parts[part_number]
-
         if isinstance(key, FakeKey):
             key.advance()
             return key
@@ -2483,10 +2501,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
         bucket_name: str,
         key_name: str,
         version_id: str | None = None,
-        part_number: str | None = None,
     ) -> FakeKey | None:
         obj = self.get_object(
-            bucket_name, key_name, version_id, part_number, return_delete_marker=True
+            bucket_name, key_name, version_id, return_delete_marker=True
         )
         if isinstance(obj, FakeDeleteMarker):
             raise HeadOnDeleteMarker(obj)

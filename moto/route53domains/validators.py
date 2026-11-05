@@ -1,10 +1,11 @@
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from typing import Any
 
 from moto.core.common_models import BaseModel
+from moto.core.utils import utcfromtimestamp, utcnow
 from moto.moto_api._internal import mock_random
 from moto.route53domains.exceptions import UnsupportedTLDException
 
@@ -666,8 +667,8 @@ class Route53DomainsOperation(BaseModel):
         status_flag: str | None = None,
     ):
         id_ = str(mock_random.uuid4())
-        submitted_date = datetime.now(timezone.utc)
-        last_updated_date = datetime.now(timezone.utc)
+        submitted_date = utcnow()
+        last_updated_date = utcnow()
 
         return cls(
             id_,
@@ -679,22 +680,6 @@ class Route53DomainsOperation(BaseModel):
             message,
             status_flag,
         )
-
-    def to_json(self) -> dict[str, Any]:
-        d = {
-            "OperationId": self.id,
-            "Status": self.status,
-            "StatusFlag": self.status_flag,
-            "DomainName": self.domain_name,
-            "LastUpdatedDate": self.last_updated_date.timestamp(),
-            "SubmittedDate": self.submitted_date.timestamp(),
-            "Type": self.type,
-        }
-
-        if self.message:
-            d["Message"] = self.message
-
-        return d
 
 
 class Route53DomainsContactDetail(BaseModel):
@@ -836,26 +821,6 @@ class Route53DomainsContactDetail(BaseModel):
         if value and len(value) > max_len:
             input_errors.append(f"Length of {field_name} is more than {max_len}")
 
-    def to_json(self) -> dict[str, Any]:
-        d = {
-            "FirstName": self.first_name,
-            "LastName": self.last_name,
-            "ContactType": self.contact_type,
-            "OrganizationName": self.organization_name,
-            "AddressLine1": self.address_line_1,
-            "AddressLine2": self.address_line_2,
-            "City": self.city,
-            "State": self.state,
-            "CountryCode": self.country_code,
-            "ZipCode": self.zip_code,
-            "PhoneNumber": self.phone_number,
-            "Email": self.email,
-            "Fax": self.fax,
-            "ExtraParams": self.extra_params,
-        }
-
-        return {key: value for key, value in d.items() if value is not None}
-
 
 class NameServer:
     def __init__(self, name: str, glue_ips: list[str]):
@@ -897,12 +862,6 @@ class NameServer:
         name = data.get("Name")
         glue_ips = data.get("GlueIps")
         return cls.validate(name, glue_ips)  # type: ignore[arg-type]
-
-    def to_json(self) -> dict[str, Any]:
-        d: dict[str, Any] = {"Name": self.name}
-        if self.glue_ips:
-            d["GlueIps"] = self.glue_ips
-        return d
 
 
 class Route53Domain(BaseModel):
@@ -994,18 +953,16 @@ class Route53Domain(BaseModel):
         except ValidationException as e:
             input_errors += e.errors
 
-        creation_date = datetime.now(timezone.utc)
-        updated_date = datetime.now(timezone.utc)
-        expiration_date = expiration_date or datetime.now(timezone.utc) + timedelta(
-            days=365 * 10
-        )
+        creation_date = utcnow()
+        updated_date = utcnow()
+        expiration_date = expiration_date or utcnow() + timedelta(days=365 * 10)
         registrar_name = registrar_name or "GANDI SAS"
         whois_server = whois_server or "whois.gandi.net"
         registrar_url = registrar_url or "http://www.gandi.net"
         abuse_contact_email = abuse_contact_email or "abuse@support.gandi.net"
         status_list = ["SUCCEEDED"]
 
-        time_until_expiration = expiration_date - datetime.now(timezone.utc)
+        time_until_expiration = expiration_date - utcnow()
         if time_until_expiration < timedelta(
             days=365
         ) or time_until_expiration > timedelta(days=365 * 10):
@@ -1051,33 +1008,6 @@ class Route53Domain(BaseModel):
         if tld not in AWS_SUPPORTED_TLDS:
             raise UnsupportedTLDException(tld)
 
-    def to_json(self) -> dict[str, Any]:
-        return {
-            "DomainName": self.domain_name,
-            "Nameservers": [nameserver.to_json() for nameserver in self.nameservers],
-            "AutoRenew": self.auto_renew,
-            "AdminContact": self.admin_contact.to_json(),
-            "RegistrantContact": self.registrant_contact.to_json(),
-            "TechContact": self.tech_contact.to_json(),
-            "AdminPrivacy": self.admin_privacy,
-            "RegistrantPrivacy": self.registrant_privacy,
-            "TechPrivacy": self.tech_privacy,
-            "RegistrarName": self.registrar_name,
-            "WhoIsServer": self.whois_server,
-            "RegistrarUrl": self.registrar_url,
-            "AbuseContactEmail": self.abuse_contact_email,
-            "AbuseContactPhone": self.abuse_contact_phone,
-            "RegistryDomainId": "",
-            "CreationDate": self.creation_date.timestamp(),
-            "UpdateDate": self.updated_date.timestamp(),
-            "ExpirationDate": self.expiration_date.timestamp(),
-            "Reseller": self.reseller,
-            "DnsSec": "",
-            "StatusList": self.status_list,
-            "DnsSecKeys": self.dns_sec_keys,
-            "BillingContact": self.admin_contact.to_json(),
-        }
-
 
 class DomainsFilter:
     def __init__(
@@ -1100,15 +1030,13 @@ class DomainsFilter:
             any(
                 value
                 for value in self.values
-                if domain.expiration_date
-                >= datetime.fromtimestamp(float(value), tz=timezone.utc)
+                if domain.expiration_date >= utcfromtimestamp(float(value))  # type: ignore[arg-type]
             )
             if self.operator == DomainFilterOperator.GE
             else any(
                 value
                 for value in self.values
-                if domain.expiration_date
-                <= datetime.fromtimestamp(float(value), tz=timezone.utc)
+                if domain.expiration_date <= utcfromtimestamp(float(value))  # type: ignore[arg-type]
             )
         )
 

@@ -1,67 +1,58 @@
 """Exceptions raised by the memorydb service."""
 
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class MemoryDBClientError(JsonRESTError):
-    code = 400
+class MemoryDBClientError(ServiceException):
+    pass
 
 
 class ClusterAlreadyExistsFault(MemoryDBClientError):
-    def __init__(self, msg: str):
-        super().__init__("ClusterAlreadyExistsFault", msg)
+    code = "ClusterAlreadyExistsFault"
 
 
 class InvalidSubnetError(MemoryDBClientError):
+    code = "InvalidSubnet"
+
     def __init__(self, subnet_identifier: list[str]):
-        super().__init__("InvalidSubnetError", f"Subnet {subnet_identifier} not found.")
+        super().__init__(f"Subnet {subnet_identifier} not found.")
 
 
 class SubnetGroupAlreadyExistsFault(MemoryDBClientError):
-    def __init__(self, msg: str):
-        super().__init__("SubnetGroupAlreadyExistsFault", msg)
+    code = "SubnetGroupAlreadyExistsFault"
 
 
 class ClusterNotFoundFault(MemoryDBClientError):
-    def __init__(self, msg: str):
-        super().__init__("ClusterNotFoundFault", msg)
+    code = "ClusterNotFoundFault"
 
 
 class SnapshotAlreadyExistsFault(MemoryDBClientError):
-    def __init__(self, msg: str):
-        super().__init__("SnapshotAlreadyExistsFault", msg)
+    code = "SnapshotAlreadyExistsFault"
 
 
 class SnapshotNotFoundFault(MemoryDBClientError):
-    def __init__(self, msg: str):
-        super().__init__("SnapshotNotFoundFault", msg)
+    code = "SnapshotNotFoundFault"
 
 
 class SubnetGroupNotFoundFault(MemoryDBClientError):
-    def __init__(self, msg: str):
-        super().__init__("SubnetGroupNotFoundFault", msg)
+    code = "SubnetGroupNotFoundFault"
 
 
 class TagNotFoundFault(MemoryDBClientError):
-    def __init__(self, msg: str):
-        super().__init__("TagNotFoundFault", msg)
+    code = "TagNotFoundFault"
 
 
 class InvalidParameterValueException(MemoryDBClientError):
-    def __init__(self, msg: str):
-        super().__init__("InvalidParameterValueException", msg)
+    code = "InvalidParameterValueException"
 
 
 class SubnetGroupInUseFault(MemoryDBClientError):
-    def __init__(self, msg: str):
-        super().__init__("SubnetGroupInUseFault", msg)
+    code = "SubnetGroupInUseFault"
 
 
 class UserAlreadyExistsFault(MemoryDBClientError):
-    def __init__(self, msg: str):
-        super().__init__("UserAlreadyExistsFault", msg)
+    code = "UserAlreadyExistsFault"
 
 
 class UserNotFoundFault(MemoryDBClientError):
-    def __init__(self, msg: str):
-        super().__init__("UserNotFoundFault", msg)
+    code = "UserNotFoundFault"

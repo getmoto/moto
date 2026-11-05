@@ -1,31 +1,23 @@
 """Exceptions raised by the workspaces service."""
 
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class ValidationException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("ValidationException", message)
+class WorkSpacesException(ServiceException):
+    pass
 
 
-class InvalidParameterValuesException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("InvalidParameterValuesException", message)
+class ValidationException(WorkSpacesException):
+    code = "ValidationException"
 
 
-class ResourceAlreadyExistsException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("ResourceAlreadyExistsException", message)
+class InvalidParameterValuesException(WorkSpacesException):
+    code = "InvalidParameterValuesException"
 
 
-class ResourceNotFoundException(JsonRESTError):
-    code = 400
+class ResourceAlreadyExistsException(WorkSpacesException):
+    code = "ResourceAlreadyExistsException"
 
-    def __init__(self, message: str):
-        super().__init__("ResourceNotFoundException", message)
+
+class ResourceNotFoundException(WorkSpacesException):
+    code = "ResourceNotFoundException"

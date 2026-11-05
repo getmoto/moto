@@ -44,6 +44,7 @@ class StateMachineInstance:
         encryptionConfiguration: dict[str, Any] | None = None,
         loggingConfiguration: dict[str, Any] | None = None,
         tracingConfiguration: dict[str, Any] | None = None,
+        sm_type: str | None = None,
     ):
         self.creation_date = utcnow()
         self.update_date = self.creation_date
@@ -52,7 +53,7 @@ class StateMachineInstance:
         self.definition = definition
         self.roleArn = roleArn
         self.executions: list[Execution] = []
-        self.type = "STANDARD"
+        self.type = sm_type or "STANDARD"
         self.encryptionConfiguration = encryptionConfiguration or {
             "type": "AWS_OWNED_KEY"
         }
@@ -99,6 +100,7 @@ class StateMachineVersion(StateMachineInstance, CloudFormationModel):
             encryptionConfiguration=source.encryptionConfiguration,
             loggingConfiguration=source.loggingConfiguration,
             tracingConfiguration=source.tracingConfiguration,
+            sm_type=source.type,
         )
         self.source_arn = source.arn
         self.version = version
@@ -116,6 +118,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         encryptionConfiguration: dict[str, Any] | None = None,
         loggingConfiguration: dict[str, Any] | None = None,
         tracingConfiguration: dict[str, Any] | None = None,
+        sm_type: str | None = None,
     ):
         StateMachineInstance.__init__(
             self,
@@ -126,6 +129,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
             encryptionConfiguration=encryptionConfiguration,
             loggingConfiguration=loggingConfiguration,
             tracingConfiguration=tracingConfiguration,
+            sm_type=sm_type,
         )
         self.latest_version_number = 0
         self.versions: dict[int, StateMachineVersion] = {}
@@ -633,6 +637,7 @@ class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
         tracingConfiguration: dict[str, Any] | None = None,
         encryptionConfiguration: dict[str, Any] | None = None,
         version_description: str | None = None,
+        sm_type: str | None = None,
     ) -> StateMachine:
         self._validate_name(name)
         self._validate_role_arn(roleArn)
@@ -649,6 +654,7 @@ class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
                 encryptionConfiguration,
                 loggingConfiguration,
                 tracingConfiguration,
+                sm_type=sm_type,
             )
             if publish:
                 state_machine.publish(description=version_description)

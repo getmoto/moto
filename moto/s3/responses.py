@@ -280,7 +280,8 @@ class S3Response(BaseResponse):
             )
         )
 
-    def subdomain_based_buckets(self, request: Any) -> bool:
+    @staticmethod
+    def subdomain_based_buckets(request: Any) -> bool:
         if settings.S3_IGNORE_SUBDOMAIN_BUCKETNAME:
             return False
         host = request.headers.get("host", request.headers.get("Host"))
@@ -1995,6 +1996,38 @@ class S3Response(BaseResponse):
 
         return self.get_object()
 
+    @staticmethod
+    def _set_multipart_part_headers(
+        key: FakeKey,
+        part_number: int,
+        response_headers: dict[str, Any],
+        checksum_mode: bool,
+    ) -> bytes:
+        """
+        Set the headers for a GetObject/HeadObject request for a single part of a multipart object.
+        Returns the value of the requested part.
+        """
+        start, end = key.multipart.get_part_range(part_number)  # type: ignore[union-attr]
+        part_value = key.value[start : end + 1]
+        response_headers["content-range"] = f"bytes {start}-{end}/{key.size}"
+        response_headers["content-length"] = str(end - start + 1)
+        response_headers["x-amz-mp-parts-count"] = str(key.multipart.parts_count)  # type: ignore[union-attr]
+        # The full-object checksum does not apply to a single part.
+        # AWS returns the part checksum for COMPOSITE checksums, and nothing for FULL_OBJECT checksums
+        for header in [h for h in response_headers if h.startswith("x-amz-checksum-")]:
+            del response_headers[header]
+        if (
+            checksum_mode
+            and key.checksum_algorithm
+            and key.checksum_type == "COMPOSITE"
+        ):
+            algorithm = key.checksum_algorithm
+            response_headers[f"x-amz-checksum-{algorithm.lower()}"] = compute_checksum(
+                part_value, algorithm
+            ).decode()
+            response_headers["x-amz-checksum-type"] = key.checksum_type
+        return part_value
+
     def get_object(self) -> TYPE_RESPONSE:
         key, not_modified = self._get_key()
         response_headers = self._get_cors_headers_other()
@@ -2040,8 +2073,13 @@ class S3Response(BaseResponse):
         part_number = self._get_int_param("partNumber")
         if part_number:
             if key.multipart:
-                # TODO
-                pass
+                part_value = self._set_multipart_part_headers(
+                    key,
+                    part_number,
+                    response_headers,
+                    checksum_mode=self.headers.get("x-amz-checksum-mode") == "ENABLED",
+                )
+                return 206, response_headers, part_value
             else:
                 if part_number > 1:
                     raise RangeNotSatisfiable
@@ -2332,6 +2370,8 @@ class S3Response(BaseResponse):
         response_headers.update(new_key.response_dict)
         # Remove content-length - the response body is empty for this request
         response_headers.pop("content-length", None)
+        # x-amz-sdk-checksum-algorithm is a request header and should not be included in the response.
+        response_headers.pop("x-amz-sdk-checksum-algorithm", None)
         return 200, response_headers, ""
 
     def _get_checksum(self, response_headers: dict[str, Any]) -> tuple[str, str | None]:
@@ -2651,9 +2691,7 @@ class S3Response(BaseResponse):
         if_unmodified_since = headers.get("If-Unmodified-Since", None)
 
         try:
-            key = self.backend.head_object(
-                bucket_name, key_name, version_id=version_id, part_number=part_number
-            )
+            key = self.backend.head_object(bucket_name, key_name, version_id=version_id)
         except HeadOnDeleteMarker as exc:
             headers = {
                 "x-amz-delete-marker": "true",
@@ -2691,17 +2729,17 @@ class S3Response(BaseResponse):
                 )
 
             if part_number:
-                full_key = self.backend.head_object(bucket_name, key_name, version_id)
-                if full_key.multipart:  # type: ignore
-                    mp_part_count = str(len(full_key.multipart.partlist))  # type: ignore
-                    response_headers["x-amz-mp-parts-count"] = mp_part_count
+                if key.multipart:
+                    self._set_multipart_part_headers(
+                        key, part_number, response_headers, checksum_mode
+                    )
                 else:
                     if part_number > 1:
                         raise RangeNotSatisfiable
                     response_headers["content-range"] = (
-                        f"bytes 0-{full_key.size - 1}/{full_key.size}"  # type: ignore
+                        f"bytes 0-{key.size - 1}/{key.size}"
                     )
-                    return 206, response_headers, ""
+                return 206, response_headers, ""
 
             return 200, response_headers, ""
         else:

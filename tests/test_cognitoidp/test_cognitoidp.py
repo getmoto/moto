@@ -3555,6 +3555,31 @@ def test_token_legitimacy():
 
 
 @mock_aws
+def test_openid_configuration():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Server mode is covered in test_server.py")
+    conn = boto3.client("cognito-idp", "us-west-2")
+    pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    base_url = f"https://cognito-idp.us-west-2.amazonaws.com/{pool_id}"
+    response = requests.get(f"{base_url}/.well-known/openid-configuration")
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "application/json"
+    config = response.json()
+
+    # The issuer has to match the 'iss' claim of the tokens that Moto creates
+    assert config["issuer"] == base_url
+    assert config["jwks_uri"] == f"{base_url}/.well-known/jwks.json"
+    assert config["id_token_signing_alg_values_supported"] == ["RS256"]
+    assert "code" in config["response_types_supported"]
+    assert "openid" in config["scopes_supported"]
+
+    # OIDC clients go on to fetch the keys from the advertised location
+    keys = requests.get(config["jwks_uri"]).json()["keys"]
+    assert len(keys) >= 1
+
+
+@mock_aws
 def test_change_password():
     conn = boto3.client("cognito-idp", "us-west-2")
 

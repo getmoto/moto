@@ -27,6 +27,26 @@ class GuardDutyResponse(BaseResponse):
         )
         return json.dumps({"name": name})
 
+    def create_ip_set(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        name = self._get_param("name")
+        ip_set_format = self._get_param("format")
+        location = self._get_param("location")
+        activate = self._get_param("activate")
+        tags = self._get_param("tags")
+        expected_bucket_owner = self._get_param("expectedBucketOwner")
+
+        ip_set_id = self.guardduty_backend.create_ip_set(
+            detector_id,
+            name,
+            ip_set_format,
+            location,
+            activate,
+            tags,
+            expected_bucket_owner,
+        )
+        return json.dumps({"ipSetId": ip_set_id})
+
     def create_detector(self) -> str:
         enable = self._get_param("enable")
         finding_publishing_frequency = self._get_param("findingPublishingFrequency")
@@ -53,6 +73,13 @@ class GuardDutyResponse(BaseResponse):
         self.guardduty_backend.delete_filter(detector_id, filter_name)
         return "{}"
 
+    def delete_ip_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        ip_set_id = unquote(self.path.split("/")[-1])
+
+        self.guardduty_backend.delete_ip_set(detector_id, ip_set_id)
+        return "{}"
+
     def enable_organization_admin_account(self) -> str:
         admin_account = self._get_param("adminAccountId")
         self.guardduty_backend.enable_organization_admin_account(admin_account)
@@ -72,6 +99,12 @@ class GuardDutyResponse(BaseResponse):
 
         return json.dumps({"detectorIds": detector_ids})
 
+    def list_ip_sets(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        ip_set_ids = self.guardduty_backend.list_ip_sets(detector_id)
+
+        return json.dumps({"ipSetIds": ip_set_ids})
+
     def get_detector(self) -> str:
         detector_id = self.path.split("/")[-1]
 
@@ -84,6 +117,13 @@ class GuardDutyResponse(BaseResponse):
 
         _filter = self.guardduty_backend.get_filter(detector_id, filter_name)
         return json.dumps(_filter.to_json())
+
+    def get_ip_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        ip_set_id = unquote(self.path.split("/")[-1])
+
+        ip_set = self.guardduty_backend.get_ip_set(detector_id, ip_set_id)
+        return json.dumps(ip_set.to_json())
 
     def update_detector(self) -> str:
         detector_id = self.path.split("/")[-1]
@@ -114,6 +154,18 @@ class GuardDutyResponse(BaseResponse):
             rank=rank,
         )
         return json.dumps({"name": filter_name})
+
+    def update_ip_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        ip_set_id = unquote(self.path.split("/")[-1])
+        name = self._get_param("name")
+        location = self._get_param("location")
+        activate = self._get_param("activate")
+
+        self.guardduty_backend.update_ip_set(
+            detector_id, ip_set_id, name=name, location=location, activate=activate
+        )
+        return "{}"
 
     def get_administrator_account(self) -> str:
         """Get administrator account details."""

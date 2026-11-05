@@ -16,7 +16,11 @@ amp
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] create_alert_manager_definition
+- [X] create_alert_manager_definition
+
+The ClientToken-parameter is not yet implemented. The provided YAML is not validated.
+
+
 - [ ] create_anomaly_detector
 - [X] create_logging_configuration
 - [ ] create_query_logging_configuration
@@ -31,7 +35,11 @@ The ClientToken-parameter is not yet implemented
 The ClientToken-parameter is not yet implemented
 
 
-- [ ] delete_alert_manager_definition
+- [X] delete_alert_manager_definition
+
+The ClientToken-parameter is not yet implemented
+
+
 - [ ] delete_anomaly_detector
 - [X] delete_logging_configuration
 - [ ] delete_query_logging_configuration
@@ -48,7 +56,7 @@ The ClientToken-parameter is not yet implemented
 The ClientToken-parameter is not yet implemented
 
 
-- [ ] describe_alert_manager_definition
+- [X] describe_alert_manager_definition
 - [ ] describe_anomaly_detector
 - [X] describe_logging_configuration
 - [ ] describe_query_logging_configuration
@@ -64,7 +72,11 @@ The ClientToken-parameter is not yet implemented
 - [ ] list_scrapers
 - [X] list_tags_for_resource
 - [X] list_workspaces
-- [ ] put_alert_manager_definition
+- [X] put_alert_manager_definition
+
+The ClientToken-parameter is not yet implemented. The provided YAML is not validated.
+
+
 - [ ] put_anomaly_detector
 - [ ] put_resource_policy
 - [X] put_rule_groups_namespace

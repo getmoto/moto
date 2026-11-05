@@ -24,6 +24,7 @@ glue
 - [X] batch_get_crawlers
 - [ ] batch_get_custom_entity_types
 - [ ] batch_get_data_quality_result
+- [ ] batch_get_data_quality_result_v2
 - [ ] batch_get_data_quality_ruleset_evaluation_run
 - [ ] batch_get_dev_endpoints
 - [ ] batch_get_iterable_forms
@@ -147,6 +148,7 @@ The following parameters/features are not yet implemented: Glue Schema Registry:
 - [ ] get_data_quality_model
 - [ ] get_data_quality_model_result
 - [ ] get_data_quality_result
+- [ ] get_data_quality_result_v2
 - [ ] get_data_quality_rule_recommendation_run
 - [ ] get_data_quality_ruleset
 - [ ] get_data_quality_ruleset_evaluation_run
@@ -232,6 +234,7 @@ Expression caveats:
 - [X] list_crawls
 - [ ] list_custom_entity_types
 - [ ] list_data_quality_results
+- [ ] list_data_quality_results_v2
 - [ ] list_data_quality_rule_recommendation_runs
 - [ ] list_data_quality_ruleset_evaluation_runs
 - [ ] list_data_quality_rulesets
@@ -258,6 +261,7 @@ Expression caveats:
 - [ ] list_usage_profiles
 - [X] list_workflows
 - [ ] modify_integration
+- [ ] publish_data_quality_result_v2
 - [ ] put_asset
 - [ ] put_asset_type
 - [ ] put_attachment

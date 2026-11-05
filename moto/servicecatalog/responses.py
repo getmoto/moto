@@ -1,6 +1,6 @@
 """Handles incoming servicecatalog requests, invokes methods, returns responses."""
 
-import json
+from typing import Any
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
@@ -12,6 +12,7 @@ class ServiceCatalogResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="servicecatalog")
+        self.automated_parameter_parsing = True
 
     @property
     def servicecatalog_backend(self) -> ServiceCatalogBackend:
@@ -22,12 +23,11 @@ class ServiceCatalogResponse(BaseResponse):
         return servicecatalog_backends[self.current_account][self.region]
 
     def list_portfolio_access(self) -> ActionResult:
-        params = json.loads(self.body)
-        accept_language = params.get("AcceptLanguage")
-        portfolio_id = params.get("PortfolioId")
-        organization_parent_id = params.get("OrganizationParentId")
-        page_token = params.get("PageToken")
-        page_size = params.get("PageSize")
+        accept_language = self._get_param("AcceptLanguage")
+        portfolio_id = self._get_param("PortfolioId")
+        organization_parent_id = self._get_param("OrganizationParentId")
+        page_token = self._get_param("PageToken")
+        page_size = self._get_param("PageSize")
 
         account_id_objects, next_page_token = (
             self.servicecatalog_backend.list_portfolio_access(
@@ -46,9 +46,8 @@ class ServiceCatalogResponse(BaseResponse):
         )
 
     def delete_portfolio(self) -> ActionResult:
-        params = json.loads(self.body)
-        accept_language = params.get("AcceptLanguage")
-        id = params.get("Id")
+        accept_language = self._get_param("AcceptLanguage")
+        id = self._get_param("Id")
 
         self.servicecatalog_backend.delete_portfolio(
             accept_language=accept_language,
@@ -58,11 +57,10 @@ class ServiceCatalogResponse(BaseResponse):
         return EmptyResult()
 
     def delete_portfolio_share(self) -> ActionResult:
-        params = json.loads(self.body)
-        accept_language = params.get("AcceptLanguage")
-        portfolio_id = params.get("PortfolioId")
-        account_id = params.get("AccountId")
-        organization_node = params.get("OrganizationNode")
+        accept_language = self._get_param("AcceptLanguage")
+        portfolio_id = self._get_param("PortfolioId")
+        account_id = self._get_param("AccountId")
+        organization_node = self._get_param("OrganizationNode")
 
         portfolio_share_token = self.servicecatalog_backend.delete_portfolio_share(
             accept_language=accept_language,
@@ -78,16 +76,14 @@ class ServiceCatalogResponse(BaseResponse):
         return ActionResult(response)
 
     def create_portfolio(self) -> ActionResult:
-        params = json.loads(self.body)
+        accept_language = self._get_param("AcceptLanguage")
+        display_name = self._get_param("DisplayName")
+        description = self._get_param("Description")
+        provider_name = self._get_param("ProviderName")
+        tags = self._get_param("Tags")
+        idempotency_token = self._get_param("IdempotencyToken")
 
-        accept_language = params.get("AcceptLanguage")
-        display_name = params.get("DisplayName")
-        description = params.get("Description")
-        provider_name = params.get("ProviderName")
-        tags = params.get("Tags")
-        idempotency_token = params.get("IdempotencyToken")
-
-        portfolio_detail, tags = self.servicecatalog_backend.create_portfolio(
+        portfolio = self.servicecatalog_backend.create_portfolio(
             accept_language=accept_language,
             display_name=display_name,
             description=description,
@@ -96,16 +92,15 @@ class ServiceCatalogResponse(BaseResponse):
             idempotency_token=idempotency_token,
         )
 
-        return ActionResult({"PortfolioDetail": portfolio_detail, "Tags": tags})
+        return ActionResult({"PortfolioDetail": portfolio, "Tags": portfolio.tags})
 
     def create_portfolio_share(self) -> ActionResult:
-        params = json.loads(self.body)
-        accept_language = params.get("AcceptLanguage")
-        portfolio_id = params.get("PortfolioId")
-        account_id = params.get("AccountId")
-        organization_node = params.get("OrganizationNode")
-        share_tag_options = params.get("ShareTagOptions", False)
-        share_principals = params.get("SharePrincipals", False)
+        accept_language = self._get_param("AcceptLanguage")
+        portfolio_id = self._get_param("PortfolioId")
+        account_id = self._get_param("AccountId")
+        organization_node = self._get_param("OrganizationNode")
+        share_tag_options = self._get_bool_param("ShareTagOptions", False)
+        share_principals = self._get_bool_param("SharePrincipals", False)
 
         portfolio_share_token = self.servicecatalog_backend.create_portfolio_share(
             accept_language=accept_language,
@@ -123,31 +118,27 @@ class ServiceCatalogResponse(BaseResponse):
         return ActionResult(response)
 
     def list_portfolios(self) -> ActionResult:
-        params = self._get_params()
-        accept_language = params.get("AcceptLanguage")
-        page_token = params.get("PageToken")
-        page_size = params.get("PageSize")
+        accept_language = self._get_param("AcceptLanguage")
+        page_token = self._get_param("PageToken")
+        page_size = self._get_param("PageSize")
 
-        portfolio_details, next_page_token = (
-            self.servicecatalog_backend.list_portfolios(
-                accept_language=accept_language,
-                page_token=page_token,
-                page_size=page_size,
-            )
+        portfolios, next_page_token = self.servicecatalog_backend.list_portfolios(
+            accept_language=accept_language,
+            page_token=page_token,
+            page_size=page_size,
         )
 
         response = {
-            "PortfolioDetails": portfolio_details,
+            "PortfolioDetails": portfolios,
             "NextPageToken": next_page_token,
         }
         return ActionResult(response)
 
     def describe_portfolio_shares(self) -> ActionResult:
-        params = json.loads(self.body)
-        portfolio_id = params.get("PortfolioId")
-        type = params.get("Type")
-        page_token = params.get("PageToken")
-        page_size = params.get("PageSize")
+        portfolio_id = self._get_param("PortfolioId")
+        type = self._get_param("Type")
+        page_token = self._get_param("PageToken")
+        page_size = self._get_param("PageSize")
 
         next_page_token, portfolio_share_details = (
             self.servicecatalog_backend.describe_portfolio_shares(
@@ -167,19 +158,18 @@ class ServiceCatalogResponse(BaseResponse):
 
     def describe_portfolio(self) -> ActionResult:
         """Handle describe_portfolio request."""
-        params = json.loads(self.body)
-        accept_language = params.get("AcceptLanguage")
-        id = params.get("Id")
+        accept_language = self._get_param("AcceptLanguage")
+        id = self._get_param("Id")
 
-        portfolio_detail, tags, tag_options, budgets = (
+        portfolio, tags, tag_options, budgets = (
             self.servicecatalog_backend.describe_portfolio(
                 accept_language=accept_language,
                 id=id,
             )
         )
 
-        response = {
-            "PortfolioDetail": portfolio_detail,
+        response: dict[str, Any] = {
+            "PortfolioDetail": portfolio or {},
             "Tags": tags,
             "TagOptions": tag_options,
             "Budgets": budgets,
@@ -188,22 +178,23 @@ class ServiceCatalogResponse(BaseResponse):
         return ActionResult(response)
 
     def create_product(self) -> ActionResult:
-        params = json.loads(self.body)
-        name = params.get("Name")
-        owner = params.get("Owner")
-        description = params.get("Description")
-        distributor = params.get("Distributor")
-        support_description = params.get("SupportDescription")
-        support_email = params.get("SupportEmail")
-        support_url = params.get("SupportUrl")
-        product_type = params.get("ProductType")
-        tags = params.get("Tags")
-        provisioning_artifact_parameters = params.get("ProvisioningArtifactParameters")
-        idempotency_token = params.get("IdempotencyToken")
-        source_connection = params.get("SourceConnection")
-        accept_language = params.get("AcceptLanguage")
+        name = self._get_param("Name")
+        owner = self._get_param("Owner")
+        description = self._get_param("Description")
+        distributor = self._get_param("Distributor")
+        support_description = self._get_param("SupportDescription")
+        support_email = self._get_param("SupportEmail")
+        support_url = self._get_param("SupportUrl")
+        product_type = self._get_param("ProductType")
+        tags = self._get_param("Tags")
+        provisioning_artifact_parameters = self._get_param(
+            "ProvisioningArtifactParameters"
+        )
+        idempotency_token = self._get_param("IdempotencyToken")
+        source_connection = self._get_param("SourceConnection")
+        accept_language = self._get_param("AcceptLanguage")
 
-        response = self.servicecatalog_backend.create_product(
+        product = self.servicecatalog_backend.create_product(
             name=name,
             owner=owner,
             description=description,
@@ -220,33 +211,56 @@ class ServiceCatalogResponse(BaseResponse):
         )
 
         product_view = {
-            "ProductViewSummary": response.to_dict(),
+            "ProductViewSummary": {
+                "Id": product.id,
+                "ProductId": product.id,
+                "Name": product.name,
+                "Owner": product.owner,
+                "ShortDescription": product.description,
+                "Type": product.product_type,
+                "Distributor": product.distributor,
+                "HasDefaultPath": False,
+                "SupportEmail": product.support_email,
+                "SupportDescription": product.support_description,
+                "SupportUrl": product.support_url,
+            },
             "Status": "AVAILABLE",
-            "ProductARN": response.arn,
-            "CreatedTime": response.created_time,
-            "SourceConnection": response.source_connection,
+            "ProductARN": product.arn,
+            "CreatedTime": product.created_time,
+            "SourceConnection": product.source_connection,
         }
 
         return ActionResult(
             {
                 "ProductViewDetail": product_view,
                 "ProvisioningArtifactDetail": {},
-                "Tags": response.tags,
+                "Tags": product.tags,
             }
         )
 
     def describe_product(self) -> ActionResult:
-        params = json.loads(self.body)
-        accept_language = params.get("AcceptLanguage")
-        id = params.get("Id")
-        name = params.get("Name")
+        accept_language = self._get_param("AcceptLanguage")
+        id = self._get_param("Id")
+        name = self._get_param("Name")
 
-        response = self.servicecatalog_backend.describe_product(
+        product = self.servicecatalog_backend.describe_product(
             accept_language=accept_language, id=id, name=name
         )
 
         result = {
-            "ProductViewSummary": response.to_dict(),
+            "ProductViewSummary": {
+                "Id": product.id,
+                "ProductId": product.id,
+                "Name": product.name,
+                "Owner": product.owner,
+                "ShortDescription": product.description,
+                "Type": product.product_type,
+                "Distributor": product.distributor,
+                "HasDefaultPath": False,
+                "SupportEmail": product.support_email,
+                "SupportDescription": product.support_description,
+                "SupportUrl": product.support_url,
+            },
             "ProvisioningArtifacts": [],
             "Budgets": [],
             "LaunchPaths": [],
@@ -255,9 +269,8 @@ class ServiceCatalogResponse(BaseResponse):
         return ActionResult(result)
 
     def delete_product(self) -> ActionResult:
-        params = json.loads(self.body)
-        accept_language = params.get("AcceptLanguage")
-        id = params.get("Id")
+        accept_language = self._get_param("AcceptLanguage")
+        id = self._get_param("Id")
 
         self.servicecatalog_backend.delete_product(
             accept_language=accept_language,

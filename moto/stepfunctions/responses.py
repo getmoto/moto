@@ -37,6 +37,7 @@ class StepFunctionResponse(BaseResponse):
         loggingConfiguration = self._get_param("loggingConfiguration")
         tracingConfiguration = self._get_param("tracingConfiguration")
         version_description = self._get_param("versionDescription")
+        sm_type = self._get_param("type")
 
         if version_description and not publish:
             raise ValidationException(
@@ -53,6 +54,7 @@ class StepFunctionResponse(BaseResponse):
             tracingConfiguration=tracingConfiguration,
             encryptionConfiguration=encryptionConfiguration,
             version_description=version_description,
+            sm_type=sm_type,
         )
         response = {
             "creationDate": state_machine.creation_date,
@@ -90,6 +92,7 @@ class StepFunctionResponse(BaseResponse):
                 "creationDate": sm.creation_date,
                 "name": sm.name,
                 "stateMachineArn": sm.arn,
+                "type": sm.type,
             }
             for sm in results
         ]

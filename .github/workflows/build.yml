@@ -2,9 +2,24 @@ name: TestNDeploy
 
 on: [push, pull_request]
 
+concurrency:
+  # PR runs share a group per PR, so a new commit cancels any in-progress runs.
+  # Push runs get a unique group (run_id) so they never cancel/drop each other.
+  # If several commits land close together on master, we want them all to run CI.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   cache:
     name: Caching
+    # Every other job depends (transitively) on this one, so skipping it skips the whole run.
+    # Run on: any PR; pushes to master on getmoto/moto; any push on a fork.
+    # This allows pushes to forks to run CI, but prevents the double-CI problem for branches pushed
+    # to the main repo that are opened as PRs (e.g. Dependabot).
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.repository != 'getmoto/moto' ||
+      github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     strategy:
       matrix:

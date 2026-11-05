@@ -8,6 +8,7 @@ from typing import Any
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
+from moto.core.utils import utcnow
 from moto.utilities.tagging_service import TaggingService
 
 from .enums import (
@@ -33,14 +34,6 @@ class MacSecKey(BaseModel):
     start_on: str
     cak: str | None = None
 
-    def to_dict(self) -> dict[str, str]:
-        return {
-            "secretARN": self.secret_arn or "",
-            "ckn": self.ckn or "",
-            "state": self.state,
-            "startOn": self.start_on,
-        }
-
 
 @dataclass
 class Connection(BaseModel):
@@ -51,10 +44,10 @@ class Connection(BaseModel):
     connection_name: str
     connection_state: ConnectionStateType
     encryption_mode: EncryptionModeType
-    has_logical_redundancy: bool
+    has_logical_redundancy: str
     jumbo_frame_capable: bool
     lag_id: str | None
-    loa_issue_time: str
+    loa_issue_time: datetime
     location: str
     mac_sec_capable: bool | None
     mac_sec_keys: list[MacSecKey]
@@ -72,33 +65,6 @@ class Connection(BaseModel):
         if self.connection_id == "":
             self.connection_id = f"arn:aws:directconnect:{self.region}:{self.owner_account}:dx-con/dx-moto-{self.connection_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    def to_dict(
-        self,
-    ) -> dict[str, Any]:
-        return {
-            "awsDevice": self.aws_device,
-            "awsDeviceV2": self.aws_device_v2,
-            "awsLogicalDeviceId": self.aws_logical_device_id,
-            "bandwidth": self.bandwidth,
-            "connectionId": self.connection_id,
-            "connectionName": self.connection_name,
-            "connectionState": self.connection_state,
-            "encryptionMode": self.encryption_mode,
-            "hasLogicalRedundancy": self.has_logical_redundancy,
-            "jumboFrameCapable": self.jumbo_frame_capable,
-            "lagId": self.lag_id,
-            "loaIssueTime": self.loa_issue_time,
-            "location": self.location,
-            "macSecCapable": self.mac_sec_capable,
-            "macSecKeys": [key.to_dict() for key in self.mac_sec_keys],
-            "partnerName": self.partner_name,
-            "portEncryptionStatus": self.port_encryption_status,
-            "providerName": self.provider_name,
-            "region": self.region,
-            "tags": self.backend.list_tags_for_resource(self.connection_id),
-            "vlan": self.vlan,
-        }
-
 
 @dataclass
 class LAG(BaseModel):
@@ -112,7 +78,7 @@ class LAG(BaseModel):
     lag_name: str
     lag_state: LagStateType
     encryption_mode: EncryptionModeType
-    has_logical_redundancy: bool
+    has_logical_redundancy: str
     jumbo_frame_capable: bool
     location: str
     mac_sec_capable: bool | None
@@ -127,31 +93,6 @@ class LAG(BaseModel):
     def __post_init__(self) -> None:
         if self.lag_id == "":
             self.lag_id = f"arn:aws:directconnect:{self.region}:{self.owner_account}:dxlag/dxlag-moto-{self.lag_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-
-    def to_dict(
-        self,
-    ) -> dict[str, Any]:
-        return {
-            "awsDevice": self.aws_device,
-            "awsDeviceV2": self.aws_device_v2,
-            "awsLogicalDeviceId": self.aws_logical_device_id,
-            "connectionsBandwidth": self.connections_bandwidth,
-            "numberOfConnections": self.number_of_connections,
-            "minimumLinks": self.minimum_links,
-            "connections": [conn.to_dict() for conn in self.connections],
-            "lagId": self.lag_id,
-            "lagName": self.lag_name,
-            "lagState": self.lag_state,
-            "encryptionMode": self.encryption_mode,
-            "hasLogicalRedundancy": self.has_logical_redundancy,
-            "jumboFrameCapable": self.jumbo_frame_capable,
-            "location": self.location,
-            "macSecCapable": self.mac_sec_capable,
-            "macSecKeys": [key.to_dict() for key in self.mac_sec_keys],
-            "providerName": self.provider_name,
-            "region": self.region,
-            "tags": self.backend.list_tags_for_resource(self.lag_id),
-        }
 
 
 class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
@@ -203,10 +144,10 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
             connection_name=connection_name,
             connection_state=ConnectionStateType.AVAILABLE,
             encryption_mode=encryption_mode,
-            has_logical_redundancy=False,
+            has_logical_redundancy="no",
             jumbo_frame_capable=False,
             lag_id=lag_id,
-            loa_issue_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            loa_issue_time=utcnow(),
             location=location,
             mac_sec_capable=request_mac_sec,
             mac_sec_keys=mac_sec_keys,
@@ -354,7 +295,7 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
             lag_state=LagStateType.AVAILABLE,
             minimum_links=0,
             encryption_mode=encryption_mode,
-            has_logical_redundancy=False,
+            has_logical_redundancy="no",
             jumbo_frame_capable=False,
             number_of_connections=number_of_connections,
             connections=[],

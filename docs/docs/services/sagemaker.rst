@@ -90,6 +90,7 @@ sagemaker
 - [ ] create_studio_lifecycle_config
 - [X] create_training_job
 - [ ] create_training_plan
+- [ ] create_training_session
 - [X] create_transform_job
 - [X] create_trial
 - [X] create_trial_component
@@ -153,6 +154,7 @@ sagemaker
 - [ ] delete_studio_lifecycle_config
 - [X] delete_tags
 - [ ] delete_training_job
+- [ ] delete_training_session
 - [X] delete_trial
 - [X] delete_trial_component
 - [ ] delete_user_profile
@@ -229,6 +231,7 @@ sagemaker
 - [X] describe_training_job
 - [ ] describe_training_plan
 - [ ] describe_training_plan_extension_history
+- [ ] describe_training_session
 - [X] describe_transform_job
 - [X] describe_trial
 - [X] describe_trial_component
@@ -335,6 +338,7 @@ CreationTimeBefore, CreationTimeAfter, LastModifiedTimeBefore, LastModifiedTimeA
 - [X] list_training_jobs
 - [ ] list_training_jobs_for_hyper_parameter_tuning_job
 - [ ] list_training_plans
+- [ ] list_training_sessions
 - [X] list_transform_jobs
 - [X] list_trial_components
 - [X] list_trials
@@ -381,6 +385,7 @@ Only a few SearchExpressions are implemented. Please open a bug report if you fi
 - [ ] stop_pipeline_execution
 - [X] stop_processing_job
 - [ ] stop_training_job
+- [ ] stop_training_session
 - [ ] stop_transform_job
 - [ ] update_action
 - [ ] update_app_image_config

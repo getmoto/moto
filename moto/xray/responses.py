@@ -1,7 +1,6 @@
 import datetime
 import json
 from typing import Any
-from urllib.parse import urlsplit
 
 from moto.core.exceptions import AWSError
 from moto.core.responses import BaseResponse
@@ -31,20 +30,12 @@ class XRayResponse(BaseResponse):
     def _get_param(self, param_name: str, if_none: Any = None) -> Any:
         return self.request_params.get(param_name, if_none)
 
-    def _get_action(self) -> str:
-        # Amazon is just calling urls like /TelemetryRecords etc...
-        # This uses the value after / as the camalcase action, which then
-        # gets converted in call_action to find the following methods
-        return urlsplit(self.uri).path.lstrip("/")
-
-    # PutTelemetryRecords
-    def telemetry_records(self) -> str:
+    def put_telemetry_records(self) -> str:
         self.xray_backend.add_telemetry_records(self.request_params)
 
         return ""
 
-    # PutTraceSegments
-    def trace_segments(self) -> str | tuple[str, dict[str, int]]:
+    def put_trace_segments(self) -> str | tuple[str, dict[str, int]]:
         docs = self._get_param("TraceSegmentDocuments")
 
         if docs is None:
@@ -71,8 +62,7 @@ class XRayResponse(BaseResponse):
         result = {"UnprocessedTraceSegments": [x.to_dict() for x in bad_segments]}
         return json.dumps(result)
 
-    # GetTraceSummaries
-    def trace_summaries(self) -> str | tuple[str, dict[str, int]]:
+    def get_trace_summaries(self) -> str | tuple[str, dict[str, int]]:
         start_time = self._get_param("StartTime")
         end_time = self._get_param("EndTime")
         if start_time is None:
@@ -121,8 +111,7 @@ class XRayResponse(BaseResponse):
 
         return json.dumps(result)
 
-    # BatchGetTraces
-    def traces(self) -> str | tuple[str, dict[str, int]]:
+    def batch_get_traces(self) -> str | tuple[str, dict[str, int]]:
         trace_ids = self._get_param("TraceIds")
 
         if trace_ids is None:
@@ -144,8 +133,8 @@ class XRayResponse(BaseResponse):
 
         return json.dumps(result)
 
-    # GetServiceGraph - just a dummy response for now
-    def service_graph(self) -> str | tuple[str, dict[str, int]]:
+    # Just a dummy response for now
+    def get_service_graph(self) -> str | tuple[str, dict[str, int]]:
         start_time = self._get_param("StartTime")
         end_time = self._get_param("EndTime")
         # next_token = self._get_param('NextToken')  # not implemented yet
@@ -166,8 +155,8 @@ class XRayResponse(BaseResponse):
         result = {"StartTime": start_time, "EndTime": end_time, "Services": []}
         return json.dumps(result)
 
-    # GetTraceGraph - just a dummy response for now
-    def trace_graph(self) -> str | tuple[str, dict[str, int]]:
+    # Just a dummy response for now
+    def get_trace_graph(self) -> str | tuple[str, dict[str, int]]:
         trace_ids = self._get_param("TraceIds")
         # next_token = self._get_param('NextToken')  # not implemented yet
 

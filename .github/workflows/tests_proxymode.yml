@@ -56,15 +56,35 @@ jobs:
       shell: pwsh
       env:
         TEST_PROXY_MODE: ${{ true }}
-      # We should start moto_proxy in a different step
-      # But I can't keep the process alive, across different steps
-      # It does run in the background - but it looks like the process is killed at the end of the step
-      # Starting the proxy in the same step has the same outcome though, even if it's not pretty
-      #
+        MOTO_PORT: "5005"
+        MOTO_PATH: /moto-api/config
       # This step does not test everything, because it takes ages on Windows for some reason
       run: |
-        moto_proxy -v &
-        pytest -sv tests/test_acmpca tests/test_core/test_proxy.py
+        $proxy = Start-Process -FilePath moto_proxy -ArgumentList "-v" -PassThru -RedirectStandardOutput moto_proxy.log -RedirectStandardError moto_proxy-error.log
+        $exitCode = 1
+        try {
+          python scripts/ci_wait_for_server.py
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -eq 0) {
+            pytest -sv tests/test_acmpca tests/test_core/test_proxy.py
+            $exitCode = $LASTEXITCODE
+          }
+        } finally {
+          try {
+            if (-not $proxy.HasExited) {
+              $proxy.Kill()
+              if (-not $proxy.WaitForExit(10000)) {
+                throw "MotoProxy did not stop after termination"
+              }
+            }
+          } catch {
+            Write-Warning "Could not stop the owned MotoProxy process: $_"
+            if ($exitCode -eq 0) {
+              $exitCode = 1
+            }
+          }
+        }
+        exit $exitCode
     - name: "Stop MotoProxy"
       if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
@@ -75,4 +95,4 @@ jobs:
       with:
         name: motoproxy-${{ matrix.os }}-${{ matrix.python-version }}
         path: |
-          moto_proxy.log
+          moto_proxy*.log

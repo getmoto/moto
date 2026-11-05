@@ -11,7 +11,6 @@ from moto import mock_aws, settings
 from moto.dynamodb.models import DynamoDBBackend
 from moto.s3 import models as s3model
 from moto.s3 import s3_backends
-from moto.s3.responses import S3Response
 from tests import DEFAULT_ACCOUNT_ID
 
 TEST_BUCKET = "my-bucket"
@@ -176,15 +175,8 @@ class TestS3FileHandleClosures(TestCase):
             value="b" * 10_000_000,
         ).etag
 
-        mp_body = (
-            "<CompleteMultipartUpload "
-            'xmlns="http://s3.amazonaws.com/doc/2006-03-01/">'
-            f"<Part><ETag>{etag}</ETag><PartNumber>1</PartNumber></Part>"
-            "</CompleteMultipartUpload>"
-        )
-        body = S3Response()._complete_multipart_body(mp_body)
         self.s3_client.complete_multipart_upload(
-            bucket_name=TEST_BUCKET, multipart_id=multipart.id, body=body
+            bucket_name=TEST_BUCKET, multipart_id=multipart.id, body=[(1, etag)]
         )
 
     @verify_zero_warnings

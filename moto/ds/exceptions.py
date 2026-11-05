@@ -1,12 +1,16 @@
 """Exceptions raised by the Directory Service service."""
 
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class DsValidationException(JsonRESTError):
+class DirectoryServiceException(ServiceException):
+    pass
+
+
+class DsValidationException(DirectoryServiceException):
     """Report one of more parameter validation errors."""
 
-    code = 400
+    code = "ValidationException"
 
     def __init__(self, error_tuples: list[tuple[str, str, str]]):
         """Validation errors are concatenated into one exception message.
@@ -28,88 +32,61 @@ class DsValidationException(JsonRESTError):
                 f"Value {value} '{arg_name}' failed to satisfy constraint: "
                 f"Member must {constraint}"
             )
-        super().__init__("ValidationException", msg_leader + "; ".join(msgs))
+        super().__init__(msg_leader + "; ".join(msgs))
 
 
-class ClientException(JsonRESTError):
+class ClientException(DirectoryServiceException):
     """Client exception has occurred. VPC parameters are invalid."""
 
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("ClientException", message)
+    code = "ClientException"
 
 
-class DirectoryLimitExceededException(JsonRESTError):
+class DirectoryLimitExceededException(DirectoryServiceException):
     """Maximum number of directories in region has been reached."""
 
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("DirectoryLimitExceededException", message)
+    code = "DirectoryLimitExceededException"
 
 
-class EntityDoesNotExistException(JsonRESTError):
+class EntityDoesNotExistException(DirectoryServiceException):
     """The specified entity could not be found."""
 
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("EntityDoesNotExistException", message)
+    code = "EntityDoesNotExistException"
 
 
-class EntityAlreadyExistsException(JsonRESTError):
+class EntityAlreadyExistsException(DirectoryServiceException):
     """The specified entity already exists."""
 
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("EntityAlreadyExistsException", message)
+    code = "EntityAlreadyExistsException"
 
 
-class InvalidNextTokenException(JsonRESTError):
+class InvalidNextTokenException(DirectoryServiceException):
     """Invalid next token parameter used to return a list of entities."""
 
-    code = 400
+    code = "InvalidNextTokenException"
 
     def __init__(self) -> None:
-        super().__init__(
-            "InvalidNextTokenException",
-            "Invalid value passed for the NextToken parameter",
-        )
+        super().__init__("Invalid value passed for the NextToken parameter")
 
 
-class InvalidParameterException(JsonRESTError):
+class InvalidParameterException(DirectoryServiceException):
     """Invalid parameter."""
 
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("InvalidParameterException", message)
+    code = "InvalidParameterException"
 
 
-class TagLimitExceededException(JsonRESTError):
+class TagLimitExceededException(DirectoryServiceException):
     """The maximum allowed number of tags was exceeded."""
 
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("TagLimitExceededException", message)
+    code = "TagLimitExceededException"
 
 
-class ValidationException(JsonRESTError):
+class ValidationException(DirectoryServiceException):
     """Tag validation failed."""
 
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("ValidationException", message)
+    code = "ValidationException"
 
 
-class UnsupportedOperationException(JsonRESTError):
+class UnsupportedOperationException(DirectoryServiceException):
     """Unsupported Operation"""
 
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("UnsupportedOperationException", message)
+    code = "UnsupportedOperationException"

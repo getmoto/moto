@@ -132,3 +132,27 @@ def test_tag_config_profile():
 
     tags = client.list_tags_for_resource(ResourceArn=cp_arn)["Tags"]
     assert tags == {}
+
+
+@mock_aws
+def test_list_configuration_profiles_filter_by_type():
+    client = boto3.client("appconfig", region_name="eu-north-1")
+    app_id = client.create_application(Name="testapp")["Id"]
+    for name, profile_type in [
+        ("flags", "AWS.AppConfig.FeatureFlags"),
+        ("settings", "AWS.Freeform"),
+    ]:
+        client.create_configuration_profile(
+            ApplicationId=app_id,
+            Name=name,
+            LocationUri="hosted",
+            Type=profile_type,
+        )
+
+    def names(**kwargs):
+        items = client.list_configuration_profiles(ApplicationId=app_id, **kwargs)
+        return sorted(p["Name"] for p in items["Items"])
+
+    assert names() == ["flags", "settings"]
+    assert names(Type="AWS.AppConfig.FeatureFlags") == ["flags"]
+    assert names(Type="AWS.Freeform") == ["settings"]

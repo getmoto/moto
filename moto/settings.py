@@ -84,6 +84,13 @@ def s3_allow_crossdomain_access() -> bool:
     return os.environ.get("MOTO_S3_ALLOW_CROSSACCOUNT_ACCESS", "true").lower() == "true"
 
 
+def sqs_enforce_strict_queue_purge_behaviour() -> bool:
+    return (
+        os.environ.get("MOTO_SQS_ENFORCE_STRICT_QUEUE_PURGE_BEHAVIOUR", "true").lower()
+        == "true"
+    )
+
+
 def ec2_load_default_amis() -> bool:
     # True by default - only the value 'false' will return false
     return os.environ.get("MOTO_EC2_LOAD_DEFAULT_AMIS", "true").lower() != "false"

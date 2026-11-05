@@ -1,24 +1,19 @@
-from moto.core.exceptions import JsonRESTError
+"""Exceptions raised by the codebuild service."""
 
-""" will need exceptions for each api endpoint hit """
-
-
-class InvalidInputException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("InvalidInputException", message)
+from moto.core.exceptions import ServiceException
 
 
-class ResourceNotFoundException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("ResourceNotFoundException", message)
+class CodeBuildException(ServiceException):
+    pass
 
 
-class ResourceAlreadyExistsException(JsonRESTError):
-    code = 400
+class InvalidInputException(CodeBuildException):
+    code = "InvalidInputException"
 
-    def __init__(self, message: str):
-        super().__init__("ResourceAlreadyExistsException", message)
+
+class ResourceNotFoundException(CodeBuildException):
+    code = "ResourceNotFoundException"
+
+
+class ResourceAlreadyExistsException(CodeBuildException):
+    code = "ResourceAlreadyExistsException"

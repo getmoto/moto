@@ -1,65 +1,39 @@
 """Exceptions raised by the codedeploy service."""
 
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class CodeDeployException(JsonRESTError):
+class CodeDeployException(ServiceException):
     pass
 
 
 class ApplicationDoesNotExistException(CodeDeployException):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("ApplicationDoesNotExistException", message)
+    code = "ApplicationDoesNotExistException"
 
 
 class DeploymentDoesNotExistException(CodeDeployException):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("DeploymentDoesNotExistException", message)
+    code = "DeploymentDoesNotExistException"
 
 
 class ApplicationAlreadyExistsException(CodeDeployException):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("ApplicationAlreadyExistsException", message)
+    code = "ApplicationAlreadyExistsException"
 
 
 class ApplicationNameRequiredException(CodeDeployException):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("ApplicationNameRequiredException", message)
+    code = "ApplicationNameRequiredException"
 
 
 class DeploymentGroupAlreadyExistsException(CodeDeployException):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("DeploymentGroupAlreadyExistsException", message)
+    code = "DeploymentGroupAlreadyExistsException"
 
 
 class DeploymentGroupNameRequiredException(CodeDeployException):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("DeploymentGroupNameRequiredException", message)
+    code = "DeploymentGroupNameRequiredException"
 
 
 class DeploymentGroupDoesNotExistException(CodeDeployException):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("DeploymentGroupDoesNotExistException", message)
+    code = "DeploymentGroupDoesNotExistException"
 
 
 class InvalidTimeRangeException(CodeDeployException):
-    code = 400
-
-    def __init__(
-        self, message: str = "The start time must be earlier than the end time."
-    ):
-        super().__init__("InvalidTimeRangeException", message)
+    code = "InvalidTimeRangeException"

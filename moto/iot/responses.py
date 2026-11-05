@@ -80,9 +80,7 @@ class IoTResponse(BaseResponse):
 
     def list_things(self) -> ActionResult:
         previous_next_token = self._get_param("nextToken")
-        max_results = self._get_int_param(
-            "maxResults", 50
-        )  # not the default, but makes testing easier
+        max_results = self._get_int_param("maxResults")
         attribute_name = self._get_param("attributeName")
         attribute_value = self._get_param("attributeValue")
         thing_type_name = self._get_param("thingTypeName")
@@ -228,8 +226,7 @@ class IoTResponse(BaseResponse):
             return ActionResult({"document": ""})
 
     def list_jobs(self) -> ActionResult:
-        # not the default, but makes testing easier
-        max_results = self._get_int_param("maxResults", 50)
+        max_results = self._get_int_param("maxResults")
         previous_next_token = self._get_param("nextToken")
         jobs, next_token = self.iot_backend.list_jobs(
             max_results=max_results, next_token=previous_next_token
@@ -278,9 +275,7 @@ class IoTResponse(BaseResponse):
     def list_job_executions_for_job(self) -> ActionResult:
         job_id = self._get_param("jobId")
         status = self._get_param("status")
-        max_results = self._get_int_param(
-            "maxResults", 50
-        )  # not the default, but makes testing easier
+        max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
         job_executions, next_token = self.iot_backend.list_job_executions_for_job(
             job_id=job_id, status=status, max_results=max_results, token=next_token
@@ -296,9 +291,7 @@ class IoTResponse(BaseResponse):
     def list_job_executions_for_thing(self) -> ActionResult:
         thing_name = self._get_param("thingName")
         status = self._get_param("status")
-        max_results = self._get_int_param(
-            "maxResults", 50
-        )  # not the default, but makes testing easier
+        max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
         job_executions, next_token = self.iot_backend.list_job_executions_for_thing(
             thing_name=thing_name,
@@ -890,7 +883,7 @@ class IoTResponse(BaseResponse):
         )
 
     def list_job_templates(self) -> ActionResult:
-        max_results = self._get_int_param("maxResults", 50)
+        max_results = self._get_int_param("maxResults")
         current_next_token = self._get_param("nextToken")
         job_templates, future_next_token = self.iot_backend.list_job_templates(
             max_results=max_results, next_token=current_next_token

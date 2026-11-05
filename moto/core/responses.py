@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import functools
 import gzip
 import json
 import logging
 import os
 import re
-from collections import OrderedDict, defaultdict
+from collections import ChainMap, OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import (
@@ -14,9 +13,8 @@ from typing import (
     TypeVar,
     cast,
 )
-from urllib.parse import parse_qs, parse_qsl, unquote, urlparse
+from urllib.parse import parse_qs, parse_qsl, urlparse
 
-import boto3
 from botocore.model import OperationNotFoundError
 from werkzeug.exceptions import HTTPException
 from werkzeug.http import http_date
@@ -28,6 +26,7 @@ from moto.core.exceptions import ServiceException
 from moto.core.model import OperationModel, ServiceModel
 from moto.core.parse import PROTOCOL_PARSERS, XFormedDict
 from moto.core.request import Request, determine_request_protocol
+from moto.core.routing import NotFound, get_service_router
 from moto.core.serialize import (
     ResponseSerializer,
     XFormedAttributePicker,
@@ -44,6 +43,7 @@ from moto.core.utils import (
     utcnow,
 )
 from moto.utilities.aws_headers import gen_amzn_requestid_long
+from moto.utilities.constants import APPLICATION_CBOR
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
@@ -77,42 +77,6 @@ def _decode_dict(d: dict[Any, Any]) -> dict[str, Any]:
             decoded[newkey] = value
 
     return decoded
-
-
-@functools.cache
-def _get_method_urls(service_name: str, region: str) -> dict[str, dict[str, str]]:
-    method_urls: dict[str, dict[str, str]] = defaultdict(dict)
-    service_name = boto3_service_name.get(service_name) or service_name  # type: ignore
-    conn = boto3.client(service_name, region_name=region)
-    op_names = conn._service_model.operation_names
-    for op_name in op_names:
-        op_model = conn._service_model.operation_model(op_name)
-        _method = op_model.http["method"]
-        request_uri = op_model.http["requestUri"]
-        if service_name == "route53" and request_uri.endswith("/rrset/"):
-            # Terraform 5.50 made a request to /rrset/
-            # Terraform 5.51+ makes a request to /rrset - so we have to intercept both variants
-            request_uri += "?"
-        if service_name == "lambda":
-            # Several operations have inconsistent trailing slashes across Botocore versions.
-            affected_operations = [
-                "CreateEventSourceMapping",
-                "CreateFunction",
-                "InvokeAsync",
-                "ListEventSourceMappings",
-                "ListFunctions",
-            ]
-            if op_name in affected_operations:
-                request_uri += "?" if request_uri.endswith("/") else "/?"
-        if service_name == "opensearch" and request_uri.endswith("/tags/"):
-            # AWS GO SDK behaves differently from other SDK's, does not send a trailing slash
-            request_uri += "?"
-        if service_name == "backup" and request_uri.endswith("/"):
-            request_uri += "?"
-        uri_regexp = BaseResponse.uri_to_regexp(request_uri)
-        method_urls[_method][uri_regexp] = op_model.name
-
-    return method_urls
 
 
 @dataclass
@@ -235,12 +199,14 @@ class BaseResponse(ActionAuthenticatorMixin):
     ) -> None:
         """
         full_url and headers are carried by the request itself.  They remain
-        parameters for the callers that deliberately pass something else - see
-        CloudFormationResponse.process_cfn_response, which appends an Action.
+        parameters for the callers that pass them through explicitly.
 
         use_raw_body overrides the class-level default for a single call.
         """
         use_raw_body = self.use_raw_body if use_raw_body is None else use_raw_body
+        if request.mimetype == APPLICATION_CBOR:
+            # Binary body, which must not be decoded or parsed as a querystring
+            use_raw_body = True
         # Only a real WSGI server supplies its own Date header - in every other
         # mode moto is the entire stack and has to supply it itself.  This used
         # to be inferred from the type name, which stopped working once every
@@ -319,7 +285,7 @@ class BaseResponse(ActionAuthenticatorMixin):
         self.method = request.method
         self.region = self.get_region_from_url(request, full_url)
         self.partition = get_partition(self.region)
-        self.uri_match: re.Match[str] | None = None
+        self.uri_match: dict[str, Any] = {}
 
         if "host" not in request.headers:
             # request.headers is an immutable view over the WSGI environ, so the
@@ -403,83 +369,23 @@ class BaseResponse(ActionAuthenticatorMixin):
         self.setup_class(request, full_url, headers)
         return self.call_action()
 
-    @staticmethod
-    def uri_to_regexp(uri: str) -> str:
-        """converts uri w/ placeholder to regexp
-          '/accounts/{AwsAccountId}/namespaces/{Namespace}/groups'
-        -> '^/accounts/(?P<AwsAccountId>[^/]+)/namespaces/(?P<Namespace>[^/]+)/groups$'
-
-          '/trustStores/{trustStoreArn+}'
-        -> '^/trustStores/(?P<trustStoreArn>.+)$'
-
-        """
-
-        def _convert(elem: str) -> str:
-            if not re.match("^{.*}$", elem):
-                # URL-parts sometimes contain a $
-                # Like Greengrass: /../deployments/$reset
-                # We don't want to our regex to think this marks an end-of-line, so let's escape it
-                return elem.replace("$", r"\$")
-
-            # In the Smithy specification, a plus sign indicates a greedy label, which
-            # allows the label to match multiple path segments, including forward slashes.
-            # If a label is the last segment of a uri, we default it to greedy as well.
-            greedy = elem.endswith("+}") or uri.endswith(elem)
-            name = (
-                elem.replace("{", "")
-                .replace("}", "")
-                .replace("+", "")
-                .replace("-", "_")
-            )
-            if greedy:
-                return f"(?P<{name}>.+)"
-            return f"(?P<{name}>[^/]+)"
-
-        elems = uri.split("/")
-        regexp = "/".join([_convert(elem) for elem in elems])
-        return f"^{regexp}$"
-
-    def _get_action_from_method_and_request_uri(
-        self, method: str, request_uri: str
-    ) -> str:
-        """Used for AWS restJson1 and restXml API protocols"""
-        methods_url = _get_method_urls(self.service_name, self.region)
-        regexp_and_names = methods_url[method]
-        # Sort patterns by length (descending) so more specific patterns match before more general ones.
-        #
-        # This fixes problems with service definitions that contain uris like:
-        # - /mrap/instances/{name+} (GetMultiRegionAccessPoint)
-        # - /mrap/instances/{name+}/policy (GetMultiRegionAccessPointPolicy)
-        #
-        # Both urls match the regex for the first url, but we want to ensure we match the more specific pattern.
-        sorted_patterns = sorted(
-            regexp_and_names.items(), key=lambda x: len(x[0]), reverse=True
-        )
-        for regexp, name in sorted_patterns:
-            match = re.match(regexp, request_uri)
-            self.uri_match = match
-            if match:
-                return name
+    def _get_action_from_request(self, request: Request) -> str:
+        try:
+            service_router = get_service_router(self.boto3_service_name)
+            operation, uri_params = service_router.match(request)
+            self.uri_match = uri_params
+            return operation.name
+        except (NotFound, NotImplementedError):
+            pass
         return None  # type: ignore[return-value]
 
     def _get_action(self) -> str:
-        action = self.querystring.get("Action")
-        if action and isinstance(action, list):
-            action = action[0]
-        if action:
-            return action
-        # Some services use a header for the action
-        # Headers are case-insensitive. Probably a better way to do this.
-        match = self.headers.get("x-amz-target") or self.headers.get("X-Amz-Target")
-        if match:
-            return match.split(".")[-1]
-        # get action from method and uri
-        return self._get_action_from_method_and_request_uri(self.method, self.raw_path)
+        return self._get_action_from_request(self.normalized_request)
 
     def parse_parameters(self, request: Request) -> None:
         service_model = get_service_model(self.boto3_service_name)
         operation_model = service_model.operation_model(self._get_action())
-        protocol = determine_request_protocol(service_model, request.content_type)
+        protocol = determine_request_protocol(service_model, request)
         parser_cls = PROTOCOL_PARSERS[protocol]
         parser = parser_cls(operation_model, map_type=self.PROTOCOL_PARSER_MAP_TYPE)
         parsed = parser.parse(
@@ -489,14 +395,13 @@ class BaseResponse(ActionAuthenticatorMixin):
                 "headers": request.headers,
                 "body": request.data,
                 "url_path": request.path,
-                "url_params": self.uri_match.groupdict() if self.uri_match else {},
+                "url_params": self.uri_match,
             }
         )
         self.params = cast(Any, parsed)
 
     def determine_response_protocol(self, service_model: ServiceModel) -> str:
-        content_type = self.headers.get("Content-Type", "")
-        protocol = determine_request_protocol(service_model, content_type)
+        protocol = determine_request_protocol(service_model, self.normalized_request)
         if protocol == "query" and self.request_json:
             protocol = "query-json"
         return protocol
@@ -597,7 +502,8 @@ class BaseResponse(ActionAuthenticatorMixin):
 
     def _get_param(self, param_name: str, if_none: Any = None) -> Any:
         if self.automated_parameter_parsing:
-            return get_value(self.params, param_name, default=if_none)
+            params = ChainMap(self.params, self.uri_match)
+            return get_value(params, param_name, default=if_none)
 
         val = self.querystring.get(param_name)
         if val is not None:
@@ -607,14 +513,14 @@ class BaseResponse(ActionAuthenticatorMixin):
         if self.body is not None:
             try:
                 return json.loads(self.body)[param_name]
-            except (ValueError, KeyError):
+            except (ValueError, KeyError, TypeError):
                 pass
         # try to get path parameter
         if self.uri_match:
             try:
-                val = self.uri_match.group(param_name)
-                return unquote(val)
-            except IndexError:
+                val = self.uri_match[param_name]
+                return val
+            except KeyError:
                 # do nothing if param is not found
                 pass
         return if_none
@@ -654,81 +560,7 @@ class BaseResponse(ActionAuthenticatorMixin):
         return if_none
 
     def _get_params(self) -> dict[str, Any]:
-        """
-        Given a querystring of
-        {
-            'Action': ['CreatRule'],
-            'Conditions.member.1.Field': ['http-header'],
-            'Conditions.member.1.HttpHeaderConfig.HttpHeaderName': ['User-Agent'],
-            'Conditions.member.1.HttpHeaderConfig.Values.member.1': ['curl'],
-            'Actions.member.1.FixedResponseConfig.StatusCode': ['200'],
-            'Actions.member.1.FixedResponseConfig.ContentType': ['text/plain'],
-            'Actions.member.1.Type': ['fixed-response']
-        }
-
-        returns
-        {
-            'Action': 'CreatRule',
-            'Conditions': [
-                {
-                    'Field': 'http-header',
-                    'HttpHeaderConfig': {
-                        'HttpHeaderName': 'User-Agent',
-                        'Values': ['curl']
-                    }
-                }
-            ],
-            'Actions': [
-                {
-                    'Type': 'fixed-response',
-                    'FixedResponseConfig': {
-                        'StatusCode': '200',
-                        'ContentType': 'text/plain'
-                    }
-                }
-            ]
-        }
-        """
-        if self.automated_parameter_parsing:
-            return self.params
-        params: dict[str, Any] = {}
-        for k, v in sorted(self.querystring.items()):
-            self._parse_param(k, v[0], params)
-        return params
-
-    def _parse_param(self, key: str, value: str, params: Any) -> None:
-        keylist = key.split(".")
-        obj = params
-        for i, key in enumerate(keylist[:-1]):
-            if key in obj:
-                # step into
-                parent = obj
-                obj = obj[key]
-            else:
-                if key == "member":
-                    if not isinstance(obj, list):
-                        # initialize list
-                        # reset parent
-                        obj = []
-                        parent[keylist[i - 1]] = obj
-                elif isinstance(obj, dict):
-                    # initialize dict
-                    obj[key] = {}
-                    # step into
-                    parent = obj
-                    obj = obj[key]
-                elif key.isdigit():
-                    index = int(key) - 1
-                    if len(obj) <= index:
-                        # initialize list element
-                        obj.insert(index, {})
-                    # step into
-                    parent = obj
-                    obj = obj[index]
-        if isinstance(obj, list):
-            obj.append(value)
-        else:
-            obj[keylist[-1]] = value
+        return self.params
 
     @property
     def request_json(self) -> bool:

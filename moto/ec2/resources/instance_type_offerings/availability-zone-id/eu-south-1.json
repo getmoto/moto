@@ -5712,6 +5712,10 @@
   "Location": "eus1-az3"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "eus1-az3"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "eus1-az3"
  },

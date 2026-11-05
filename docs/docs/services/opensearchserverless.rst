@@ -21,10 +21,13 @@ opensearchserverless
 - [ ] batch_get_effective_lifecycle_policy
 - [ ] batch_get_lifecycle_policy
 - [ ] batch_get_vpc_endpoint
+- [ ] cancel_ingestion_job
 - [ ] create_access_policy
 - [X] create_collection
 - [ ] create_collection_group
 - [ ] create_index
+- [ ] create_ingestion_job
+- [ ] create_ingestion_stream
 - [ ] create_lifecycle_policy
 - [ ] create_security_config
 - [X] create_security_policy
@@ -33,6 +36,7 @@ opensearchserverless
 - [X] delete_collection
 - [ ] delete_collection_group
 - [ ] delete_index
+- [ ] delete_ingestion_stream
 - [ ] delete_lifecycle_policy
 - [ ] delete_security_config
 - [ ] delete_security_policy
@@ -40,6 +44,8 @@ opensearchserverless
 - [ ] get_access_policy
 - [ ] get_account_settings
 - [ ] get_index
+- [ ] get_ingestion_job
+- [ ] get_ingestion_stream
 - [ ] get_policies_stats
 - [ ] get_security_config
 - [X] get_security_policy
@@ -50,6 +56,8 @@ opensearchserverless
 Pagination is not yet implemented
 
 
+- [ ] list_ingestion_jobs
+- [ ] list_ingestion_streams
 - [ ] list_lifecycle_policies
 - [ ] list_security_configs
 - [X] list_security_policies

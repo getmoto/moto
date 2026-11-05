@@ -12,10 +12,15 @@ import pytest
 from botocore.utils import parse_timestamp
 from dateutil.tz import tzutc
 from werkzeug.datastructures import Headers, MultiDict
+from werkzeug.exceptions import NotFound
+from werkzeug.routing import Rule
 
 from moto.core.model import OperationModel, ServiceModel
-from moto.core.parse import PROTOCOL_PARSERS
-from moto.core.responses import BaseResponse
+from moto.core.parse import PROTOCOL_PARSERS, default_cbor_blob_parser
+from moto.core.routing import (
+    to_uri_params,
+    to_werkzeug_rule_string,
+)
 from moto.core.serialize import SERIALIZERS
 
 TEST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "protocols")
@@ -58,6 +63,8 @@ def _walk_files():
 def _load_cases(full_path):
     all_test_data = json.load(open(full_path))
     protocol = os.path.basename(full_path).split(".")[0]
+    # e.g. smithy-rpc-v2-cbor-query-compatible.json
+    protocol = re.sub(r"(-non)?-query-compatible$", "", protocol)
     for test_data in all_test_data:
         cases = test_data.pop("cases")
         description = test_data["description"]
@@ -72,6 +79,14 @@ def _compliance_blob_parser(value):
     # that the blob contains binary data that actually can't be decoded.
     # For the compliance tests, we decode to a string for easier asserts.
     return base64.b64decode(value).decode("utf-8")
+
+
+def _compliance_blob_parser_for(protocol):
+    if protocol == "smithy-rpc-v2-cbor":
+        # Blobs are raw bytes in CBOR, not base64-encoded.  Latin-1 maps each
+        # byte to one character, so binary data can be given as a string, too.
+        return lambda value: default_cbor_blob_parser(value).decode("latin-1")
+    return _compliance_blob_parser
 
 
 def _compliance_timestamp_parser(value):
@@ -93,6 +108,19 @@ def _build_query_params(query_string, body, headers):
     return query_params
 
 
+def _build_uri_params(uri_template, url_path):
+    """Extract uri params the same way the router does (percent-decoded)."""
+    from moto.core.routing import _create_map
+
+    rule_map = _create_map([Rule(to_werkzeug_rule_string(uri_template))])
+    adapter = rule_map.bind("localhost")
+    try:
+        _, arguments = adapter.match(url_path)
+    except NotFound:
+        return {}
+    return to_uri_params(arguments)
+
+
 def _create_request_dict(given, serialized):
     method = serialized.get("method", given.get("http", {}).get("method", "POST"))
     # We need the headers to be case-insensitive
@@ -104,9 +132,7 @@ def _create_request_dict(given, serialized):
     body = serialized["body"]
     values = _build_query_params(query_string, serialized["body"], headers)
     uri_template = given.get("http", {}).get("requestUri", "/")
-    uri_regex = BaseResponse.uri_to_regexp(uri_template)
-    uri_match = re.match(uri_regex, url_path)
-    uri_params = uri_match.groupdict() if uri_match else {}
+    uri_params = _build_uri_params(uri_template.split("?", 1)[0], url_path)
     request_dict = {
         "method": method,
         "body": body,
@@ -128,10 +154,13 @@ def test_input_compliance(json_description: dict, case: dict, protocol: str):
     protocol_parser = PROTOCOL_PARSERS[protocol]
     parser = protocol_parser(
         operation_model,
-        blob_parser=_compliance_blob_parser,
+        blob_parser=_compliance_blob_parser_for(protocol),
         timestamp_parser=_compliance_timestamp_parser,
     )
-    request_dict = _create_request_dict(case["given"], case["serialized"])
+    serialized = case["serialized"]
+    if protocol == "smithy-rpc-v2-cbor":
+        serialized = {**serialized, "body": base64.b64decode(serialized["body"])}
+    request_dict = _create_request_dict(case["given"], serialized)
     parsed = parser.parse(request_dict)
     assert parsed == case.get("params", {})
 
@@ -147,7 +176,10 @@ def test_output_compliance(json_description: dict, case: dict, protocol):
     serializer = protocol_serializer(operation_model)
     result = case["result"] if "error" not in case else _create_exception(case)
     resp = serializer.serialize(result)  # _to_response(result)
-    assert resp["body"] == case["response"]["body"]
+    expected_body = case["response"]["body"]
+    if protocol == "smithy-rpc-v2-cbor":
+        expected_body = base64.b64decode(expected_body)
+    assert resp["body"] == expected_body
     protocol_to_content_type = {
         "ec2": "text/xml",
         "json": "application/x-amz-json-1.0",
@@ -155,6 +187,7 @@ def test_output_compliance(json_description: dict, case: dict, protocol):
         "query-json": "application/json",
         "rest-xml": "application/xml",
         "rest-json": "application/json",
+        "smithy-rpc-v2-cbor": "application/cbor",
     }
     if resp["body"]:
         content_type = resp["headers"]["Content-Type"]

@@ -1,38 +1,27 @@
 """Exceptions raised by the shield service."""
 
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class ResourceAlreadyExistsException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("ResourceAlreadyExistsException", message)
+class ShieldException(ServiceException):
+    pass
 
 
-class InvalidResourceException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("InvalidResourceException", message)
+class ResourceAlreadyExistsException(ShieldException):
+    code = "ResourceAlreadyExistsException"
 
 
-class InvalidParameterException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("InvalidParameterException", message)
+class InvalidResourceException(ShieldException):
+    code = "InvalidResourceException"
 
 
-class ResourceNotFoundException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("ResourceNotFoundException", message)
+class InvalidParameterException(ShieldException):
+    code = "InvalidParameterException"
 
 
-class ValidationException(JsonRESTError):
-    code = 400
+class ResourceNotFoundException(ShieldException):
+    code = "ResourceNotFoundException"
 
-    def __init__(self, message: str):
-        super().__init__("ValidationException", message)
+
+class ValidationException(ShieldException):
+    code = "ValidationException"
