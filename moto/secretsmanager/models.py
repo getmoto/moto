@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import datetime
 import json
 import time
@@ -10,12 +11,15 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcfromtimestamp, utcnow
+from moto.iam.exceptions import MalformedPolicyDocument
+from moto.iam.policy_validation import BaseIAMPolicyValidator
 from moto.moto_api._internal import mock_random
 
 from .exceptions import (
     ClientError,
     InvalidParameterException,
     InvalidRequestException,
+    MalformedPolicyDocumentException,
     OperationNotPermittedOnReplica,
     ResourceExistsException,
     ResourceNotFoundException,
@@ -345,6 +349,38 @@ class ReplicaSecret:
     @property
     def owning_service(self) -> str | None:
         return self.source.owning_service
+
+    def promote(self) -> FakeSecret:
+        """
+        Convert this replica into a standalone secret in the replica region.
+        The new secret keeps the replica ARN, and a copy of the source data.
+        """
+        source = self.source
+        secret = FakeSecret(
+            account_id=source.account_id,
+            region_name=self.region,
+            secret_id=source.secret_id,
+            secret_version={},
+            version_id="",
+            description=source.description,
+            tags=copy.deepcopy(source.tags),
+            kms_key_id=self.config["KmsKeyId"],
+            last_changed_date=int(time.time()),
+            created_date=source.created_date,
+        )
+        secret.arn = self.arn
+        secret.secret_string = source.secret_string
+        secret.secret_binary = source.secret_binary
+        secret.policy = source.policy
+        secret.versions = copy.deepcopy(source.versions)
+        secret.set_default_version_id(source.default_version_id)
+        return secret
+
+
+class SecretsManagerPolicyValidator(BaseIAMPolicyValidator):
+    def _validate_version(self) -> None:
+        # Resource policies can omit the Version, or use the legacy 2008-10-17 version
+        pass
 
 
 class SecretsStore(dict[str, FakeSecret | ReplicaSecret]):
@@ -1228,6 +1264,25 @@ class SecretsManagerBackend(BaseBackend, TaggableResourcesMixin):
         secret.policy = None
         return secret.arn, secret.name
 
+    def validate_resource_policy(
+        self, secret_id: str | None, resource_policy: str
+    ) -> dict[str, Any]:
+        """
+        Only the syntax of the policy is validated.
+        Checks for broad access (using Zelkova) and caller lock-out are not yet implemented.
+        """
+        if secret_id is not None and not self._is_valid_identifier(secret_id):
+            raise SecretNotFoundException()
+
+        try:
+            SecretsManagerPolicyValidator(resource_policy).validate()
+        except MalformedPolicyDocument:
+            raise MalformedPolicyDocumentException(
+                "The resource policy has syntax errors."
+            )
+
+        return {"PolicyValidationPassed": True, "ValidationErrors": []}
+
     def replicate_secret_to_regions(
         self,
         secret_id: str,
@@ -1258,6 +1313,22 @@ class SecretsManagerBackend(BaseBackend, TaggableResourcesMixin):
 
         statuses = [replica.config for replica in secret.replicas]
         return secret_id, statuses
+
+    def stop_replication_to_replica(self, secret_id: str) -> str:
+        if not self._is_valid_identifier(secret_id):
+            raise SecretNotFoundException()
+
+        replica = self.secrets[secret_id]
+        if not isinstance(replica, ReplicaSecret):
+            raise InvalidParameterException(
+                "Operation not permitted on a primary secret. Call must be made on a replica secret in the replica's region."
+            )
+
+        replica.source.replicas.remove(replica)
+        dict.pop(self.secrets, replica.arn)
+        secret = replica.promote()
+        self.secrets[secret.name] = secret
+        return secret.arn
 
     def _get_secret_values_page_and_next_token(
         self,
