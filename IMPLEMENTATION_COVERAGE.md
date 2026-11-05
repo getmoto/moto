@@ -3577,6 +3577,31 @@
 - [ ] update_subscriptions_to_event_bridge
 </details>
 
+## docdb-elastic
+<details>
+<summary>100% implemented</summary>
+
+- [X] apply_pending_maintenance_action
+- [X] copy_cluster_snapshot
+- [X] create_cluster
+- [X] create_cluster_snapshot
+- [X] delete_cluster
+- [X] delete_cluster_snapshot
+- [X] get_cluster
+- [X] get_cluster_snapshot
+- [X] get_pending_maintenance_action
+- [X] list_cluster_snapshots
+- [X] list_clusters
+- [X] list_pending_maintenance_actions
+- [X] list_tags_for_resource
+- [X] restore_cluster_from_snapshot
+- [X] start_cluster
+- [X] stop_cluster
+- [X] tag_resource
+- [X] untag_resource
+- [X] update_cluster
+</details>
+
 ## ds
 <details>
 <summary>31% implemented</summary>
@@ -12329,7 +12354,6 @@
 - discovery
 - dlm
 - docdb
-- docdb-elastic
 - drs
 - ds-data
 - ecr-public

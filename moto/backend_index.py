@@ -71,6 +71,7 @@ backend_url_patterns = [
     ("devopsagent", re.compile("https?://(.*\\.)?aidevops\\.(.+)\\.api\\.aws")),
     ("directconnect", re.compile("https?://directconnect\\.(.+)\\.amazonaws\\.com")),
     ("dms", re.compile("https?://dms\\.(.+)\\.amazonaws\\.com")),
+    ("docdbelastic", re.compile("https?://docdb-elastic\\.(.+)\\.amazonaws\\.com")),
     ("ds", re.compile("https?://ds\\.(.+)\\.amazonaws\\.com")),
     ("dsql", re.compile("https?://dsql\\.(.+)\\.api\\.aws")),
     ("dynamodb", re.compile("https?://dynamodb\\.(.+)\\.amazonaws\\.com")),
