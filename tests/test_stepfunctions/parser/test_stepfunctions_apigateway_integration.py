@@ -127,6 +127,58 @@ def test_state_machine_calling_apigateway_invoke_get_without_stage_or_path():
         server.stop()
 
 
+@mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
+def test_state_machine_calling_apigateway_invoke_get_with_empty_body_and_2xx():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("No point in testing this in ServerMode")
+
+    received = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            received.append(self.headers.get("Content-Length"))
+            payload = b'{"created": true}'
+            self.send_response(201)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+
+        def log_message(self, *args):
+            pass
+
+    server = SimpleServer(Handler)
+    server.start()
+    _, port = server.get_host_and_port()
+
+    try:
+        exec_input = {
+            "ApiEndpoint": f"http://127.0.0.1:{port}",
+            "Method": "GET",
+            "Headers": {},
+            "RequestBody": {},
+        }
+
+        def _verify_result(client, execution, execution_arn):
+            output = json.loads(execution["output"])
+            assert output["StatusCode"] == 201
+            assert output["StatusText"] == "Created"
+            assert output["ResponseBody"] == {"created": True}
+            return True
+
+        verify_execution_result(
+            _verify_result,
+            "SUCCEEDED",
+            "services/apigw_invoke_dynamic",
+            exec_input=json.dumps(exec_input),
+        )
+
+        # The empty RequestBody is not sent
+        assert received == [None]
+    finally:
+        server.stop()
+
+
 @pytest.mark.parametrize(
     "method,headers",
     [

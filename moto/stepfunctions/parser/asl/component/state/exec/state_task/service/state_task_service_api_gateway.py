@@ -284,33 +284,24 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
     ):
         task_parameters: TaskParameters = normalised_parameters
 
-        auth_type = task_parameters.get("AuthType")
-        if auth_type is not None and auth_type != AuthType.NO_AUTH:
-            LOG.warning(
-                "AuthType '%s' is not supported for apigateway:invoke; the request will be sent without authentication",
-                auth_type,
-            )
-        if task_parameters.get("AllowNullValues"):
-            LOG.warning("AllowNullValues is not supported for apigateway:invoke")
-
         method = task_parameters["Method"]
         invoke_url = self._invoke_url_of(task_parameters)
         headers = self._headers_of(task_parameters)
         json_data = task_parameters.get("RequestBody")
 
         # RequestBody is only supported for PATCH, POST, and PUT
-        if json_data is not None and method not in {
-            Method.PATCH,
-            Method.POST,
-            Method.PUT,
-        }:
-            raise ValueError()  # TODO
+        if method not in {Method.PATCH, Method.POST, Method.PUT}:
+            if json_data:
+                raise ValueError(
+                    f"The 'RequestBody' field is not supported for the {method} method"
+                )
+            json_data = None
 
         response: Response = getattr(requests, method.lower())(
             invoke_url, headers=headers, json=json_data
         )
 
-        if response.status_code != 200:
+        if not 200 <= response.status_code < 300:
             raise SfnGatewayException(parameters=task_parameters, response=response)
 
         invoke_output = self._invoke_output_of(response)
