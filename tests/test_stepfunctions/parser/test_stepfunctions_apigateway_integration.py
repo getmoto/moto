@@ -67,7 +67,7 @@ def test_state_machine_calling_apigateway_invoke():
 
         assert received == [
             {
-                "path": "/prod/_user_request_/things/?mode=fast&mode=slow&limit=10&flag=0",
+                "path": "/prod/_user_request_/things?mode=fast&mode=slow&limit=10&flag=0",
                 "body": '{"hello": "world"}',
                 "x_custom": "[a,b]",
             }
@@ -121,7 +121,7 @@ def test_state_machine_calling_apigateway_invoke_get_without_stage_or_path():
         )
 
         assert received == [
-            {"path": "/_user_request_//?name=moto&empty=", "x_custom": "single"}
+            {"path": "/_user_request_/?name=moto&empty=", "x_custom": "single"}
         ]
     finally:
         server.stop()

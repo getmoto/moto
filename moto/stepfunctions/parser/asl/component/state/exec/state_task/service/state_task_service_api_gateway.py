@@ -210,10 +210,10 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
                 parameters.get("Stage") or "",
                 PATH_USER_REQUEST,
                 parameters.get("Path") or "",
-                StateTaskServiceApiGateway._query_parameters_of(parameters) or "",
             ]
         )
-        invoke_url = urljoin(url_base, url_tail)
+        query_str = StateTaskServiceApiGateway._query_parameters_of(parameters) or ""
+        invoke_url = urljoin(url_base, url_tail) + query_str
         return invoke_url
 
     @staticmethod
