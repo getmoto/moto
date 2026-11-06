@@ -3204,6 +3204,56 @@ def test_fifo_queue_send_deduplicationid_same_as_sha256_of_old_message():
 
 
 @mock_aws
+def test_fifo_queue_deduplication_id_is_remembered_after_delete():
+    client = boto3.client("sqs", region_name=REGION)
+    queue_url = client.create_queue(
+        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
+    )["QueueUrl"]
+
+    client.send_message(
+        QueueUrl=queue_url,
+        MessageBody="order",
+        MessageGroupId="1",
+        MessageDeduplicationId="order-42",
+    )
+    message = client.receive_message(QueueUrl=queue_url)["Messages"][0]
+    client.delete_message(QueueUrl=queue_url, ReceiptHandle=message["ReceiptHandle"])
+
+    # A producer retrying inside the deduplication interval must not cause a redelivery,
+    # even though the original has already been consumed
+    client.send_message(
+        QueueUrl=queue_url,
+        MessageBody="order",
+        MessageGroupId="1",
+        MessageDeduplicationId="order-42",
+    )
+    assert client.receive_message(QueueUrl=queue_url).get("Messages", []) == []
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "deduplication_scope, expected_count", [("queue", 1), ("messageGroup", 2)]
+)
+def test_fifo_queue_deduplication_scope(deduplication_scope, expected_count):
+    client = boto3.client("sqs", region_name=REGION)
+    queue_url = client.create_queue(
+        QueueName=f"{str(uuid4())[0:6]}.fifo",
+        Attributes={"FifoQueue": "true", "DeduplicationScope": deduplication_scope},
+    )["QueueUrl"]
+
+    for group_id in ["1", "2"]:
+        client.send_message(
+            QueueUrl=queue_url,
+            MessageBody="msg",
+            MessageGroupId=group_id,
+            MessageDeduplicationId="same-id",
+        )
+
+    messages = client.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10)
+    assert len(messages.get("Messages", [])) == expected_count
+
+
+@mock_aws
 def test_fifo_send_message_when_same_group_id_is_in_dlq():
     sqs = boto3.resource("sqs", region_name=REGION)
     q_name = f"{str(uuid4())[0:6]}-dlq.fifo"
