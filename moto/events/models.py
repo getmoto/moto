@@ -977,6 +977,14 @@ class EventPattern:
                     result[new_key] = v
         return result
 
+    @staticmethod
+    def _objects_in_array(node: list[Any]) -> Iterator[dict[str, Any]]:
+        for item in node:
+            if isinstance(item, list):
+                yield from EventPattern._objects_in_array(item)
+            elif isinstance(item, dict):
+                yield item
+
     def _does_event_match(
         self, event_flat: dict[str, Any], pattern_node: dict[str, Any], prefix: str = ""
     ) -> bool:
@@ -993,7 +1001,19 @@ class EventPattern:
                 new_prefix = f"{prefix}.{k}" if prefix else k
                 if isinstance(v, dict):
                     # v is a nested pattern
-                    results.append(self._does_event_match(event_flat, v, new_prefix))
+                    item = event_flat.get(new_prefix, UNDEFINED)
+                    if isinstance(item, list):
+                        # An array of objects matches if a single object matches
+                        results.append(
+                            any(
+                                self._does_event_match(self._flatten_dict(i), v)
+                                for i in self._objects_in_array(item)
+                            )
+                        )
+                    else:
+                        results.append(
+                            self._does_event_match(event_flat, v, new_prefix)
+                        )
                 elif isinstance(v, list):
                     # v is a list of filters (scalars or named filter dicts)
                     item = event_flat.get(new_prefix, UNDEFINED)

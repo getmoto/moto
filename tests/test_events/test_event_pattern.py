@@ -374,3 +374,69 @@ def test_nested_list_matching_eb_style():
     # Array matching in EB is 'any' logic.
     assert pattern.matches_event({"detail": {"tags": ["a", "c"]}})
     assert not pattern.matches_event({"detail": {"tags": ["a", "b"]}})
+
+
+def test_array_of_objects_matching():
+    # A nested pattern is applied to every object in an array
+    pattern = EventPattern.load(
+        json.dumps(
+            {
+                "detail": {
+                    "responseElements": {
+                        "instancesSet": {"items": {"instanceId": ["i-2"]}}
+                    }
+                }
+            }
+        )
+    )
+    items = [{"instanceId": "i-1"}, {"instanceId": "i-2"}]
+    event = {"detail": {"responseElements": {"instancesSet": {"items": items}}}}
+    assert pattern.matches_event(event)
+    items[1]["instanceId"] = "i-3"
+    assert not pattern.matches_event(event)
+
+    # The array can sit at any level, and named filters work as usual
+    pattern = EventPattern.load(
+        json.dumps(
+            {"detail": {"containers": {"state": {"exitCode": [{"numeric": [">", 0]}]}}}}
+        )
+    )
+    assert pattern.matches_event(
+        {
+            "detail": {
+                "containers": [{"state": {"exitCode": 0}}, {"state": {"exitCode": 137}}]
+            }
+        }
+    )
+    assert not pattern.matches_event(
+        {"detail": {"containers": [{"state": {"exitCode": 0}}]}}
+    )
+    # Arrays of arrays are treated the same way
+    assert pattern.matches_event(
+        {
+            "detail": {
+                "containers": [
+                    [{"state": {"exitCode": 0}}],
+                    [{"state": {"exitCode": 1}}],
+                ]
+            }
+        }
+    )
+    assert not pattern.matches_event({"detail": {"containers": []}})
+    assert not pattern.matches_event({"detail": {"containers": ["a", "b"]}})
+
+
+def test_array_of_objects_matching_is_per_object():
+    # All fields have to match within a single object of the array
+    pattern = EventPattern.load(
+        json.dumps(
+            {"detail": {"employees": {"firstName": ["Anna"], "lastName": ["Smith"]}}}
+        )
+    )
+    employees = [
+        {"firstName": "John", "lastName": "Smith"},
+        {"firstName": "Anna", "lastName": "Doe"},
+    ]
+    assert not pattern.matches_event({"detail": {"employees": employees}})
+    employees.append({"firstName": "Anna", "lastName": "Smith"})
+    assert pattern.matches_event({"detail": {"employees": employees}})
