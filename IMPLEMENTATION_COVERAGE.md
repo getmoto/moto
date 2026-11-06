@@ -2371,7 +2371,7 @@
 
 ## cognito-idp
 <details>
-<summary>46% implemented</summary>
+<summary>47% implemented</summary>
 
 - [X] add_custom_attributes
 - [ ] add_user_pool_client_secret
@@ -2477,7 +2477,7 @@
 - [ ] list_web_authn_credentials
 - [ ] resend_confirmation_code
 - [X] respond_to_auth_challenge
-- [ ] revoke_token
+- [X] revoke_token
 - [ ] set_log_delivery_configuration
 - [ ] set_risk_configuration
 - [ ] set_ui_customization

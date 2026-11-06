@@ -31,6 +31,7 @@ class ActionAuthenticatorMixin:
         "AWSCognitoIdentityProviderService.GetUser",
         "AWSCognitoIdentityProviderService.ForgotPassword",
         "AWSCognitoIdentityProviderService.InitiateAuth",
+        "AWSCognitoIdentityProviderService.RevokeToken",
         "AWSCognitoIdentityProviderService.SignUp",
     ]
 
