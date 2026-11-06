@@ -1036,3 +1036,38 @@ def test_copy_source_if_none_match(bucket_name=None):
     assert len(r) == 2
     assert r[0]["ETag"] == r[1]["ETag"] == etag
     assert r[0]["VersionId"] != r[1]["VersionId"]
+
+
+@mock_aws
+def test_copy_source_if_match_and_modified_since():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="bucket")
+    etag = client.put_object(Bucket="bucket", Key="orig", Body=b"n/a")["ETag"]
+    past = datetime.datetime(2000, 1, 1, tzinfo=datetime.timezone.utc)
+    future = datetime.datetime(2100, 1, 1, tzinfo=datetime.timezone.utc)
+    source = {"Bucket": "bucket", "Key": "orig"}
+
+    for kwargs, condition in [
+        ({"CopySourceIfMatch": "unknown etag"}, "x-amz-copy-source-If-Match"),
+        (
+            {"CopySourceIfUnmodifiedSince": past},
+            "x-amz-copy-source-If-Unmodified-Since",
+        ),
+        ({"CopySourceIfModifiedSince": future}, "x-amz-copy-source-If-Modified-Since"),
+    ]:
+        with pytest.raises(ClientError) as exc:
+            client.copy_object(Bucket="bucket", Key="copy", CopySource=source, **kwargs)
+        err = exc.value.response["Error"]
+        assert err["Code"] == "PreconditionFailed"
+        assert err["Condition"] == condition
+
+    for kwargs in [
+        {"CopySourceIfMatch": etag},
+        {"CopySourceIfMatch": etag[1:-1]},
+        {"CopySourceIfUnmodifiedSince": future},
+        {"CopySourceIfModifiedSince": past},
+        # If-Match holds, so If-Unmodified-Since is ignored
+        {"CopySourceIfMatch": etag, "CopySourceIfUnmodifiedSince": past},
+    ]:
+        client.copy_object(Bucket="bucket", Key="copy", CopySource=source, **kwargs)
+    assert client.get_object(Bucket="bucket", Key="copy")["Body"].read() == b"n/a"
