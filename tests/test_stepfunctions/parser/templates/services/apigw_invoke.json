@@ -9,7 +9,7 @@
         "Method": "POST",
         "Stage": "prod",
         "Path": "/things",
-        "QueryParameters": {"mode": ["fast", "slow"], "limit": "10", "flag": 0},
+        "QueryParameters": {"mode": ["fast", "slow"], "limit": ["10"], "flag": ["0"]},
         "RequestBody.$": "$.RequestBody",
         "Headers": {"Content-Type": ["application/json"], "X-Custom": ["a", "b"]}
       },

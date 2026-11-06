@@ -160,16 +160,16 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
 
     @staticmethod
     def _query_parameters_of(parameters: TaskParameters) -> str | None:
-        query_str = None
-        query_parameters = parameters.get("QueryParameters")
-        # TODO: add support for AllowNullValues.
-        if query_parameters is not None:
-            normalised = {
-                key: "" if value in (None, []) else value
-                for key, value in query_parameters.items()
-            }
-            query_str = f"?{urlencode(normalised, doseq=True)}"
-        return query_str
+        query_parameters = parameters.get("QueryParameters") or {}
+        # AWS omits keys without a value, whatever the value of AllowNullValues
+        present = {
+            key: value
+            for key, value in query_parameters.items()
+            if value not in (None, [])
+        }
+        if not present:
+            return None
+        return f"?{urlencode(present, doseq=True)}"
 
     @staticmethod
     def _headers_of(parameters: TaskParameters) -> dict | None:
@@ -190,7 +190,7 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
                             f"The 'Headers' field contains unsupported values: {key}"
                         )
                 if isinstance(value, list):
-                    headers[key] = f"[{','.join(value)}]"
+                    headers[key] = ", ".join(value)
                 else:
                     headers[key] = value
             if parameters.get("RequestBody") is not None:
@@ -290,11 +290,8 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
         json_data = task_parameters.get("RequestBody")
 
         # RequestBody is only supported for PATCH, POST, and PUT
+        # AWS drops it for other methods
         if method not in {Method.PATCH, Method.POST, Method.PUT}:
-            if json_data:
-                raise ValueError(
-                    f"The 'RequestBody' field is not supported for the {method} method"
-                )
             json_data = None
 
         response: Response = getattr(requests, method.lower())(

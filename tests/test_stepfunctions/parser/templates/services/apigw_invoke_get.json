@@ -9,8 +9,8 @@
         "Method": "GET",
         "AuthType": "IAM_ROLE",
         "AllowNullValues": true,
-        "QueryParameters": {"name": "moto", "empty": []},
-        "Headers": {"X-Custom": "single"}
+        "QueryParameters": {"name": ["moto"], "empty": [], "missing": null},
+        "Headers": {"X-Custom": ["single"]}
       },
       "End": true
     }

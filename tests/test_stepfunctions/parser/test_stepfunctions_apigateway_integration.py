@@ -65,13 +65,13 @@ def test_state_machine_calling_apigateway_invoke():
             exec_input=json.dumps(exec_input),
         )
 
-        assert received == [
-            {
-                "path": "/prod/_user_request_/things?mode=fast&mode=slow&limit=10&flag=0",
-                "body": '{"hello": "world"}',
-                "x_custom": "[a,b]",
-            }
-        ]
+        assert len(received) == 1
+        assert (
+            received[0]["path"]
+            == "/prod/_user_request_/things?mode=fast&mode=slow&limit=10&flag=0"
+        )
+        assert received[0]["body"] == '{"hello": "world"}'
+        assert received[0]["x_custom"] == "a, b"
     finally:
         server.stop()
 
@@ -120,15 +120,20 @@ def test_state_machine_calling_apigateway_invoke_get_without_stage_or_path():
             exec_input=json.dumps(exec_input),
         )
 
-        assert received == [
-            {"path": "/_user_request_/?name=moto&empty=", "x_custom": "single"}
-        ]
+        assert len(received) == 1
+        assert received[0]["path"] == "/_user_request_/?name=moto"
+        assert received[0]["x_custom"] == "single"
     finally:
         server.stop()
 
 
+@pytest.mark.parametrize(
+    "request_body", [{}, {"hello": "world"}], ids=["empty_body", "non_empty_body"]
+)
 @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
-def test_state_machine_calling_apigateway_invoke_get_with_empty_body_and_2xx():
+def test_state_machine_calling_apigateway_invoke_get_drops_body_and_accepts_2xx(
+    request_body,
+):
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("No point in testing this in ServerMode")
 
@@ -156,7 +161,7 @@ def test_state_machine_calling_apigateway_invoke_get_with_empty_body_and_2xx():
             "ApiEndpoint": f"http://127.0.0.1:{port}",
             "Method": "GET",
             "Headers": {},
-            "RequestBody": {},
+            "RequestBody": request_body,
         }
 
         def _verify_result(client, execution, execution_arn):
@@ -173,7 +178,7 @@ def test_state_machine_calling_apigateway_invoke_get_with_empty_body_and_2xx():
             exec_input=json.dumps(exec_input),
         )
 
-        # The empty RequestBody is not sent
+        # A GET request does not send the RequestBody
         assert received == [None]
     finally:
         server.stop()
@@ -182,11 +187,10 @@ def test_state_machine_calling_apigateway_invoke_get_with_empty_body_and_2xx():
 @pytest.mark.parametrize(
     "method,headers",
     [
-        ("POST", {"Authorization": "Bearer token"}),
-        ("POST", {"X-Amz-Custom": "value"}),
-        ("GET", {}),
+        ("POST", {"Authorization": ["Bearer token"]}),
+        ("POST", {"X-Amz-Custom": ["value"]}),
     ],
-    ids=["forbidden_header", "forbidden_header_prefix", "body_with_get"],
+    ids=["forbidden_header", "forbidden_header_prefix"],
 )
 @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
 def test_state_machine_calling_apigateway_invoke_with_invalid_parameters(
