@@ -786,6 +786,41 @@ def test_key_version():
 
 
 @mock_aws
+def test_put_object_in_versioning_suspended_bucket():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = str(uuid.uuid4())
+    client.create_bucket(Bucket=bucket_name)
+    client.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+    )
+    v1 = client.put_object(Bucket=bucket_name, Key="the-key", Body=b"v1")
+    v2 = client.put_object(Bucket=bucket_name, Key="the-key", Body=b"v2")
+
+    client.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Suspended"}
+    )
+    client.put_object(Bucket=bucket_name, Key="the-key", Body=b"null 1")
+    # A second PUT replaces the null version
+    client.put_object(Bucket=bucket_name, Key="the-key", Body=b"null 2")
+
+    versions = client.list_object_versions(Bucket=bucket_name)["Versions"]
+    assert [v["VersionId"] for v in versions] == [
+        "null",
+        v2["VersionId"],
+        v1["VersionId"],
+    ]
+    assert [v["IsLatest"] for v in versions] == [True, False, False]
+
+    resp = client.get_object(Bucket=bucket_name, Key="the-key")
+    assert resp["Body"].read() == b"null 2"
+    for version, body in [(v1, b"v1"), (v2, b"v2")]:
+        resp = client.get_object(
+            Bucket=bucket_name, Key="the-key", VersionId=version["VersionId"]
+        )
+        assert resp["Body"].read() == body
+
+
+@mock_aws
 def test_list_versions():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
