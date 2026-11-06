@@ -122,6 +122,10 @@ class ParameterDict(defaultdict[str, list["Parameter"]]):
             last_modified_date = utcnow()
             name = param["Name"]
             value = param["Value"]
+            if isinstance(value, dict):
+                # SSM returns these values (the ECS-optimized AMI details) as JSON
+                # strings; the resource files store them decoded.
+                value = json.dumps(value, separators=(",", ":"))
             # Following were lost in translation/conversion - using sensible defaults
             parameter_type = "String"
             version = 1
