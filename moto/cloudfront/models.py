@@ -179,6 +179,7 @@ class Origin:
             if not self.domain_name.endswith("amazonaws.com"):
                 raise DomainNameNotAnS3Bucket
             self.s3_access_identity = origin["S3OriginConfig"]["OriginAccessIdentity"]
+            self.s3_origin_config = origin["S3OriginConfig"]
 
         if "CustomOriginConfig" in origin:
             self.custom_origin_config = CustomOriginConfig(origin["CustomOriginConfig"])
