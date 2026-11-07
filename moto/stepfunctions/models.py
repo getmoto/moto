@@ -29,6 +29,7 @@ from .exceptions import (
     NameTooLongException,
     ResourceNotFound,
     StateMachineDoesNotExist,
+    StateMachineTypeNotSupported,
 )
 from .parser.api import EncryptionType
 from .utils import PAGINATION_MODEL, api_to_cfn_tags, cfn_to_api_tags
@@ -823,6 +824,50 @@ class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
             execution_name=name or str(mock_random.uuid4()),
             execution_input=execution_input,
         )
+
+    def start_sync_execution(
+        self, state_machine_arn: str, name: str, execution_input: str
+    ) -> Execution:
+        """
+        Only EXPRESS state machines are supported, as on AWS. The execution
+        completes immediately: its status follows SF_EXECUTION_HISTORY_TYPE
+        (SUCCEEDED, or FAILED when set to FAILURE). As with StartExecution, the
+        definition is not run; enable the parser for real outputs. Synchronous
+        Express executions are not stored, so DescribeExecution cannot find them.
+
+        In ServerMode, create the client with
+        `botocore.config.Config(inject_host_prefix=False)`: the operation's
+        endpoint has the host prefix "sync-", which would otherwise be added
+        to the server's host name.
+        """
+        if name:
+            self._validate_name(name)
+        state_machine = self.describe_state_machine(state_machine_arn)
+        if state_machine.type != "EXPRESS":
+            raise StateMachineTypeNotSupported(
+                "This operation is not supported by this type of state machine"
+            )
+        execution_name = name or str(mock_random.uuid4())
+        execution = Execution(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            state_machine_name=state_machine.name,
+            execution_name=execution_name,
+            state_machine_arn=state_machine.arn,
+            execution_input=execution_input,
+        )
+        execution.execution_arn = (
+            f"arn:{get_partition(self.region_name)}:states:{self.region_name}:"
+            f"{self.account_id}:express:{state_machine.name}:{execution_name}:"
+            f"{mock_random.uuid4()}"
+        )
+        execution.status = (
+            "SUCCEEDED"
+            if settings.get_sf_execution_history_type() == "SUCCESS"
+            else "FAILED"
+        )
+        execution.stop_date = utcnow()
+        return execution
 
     def stop_execution(self, execution_arn: str) -> Execution:
         self._validate_execution_arn(execution_arn)

@@ -4,6 +4,8 @@ import json
 from typing import Any
 
 from moto.core.common_models import BackendDict
+from moto.moto_api._internal import mock_random
+from moto.stepfunctions.exceptions import StateMachineTypeNotSupported
 from moto.stepfunctions.models import StateMachine, StepFunctionBackend
 from moto.stepfunctions.parser.api import (
     Definition,
@@ -23,6 +25,7 @@ from moto.stepfunctions.parser.api import (
     SensitiveCause,
     SensitiveData,
     SensitiveError,
+    StateMachineType,
     TaskDoesNotExist,
     TaskTimedOut,
     TaskToken,
@@ -42,7 +45,7 @@ from moto.stepfunctions.parser.asl.parse.asl_parser import (
     AmazonStateLanguageParser,
     ASLParserException,
 )
-from moto.stepfunctions.parser.backend.execution import Execution
+from moto.stepfunctions.parser.backend.execution import Execution, SyncExecution
 
 
 class StepFunctionsParserBackend(StepFunctionBackend):
@@ -229,6 +232,55 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         )
         state_machine.executions.append(execution)
 
+        execution.start()
+        return execution
+
+    def start_sync_execution(
+        self,
+        state_machine_arn: str,
+        name: Name = None,
+        execution_input: SensitiveData = None,
+    ) -> SyncExecution:
+        state_machine = self.describe_state_machine(state_machine_arn)
+        if state_machine.type != StateMachineType.EXPRESS:
+            raise StateMachineTypeNotSupported(
+                "This operation is not supported by this type of state machine"
+            )
+        # A snapshot of the definition for this execution, as in start_execution
+        state_machine_clone = copy.deepcopy(
+            state_machine,
+            {
+                id(state_machine.executions): [],
+                id(state_machine.backend): state_machine.backend,
+            },
+        )
+        input_data = "{}" if execution_input is None else execution_input
+        try:
+            json.loads(input_data)
+        except Exception as ex:
+            raise InvalidExecutionInput(str(ex))
+
+        exec_name = name or str(mock_random.uuid4())
+        execution_arn = (
+            f"arn:{self.partition}:states:{self.region_name}:{self.account_id}:"
+            f"express:{state_machine.name}:{exec_name}:{mock_random.uuid4()}"
+        )
+        execution = SyncExecution(
+            name=exec_name,
+            sm_type=StateMachineType.EXPRESS,
+            role_arn=state_machine_clone.roleArn,
+            exec_arn=execution_arn,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            state_machine=state_machine_clone,
+            start_date=datetime.datetime.now(tz=datetime.timezone.utc),
+            cloud_watch_logging_session=None,
+            input_data=input_data,
+            trace_header=None,
+            activity_store={},
+        )
+        # SyncExecutionWorker runs the state machine inline, so this returns
+        # once the execution has finished.
         execution.start()
         return execution
 

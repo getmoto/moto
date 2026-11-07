@@ -282,6 +282,27 @@ class StepFunctionResponse(BaseResponse):
         }
         return ActionResult(response)
 
+    def start_sync_execution(self) -> ActionResult:
+        arn = self._get_param("stateMachineArn")
+        name = self._get_param("name")
+        execution_input = self._get_param("input", if_none="{}")
+        execution = self.stepfunction_backend.start_sync_execution(
+            arn, name, execution_input
+        )
+        if hasattr(execution, "to_start_sync_execution_output"):
+            # The parser backend ran the state machine and has the real result
+            return ActionResult(execution.to_start_sync_execution_output())
+        response = {
+            "executionArn": execution.execution_arn,
+            "stateMachineArn": execution.state_machine_arn,
+            "name": execution.name,
+            "startDate": execution.start_date,
+            "stopDate": execution.stop_date,
+            "status": execution.status,
+            "input": execution.execution_input,
+        }
+        return ActionResult(response)
+
     def list_executions(self) -> ActionResult:
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
