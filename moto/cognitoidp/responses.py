@@ -575,6 +575,17 @@ class CognitoIdpResponse(BaseResponse):
 
         return ActionResult(auth_result)
 
+    def get_tokens_from_refresh_token(self) -> ActionResult:
+        client_id = self._get_param("ClientId")
+        refresh_token = self._get_param("RefreshToken")
+        client_secret = self._get_param("ClientSecret")
+
+        auth_result = self._get_region_agnostic_backend().get_tokens_from_refresh_token(
+            client_id, refresh_token, client_secret
+        )
+
+        return ActionResult(auth_result)
+
     def associate_software_token(self) -> ActionResult:
         access_token = self._get_param("AccessToken")
         session = self._get_param("Session")
