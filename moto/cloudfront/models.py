@@ -167,6 +167,7 @@ class Origin:
         self.domain_name = origin["DomainName"]
         self.origin_path = origin.get("OriginPath") or ""
         self.s3_access_identity = ""
+        self.origin_access_control_id = origin.get("OriginAccessControlId") or ""
         self.custom_origin = None
         if "OriginShield" not in origin:
             origin["OriginShield"] = {"Enabled": False}
