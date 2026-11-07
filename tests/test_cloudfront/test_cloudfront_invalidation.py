@@ -26,7 +26,7 @@ def test_create_invalidation_with_single_path():
     assert "Invalidation" in resp
 
     assert "Id" in resp["Invalidation"]
-    assert resp["Invalidation"]["Status"] == "COMPLETED"
+    assert resp["Invalidation"]["Status"] == "Completed"
     assert "CreateTime" in resp["Invalidation"]
     assert resp["Invalidation"]["InvalidationBatch"] == {
         "Paths": {"Quantity": 1, "Items": ["/path1"]},
@@ -53,7 +53,7 @@ def test_create_invalidation_with_multiple_paths():
     assert "Invalidation" in resp
 
     assert "Id" in resp["Invalidation"]
-    assert resp["Invalidation"]["Status"] == "COMPLETED"
+    assert resp["Invalidation"]["Status"] == "Completed"
     assert "CreateTime" in resp["Invalidation"]
     assert resp["Invalidation"]["InvalidationBatch"] == {
         "Paths": {"Quantity": 2, "Items": ["/path1", "/path2"]},
@@ -85,7 +85,7 @@ def test_list_invalidations():
     assert len(resp["InvalidationList"]["Items"]) == 1
     assert resp["InvalidationList"]["Items"][0]["Id"] == invalidation_id
     assert "CreateTime" in resp["InvalidationList"]["Items"][0]
-    assert resp["InvalidationList"]["Items"][0]["Status"] == "COMPLETED"
+    assert resp["InvalidationList"]["Items"][0]["Status"] == "Completed"
 
 
 @mock_aws
@@ -148,3 +148,26 @@ def test_get_invalidation_id_not_found():
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchInvalidation"
     assert err["Message"] == "The specified invalidation does not exist."
+
+
+@mock_aws
+def test_invalidation_completed_waiter():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+    dist_id = client.create_distribution(DistributionConfig=config)["Distribution"][
+        "Id"
+    ]
+    invalidation_id = client.create_invalidation(
+        DistributionId=dist_id,
+        InvalidationBatch={
+            "Paths": {"Quantity": 1, "Items": ["/path1"]},
+            "CallerReference": "ref2",
+        },
+    )["Invalidation"]["Id"]
+
+    # The waiter succeeds only on Status == "Completed" (the casing CloudFront uses)
+    client.get_waiter("invalidation_completed").wait(
+        DistributionId=dist_id,
+        Id=invalidation_id,
+        WaiterConfig={"Delay": 1, "MaxAttempts": 1},
+    )
