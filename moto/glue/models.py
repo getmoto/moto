@@ -1,4 +1,3 @@
-import hashlib
 import re
 from collections import OrderedDict
 from collections.abc import Iterator
@@ -11,7 +10,7 @@ from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
-from moto.utilities.utils import get_partition
+from moto.utilities.utils import get_partition, md5_hash
 
 from ..utilities.paginator import paginate
 from ..utilities.tagging_service import TaggingService
@@ -1585,7 +1584,7 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
                 "ConcurrentModificationException", "Policy hash condition not met"
             )
 
-        policy_hash = hashlib.md5(policy_in_json.encode()).hexdigest()
+        policy_hash = md5_hash(policy_in_json.encode()).hexdigest()
 
         if not policy_dict:
             policy_dict = {

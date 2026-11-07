@@ -2,7 +2,6 @@
 
 import datetime
 import re
-from hashlib import md5
 from typing import Literal
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -23,7 +22,7 @@ from moto.s3tables.exceptions import (
     VersionTokenMismatch,
 )
 from moto.utilities.paginator import paginate
-from moto.utilities.utils import get_partition
+from moto.utilities.utils import get_partition, md5_hash
 
 # https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-buckets-naming.html
 TABLE_BUCKET_NAME_PATTERN = re.compile(r"[a-z0-9_-]{3,63}")
@@ -120,7 +119,7 @@ class Table:
         self.modified_by = by
 
     def _generate_version_token(self) -> str:
-        return md5(random.uuid4().bytes).hexdigest()[:20]
+        return md5_hash(random.uuid4().bytes).hexdigest()[:20]
 
     def _create_underlying_bucket(self) -> FakeBucket:
         from moto.s3.models import s3_backends
