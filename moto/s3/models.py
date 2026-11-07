@@ -517,7 +517,17 @@ class FakeMultipart(BaseModel):
             checksum_builder.build(),
         )
 
-    def set_part(self, part_id: int, value: bytes) -> FakeKey:
+    @property
+    def checksum_algorithm(self) -> str | None:
+        return self.metadata.get("x-amz-checksum-algorithm")
+
+    def set_part(
+        self,
+        part_id: int,
+        value: bytes,
+        checksum_algorithm: str | None = None,
+        checksum_value: str | None = None,
+    ) -> FakeKey:
         if part_id < 1:
             raise NoSuchUpload(upload_id=part_id)
 
@@ -529,6 +539,17 @@ class FakeMultipart(BaseModel):
             encryption=self.sse_encryption,
             kms_key_id=self.kms_key_id,
         )
+        # AWS stores a checksum for every part of an upload that was created with a ChecksumAlgorithm,
+        # and returns it in ListParts. A checksum supplied for that algorithm is kept, otherwise it is computed.
+        # https://docs.aws.amazon.com/AmazonS3/latest/API/API_Part.html
+        if self.checksum_algorithm:
+            key.checksum_algorithm = self.checksum_algorithm
+            if checksum_value and checksum_algorithm == self.checksum_algorithm:
+                key.checksum_value = checksum_value
+            else:
+                key.checksum_value = compute_checksum(
+                    value, self.checksum_algorithm
+                ).decode()
         if part_id in self.parts:
             # We're overwriting the current part - dispose of it first
             self.parts[part_id].dispose()
@@ -2782,11 +2803,22 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
         return bucket.multiparts
 
     def upload_part(
-        self, bucket_name: str, multipart_id: str, part_id: int, value: bytes
+        self,
+        bucket_name: str,
+        multipart_id: str,
+        part_id: int,
+        value: bytes,
+        checksum_algorithm: str | None = None,
+        checksum_value: str | None = None,
     ) -> FakeKey:
         bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
-        return multipart.set_part(part_id, value)
+        return multipart.set_part(
+            part_id,
+            value,
+            checksum_algorithm=checksum_algorithm,
+            checksum_value=checksum_value,
+        )
 
     def upload_part_copy(
         self,

@@ -2195,9 +2195,15 @@ class S3Response(BaseResponse):
                 "LastModified": part.last_modified_ISO8601,
                 "ETag": part.etag,
                 "Size": part.size,
+                **(
+                    {f"Checksum{part.checksum_algorithm}": part.checksum_value}
+                    if part.checksum_algorithm and part.checksum_value
+                    else {}
+                ),
             }
             for part in parts
         ]
+        multipart = self.backend.get_bucket(self.bucket_name).multiparts[upload_id]
         result = {
             "Bucket": self.bucket_name,
             "Key": key_name,
@@ -2216,6 +2222,8 @@ class S3Response(BaseResponse):
             "MaxParts": max_parts,
             "IsTruncated": is_truncated,
             "Parts": parts_list,
+            "ChecksumAlgorithm": multipart.checksum_algorithm,
+            "ChecksumType": multipart.metadata.get("x-amz-checksum-type"),
         }
         self.data["Action"] = "ListParts"
         status, headers, body = self.serialized(ActionResult(result))
@@ -2605,15 +2613,38 @@ class S3Response(BaseResponse):
 
         if part_number > 10000:
             raise InvalidMaxPartNumberArgument(part_number)
-        key = self.backend.upload_part(
-            self.bucket_name, upload_id, part_number, self.body
-        )
 
         response_headers = self._get_cors_headers_other()
-        self._get_checksum(response_headers)
+        checksum_algorithm, checksum_value = self._get_checksum(response_headers)
+        if not checksum_algorithm:
+            # A presigned URL or a plain REST request sends the x-amz-checksum-* header without x-amz-sdk-checksum-algorithm
+            checksum_algorithm, checksum_value = self._get_checksum_header(
+                response_headers
+            )
+        key = self.backend.upload_part(
+            self.bucket_name,
+            upload_id,
+            part_number,
+            self.body,
+            checksum_algorithm=checksum_algorithm,
+            checksum_value=checksum_value,
+        )
+
         response_headers.update(key.response_dict)
         response_headers["content-length"] = "0"
+        # x-amz-sdk-checksum-algorithm is a request header and should not be included in the response.
+        response_headers.pop("x-amz-sdk-checksum-algorithm", None)
         return 200, response_headers, ""
+
+    def _get_checksum_header(
+        self, response_headers: dict[str, Any]
+    ) -> tuple[str, str | None]:
+        for algorithm in ["CRC32", "CRC32C", "CRC64NVME", "SHA1", "SHA256"]:
+            header = f"x-amz-checksum-{algorithm.lower()}"
+            if value := self.headers.get(header):
+                response_headers[header] = value
+                return algorithm, value
+        return "", None
 
     def upload_part_copy(self) -> TYPE_RESPONSE:
         response_headers = self._get_cors_headers_other()
@@ -2647,19 +2678,19 @@ class S3Response(BaseResponse):
             )
         else:
             return 404, response_headers, ""
+        copy_part_result = {
+            "LastModified": key.last_modified_ISO8601,
+            "ETag": key.etag,
+        }
+        if key.checksum_algorithm and key.checksum_value:
+            copy_part_result[f"Checksum{key.checksum_algorithm}"] = key.checksum_value
         self.data["Action"] = "UploadPartCopy"
         status, headers, body = self.serialized(
-            ActionResult(
-                {
-                    "CopyPartResult": {
-                        "LastModified": key.last_modified_ISO8601,
-                        "ETag": key.etag,
-                    },
-                }
-            )
+            ActionResult({"CopyPartResult": copy_part_result})
         )
         headers.update(response_headers)
         headers.update(key.response_dict)
+        headers.pop("x-amz-sdk-checksum-algorithm", None)
         headers["content-length"] = str(len(body))
         return status, headers, body
 
@@ -3242,17 +3273,22 @@ class S3Response(BaseResponse):
             if key.kms_key_id:
                 headers["x-amz-server-side-encryption-aws-kms-key-id"] = key.kms_key_id
 
+            result: dict[str, Any] = {
+                "Location": f"http://{bucket_name}.s3.amazonaws.com/{key.name}",
+                "Bucket": bucket_name,
+                "Key": key.name,
+                "ETag": key.etag,
+            }
+            if key.checksum_algorithm and key.checksum_value:
+                # As in GetObject and HeadObject, a COMPOSITE checksum carries the number of parts
+                checksum = key.checksum_value
+                if key.checksum_type == "COMPOSITE":
+                    checksum = f"{checksum}-{key.checksum_parts}"
+                result[f"Checksum{key.checksum_algorithm}"] = checksum
+                result["ChecksumType"] = key.checksum_type
+
             self.data["Action"] = "CompleteMultipartUpload"
-            status, resp_headers, resp_body = self.serialized(
-                ActionResult(
-                    {
-                        "Location": f"http://{bucket_name}.s3.amazonaws.com/{key.name}",
-                        "Bucket": bucket_name,
-                        "Key": key.name,
-                        "ETag": key.etag,
-                    }
-                )
-            )
+            status, resp_headers, resp_body = self.serialized(ActionResult(result))
             resp_headers.update(headers)
             return status, resp_headers, resp_body
 
