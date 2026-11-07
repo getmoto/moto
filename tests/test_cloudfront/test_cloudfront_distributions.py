@@ -245,6 +245,42 @@ def test_create_distribution_with_origins():
 
 
 @mock_aws
+def test_create_distribution_returns_s3_origin_config():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+
+    dist = client.create_distribution(DistributionConfig=config)["Distribution"]
+
+    origin = dist["DistributionConfig"]["Origins"]["Items"][0]
+    assert origin["S3OriginConfig"] == {
+        "OriginAccessIdentity": "origin-access-identity/cloudfront/00000000000001"
+    }
+
+
+@mock_aws
+def test_update_distribution_keeps_s3_origin_config():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+    dist_id = client.create_distribution(DistributionConfig=config)["Distribution"][
+        "Id"
+    ]
+
+    # Read the config, change the origin access identity, and send it back
+    resp = client.get_distribution_config(Id=dist_id)
+    config = resp["DistributionConfig"]
+    origin = config["Origins"]["Items"][0]
+    new_identity = "origin-access-identity/cloudfront/00000000000002"
+    origin["S3OriginConfig"]["OriginAccessIdentity"] = new_identity
+    client.update_distribution(
+        DistributionConfig=config, Id=dist_id, IfMatch=resp["ETag"]
+    )
+
+    config = client.get_distribution_config(Id=dist_id)["DistributionConfig"]
+    origin = config["Origins"]["Items"][0]
+    assert origin["S3OriginConfig"] == {"OriginAccessIdentity": new_identity}
+
+
+@mock_aws
 @pytest.mark.parametrize("nr_of_headers", [1, 2])
 def test_create_distribution_with_custom_headers(nr_of_headers):
     client = boto3.client("cloudfront", region_name="us-west-1")
