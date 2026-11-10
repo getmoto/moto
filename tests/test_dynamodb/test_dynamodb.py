@@ -1,5 +1,5 @@
 import copy
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
@@ -4323,6 +4323,38 @@ def test_list_backups_for_non_existent_table():
     client = boto3.client("dynamodb", "us-east-1")
     resp = client.list_backups(TableName=f"T{uuid4()}")
     assert len(resp["BackupSummaries"]) == 0
+
+
+@mock_aws
+def test_list_backups_filters():
+    client = boto3.client("dynamodb", "us-east-1")
+    table_name = f"T{uuid4()}"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    created = client.create_backup(TableName=table_name, BackupName="backup")[
+        "BackupDetails"
+    ]["BackupCreationDateTime"]
+
+    def names(**kwargs):
+        summaries = client.list_backups(TableName=table_name, **kwargs)[
+            "BackupSummaries"
+        ]
+        return [s["BackupName"] for s in summaries]
+
+    one_second = timedelta(seconds=1)
+    assert names(TimeRangeLowerBound=created - one_second) == ["backup"]
+    assert names(TimeRangeLowerBound=created + one_second) == []
+    assert names(TimeRangeUpperBound=created + one_second) == ["backup"]
+    assert names(TimeRangeUpperBound=created - one_second) == []
+
+    assert names(BackupType="USER") == ["backup"]
+    assert names(BackupType="ALL") == ["backup"]
+    assert names(BackupType="SYSTEM") == []
+    assert names(BackupType="AWS_BACKUP") == []
 
 
 @mock_aws
