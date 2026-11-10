@@ -791,3 +791,39 @@ def test_list_distributions_config_fields():
     assert item["ViewerCertificate"]["CloudFrontDefaultCertificate"] is True
     assert item["Enabled"] is False
     assert item["Comment"] == "an optional comment that's not actually optional"
+
+
+@mock_aws
+def test_create_distribution_with_origin_access_control():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    oac_id = client.create_origin_access_control(
+        OriginAccessControlConfig={
+            "Name": "oac",
+            "SigningProtocol": "sigv4",
+            "SigningBehavior": "always",
+            "OriginAccessControlOriginType": "s3",
+        }
+    )["OriginAccessControl"]["Id"]
+    config = scaffold.example_distribution_config("ref")
+    origin = config["Origins"]["Items"][0]
+    origin["S3OriginConfig"]["OriginAccessIdentity"] = ""
+    origin["OriginAccessControlId"] = oac_id
+
+    dist = client.create_distribution(DistributionConfig=config)["Distribution"]
+    origin = dist["DistributionConfig"]["Origins"]["Items"][0]
+    assert origin["OriginAccessControlId"] == oac_id
+
+    dist = client.get_distribution(Id=dist["Id"])["Distribution"]
+    origin = dist["DistributionConfig"]["Origins"]["Items"][0]
+    assert origin["OriginAccessControlId"] == oac_id
+
+
+@mock_aws
+def test_create_distribution_without_origin_access_control():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+
+    dist = client.create_distribution(DistributionConfig=config)["Distribution"]
+
+    origin = dist["DistributionConfig"]["Origins"]["Items"][0]
+    assert origin["OriginAccessControlId"] == ""
