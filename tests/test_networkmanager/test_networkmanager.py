@@ -375,6 +375,54 @@ def test_get_links():
 
 
 @mock_aws
+def test_get_links_filters():
+    client = boto3.client("networkmanager", "us-east-1")
+    gn_id = create_global_network(client)
+
+    def link(site_id, type, provider):
+        return client.create_link(
+            GlobalNetworkId=gn_id,
+            SiteId=site_id,
+            Type=type,
+            Provider=provider,
+            Bandwidth={"UploadSpeed": 100, "DownloadSpeed": 100},
+        )["Link"]["LinkId"]
+
+    a = link("site-1", "broadband", "AnyCompany")
+    b = link("site-1", "mpls", "ExampleCorp")
+    c = link("site-2", "broadband", "ExampleCorp")
+
+    def ids(**kwargs):
+        links = client.get_links(GlobalNetworkId=gn_id, **kwargs)["Links"]
+        return sorted(link["LinkId"] for link in links)
+
+    assert ids(SiteId="site-1") == sorted([a, b])
+    assert ids(Type="broadband") == sorted([a, c])
+    assert ids(Provider="ExampleCorp") == sorted([b, c])
+    assert ids(SiteId="site-1", Provider="ExampleCorp") == [b]
+    assert ids(LinkIds=[a, c], SiteId="site-2") == [c]
+    assert ids(SiteId="site-3") == []
+
+
+@mock_aws
+def test_get_devices_filter_by_site():
+    client = boto3.client("networkmanager", "us-east-1")
+    gn_id = create_global_network(client)
+    a = client.create_device(GlobalNetworkId=gn_id, SiteId="site-1")["Device"]
+    b = client.create_device(GlobalNetworkId=gn_id, SiteId="site-2")["Device"]
+
+    resp = client.get_devices(GlobalNetworkId=gn_id, SiteId="site-1")["Devices"]
+    assert [device["DeviceId"] for device in resp] == [a["DeviceId"]]
+
+    resp = client.get_devices(
+        GlobalNetworkId=gn_id,
+        DeviceIds=[a["DeviceId"], b["DeviceId"]],
+        SiteId="site-2",
+    )["Devices"]
+    assert [device["DeviceId"] for device in resp] == [b["DeviceId"]]
+
+
+@mock_aws
 def test_delete_link():
     client = boto3.client("networkmanager", "us-east-1")
     gn_id = create_global_network(client)
