@@ -319,7 +319,7 @@ class Invalidation(BaseModel):
         self.id = random_id()
         self.create_time = utcnow()
         self.distribution = distribution
-        self.status = "COMPLETED"
+        self.status = "Completed"
         self.paths = paths
         self.caller_ref = caller_ref
 
