@@ -55,30 +55,6 @@ ResponseShape = TypeVar("ResponseShape", bound="BaseResponse")
 boto3_service_name = {"awslambda": "lambda"}
 
 
-def _decode_dict(d: dict[Any, Any]) -> dict[str, Any]:
-    decoded: dict[str, Any] = OrderedDict()
-    for key, value in d.items():
-        if isinstance(key, bytes):
-            newkey = key.decode("utf-8")
-        else:
-            newkey = key
-
-        if isinstance(value, bytes):
-            decoded[newkey] = value.decode("utf-8")
-        elif isinstance(value, (list, tuple)):
-            newvalue = []
-            for v in value:
-                if isinstance(v, bytes):
-                    newvalue.append(v.decode("utf-8"))
-                else:
-                    newvalue.append(v)
-            decoded[newkey] = newvalue
-        else:
-            decoded[newkey] = value
-
-    return decoded
-
-
 @dataclass
 class ActionContext:
     service_model: ServiceModel
@@ -269,11 +245,6 @@ class BaseResponse(ActionAuthenticatorMixin):
                     pass  # ignore encoding errors, as the body may not contain a legitimate querystring
         if not querystring:
             querystring.update(headers)
-
-        try:
-            querystring = _decode_dict(querystring)
-        except UnicodeDecodeError:
-            pass  # ignore decoding errors, as the body may not contain a legitimate querystring
 
         self.uri = full_url
 
