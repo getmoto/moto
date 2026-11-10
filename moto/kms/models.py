@@ -267,6 +267,13 @@ class Key(CloudFormationModel):
         else:
             return []
 
+    @property
+    def mac_algorithms(self) -> list[str] | None:
+        if self.key_usage != "GENERATE_VERIFY_MAC":
+            return None
+        # HMAC_224 -> HMAC_SHA_224, and so on: each HMAC key spec supports one algorithm
+        return [self.key_spec.replace("HMAC_", "HMAC_SHA_")]
+
     def to_dict(self) -> dict[str, Any]:
         key_dict = {
             "KeyMetadata": {
@@ -291,6 +298,8 @@ class Key(CloudFormationModel):
             key_dict["KeyMetadata"]["MultiRegionConfiguration"] = (
                 self.multi_region_configuration
             )
+        if self.mac_algorithms:
+            key_dict["KeyMetadata"]["MacAlgorithms"] = self.mac_algorithms
         if self.key_state == "PendingDeletion":
             key_dict["KeyMetadata"]["DeletionDate"] = unix_time(self.deletion_date)
         return key_dict
@@ -836,6 +845,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         if (
             key.key_usage != "GENERATE_VERIFY_MAC"
             or key.key_spec not in KeySpec.hmac_key_specs()
+            or mac_algorithm not in (key.mac_algorithms or [])
         ):
             raise InvalidKeyUsageException()
 
