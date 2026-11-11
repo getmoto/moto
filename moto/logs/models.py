@@ -1578,9 +1578,12 @@ class LogsBackend(BaseBackend, TaggableResourcesMixin):
                 raise InvalidParameterException(
                     msg="1 validation error detected: Value at 'logGroupIdentifier' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w#+=/:,.@-]*"
                 )
-            for log_group in self.groups.values():
-                if log_group.arn == log_group_id:
-                    log_group = log_group
+            log_group = self.groups.get(log_group_id)
+            if log_group is None:
+                for candidate in self.groups.values():
+                    if candidate.arn == log_group_id:
+                        log_group = candidate
+                        break
         else:
             raise InvalidParameterException(
                 "Should provider either name or id, but not both"
