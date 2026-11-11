@@ -604,11 +604,11 @@
 
 ## athena
 <details>
-<summary>38% implemented</summary>
+<summary>42% implemented</summary>
 
-- [ ] batch_get_named_query
+- [X] batch_get_named_query
 - [ ] batch_get_prepared_statement
-- [ ] batch_get_query_execution
+- [X] batch_get_query_execution
 - [ ] cancel_capacity_reservation
 - [X] create_capacity_reservation
 - [X] create_data_catalog
@@ -619,7 +619,7 @@
 - [X] create_work_group
 - [ ] delete_capacity_reservation
 - [ ] delete_data_catalog
-- [ ] delete_named_query
+- [X] delete_named_query
 - [ ] delete_notebook
 - [ ] delete_prepared_statement
 - [X] delete_work_group

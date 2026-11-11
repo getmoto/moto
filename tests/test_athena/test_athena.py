@@ -637,6 +637,85 @@ def test_list_named_queries():
 
 
 @mock_aws
+def test_batch_get_named_query():
+    client = boto3.client("athena", region_name="us-east-1")
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    query_id_1 = client.create_named_query(
+        Name="query-1", Database="target_db", QueryString="SELECT * FROM table1"
+    )["NamedQueryId"]
+    query_id_2 = client.create_named_query(
+        Name="query-2",
+        Database="target_db",
+        QueryString="SELECT * FROM table2",
+        Description="second query",
+        WorkGroup="athena_workgroup",
+    )["NamedQueryId"]
+
+    resp = client.batch_get_named_query(
+        NamedQueryIds=[query_id_1, query_id_2, "unknown-id"]
+    )
+
+    named_queries = resp["NamedQueries"]
+    assert [nq["NamedQueryId"] for nq in named_queries] == [query_id_1, query_id_2]
+    assert named_queries[0]["Name"] == "query-1"
+    assert named_queries[0]["WorkGroup"] == "primary"
+    assert named_queries[1]["Name"] == "query-2"
+    assert named_queries[1]["Description"] == "second query"
+    assert named_queries[1]["QueryString"] == "SELECT * FROM table2"
+    assert named_queries[1]["WorkGroup"] == "athena_workgroup"
+    assert resp["UnprocessedNamedQueryIds"] == [{"NamedQueryId": "unknown-id"}]
+
+
+@mock_aws
+def test_delete_named_query():
+    client = boto3.client("athena", region_name="us-east-1")
+    query_id = client.create_named_query(
+        Name="query-name", Database="target_db", QueryString="SELECT * FROM table1"
+    )["NamedQueryId"]
+    other_query_id = client.create_named_query(
+        Name="other-query", Database="target_db", QueryString="SELECT * FROM table2"
+    )["NamedQueryId"]
+
+    client.delete_named_query(NamedQueryId=query_id)
+
+    assert client.list_named_queries()["NamedQueryIds"] == [other_query_id]
+    resp = client.batch_get_named_query(NamedQueryIds=[query_id])
+    assert resp["NamedQueries"] == []
+    assert resp["UnprocessedNamedQueryIds"] == [{"NamedQueryId": query_id}]
+
+
+@mock_aws
+def test_batch_get_query_execution():
+    client = boto3.client("athena", region_name="us-east-1")
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    exec_id_1 = client.start_query_execution(
+        QueryString="SELECT * FROM table1",
+        QueryExecutionContext={"Database": "target_db"},
+        ResultConfiguration={"OutputLocation": "s3://bucket-name/prefix/"},
+    )["QueryExecutionId"]
+    exec_id_2 = client.start_query_execution(
+        QueryString="CREATE TABLE table2 (id int)",
+        QueryExecutionContext={"Database": "target_db"},
+        WorkGroup="athena_workgroup",
+    )["QueryExecutionId"]
+
+    resp = client.batch_get_query_execution(
+        QueryExecutionIds=[exec_id_1, exec_id_2, "unknown-id"]
+    )
+
+    executions = resp["QueryExecutions"]
+    assert [e["QueryExecutionId"] for e in executions] == [exec_id_1, exec_id_2]
+    assert executions[0]["Query"] == "SELECT * FROM table1"
+    assert executions[0]["StatementType"] == "DML"
+    assert executions[0]["QueryExecutionContext"] == {"Database": "target_db"}
+    assert executions[0]["Status"]["State"] == "SUCCEEDED"
+    assert executions[1]["Query"] == "CREATE TABLE table2 (id int)"
+    assert executions[1]["StatementType"] == "DDL"
+    assert executions[1]["WorkGroup"] == "athena_workgroup"
+    assert resp["UnprocessedQueryExecutionIds"] == [{"QueryExecutionId": "unknown-id"}]
+
+
+@mock_aws
 def test_create_prepared_statement():
     client = boto3.client("athena", region_name="us-east-1")
     create_basic_workgroup(client=client, name="athena_workgroup")

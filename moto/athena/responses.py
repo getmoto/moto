@@ -3,7 +3,7 @@ from typing import Any
 
 from moto.core.responses import BaseResponse
 
-from .models import AthenaBackend, athena_backends
+from .models import AthenaBackend, Execution, athena_backends
 
 
 class AthenaResponse(BaseResponse):
@@ -66,43 +66,59 @@ class AthenaResponse(BaseResponse):
     def get_query_execution(self) -> str:
         exec_id = self._get_param("QueryExecutionId")
         execution = self.athena_backend.get_query_execution(exec_id)
+        return json.dumps({"QueryExecution": self._query_execution_to_dict(execution)})
+
+    def batch_get_query_execution(self) -> str:
+        exec_ids = self._get_param("QueryExecutionIds")
+        executions, unprocessed_ids = self.athena_backend.batch_get_query_execution(
+            exec_ids
+        )
+        return json.dumps(
+            {
+                "QueryExecutions": [
+                    self._query_execution_to_dict(execution) for execution in executions
+                ],
+                "UnprocessedQueryExecutionIds": [
+                    {"QueryExecutionId": exec_id} for exec_id in unprocessed_ids
+                ],
+            }
+        )
+
+    @staticmethod
+    def _query_execution_to_dict(execution: Execution) -> dict[str, Any]:
         ddl_commands = ("ALTER", "CREATE", "DESCRIBE", "DROP", "MSCK", "SHOW")
         statement_type = "DML"
         if execution.query.upper().startswith(ddl_commands):
             statement_type = "DDL"
-        result = {
-            "QueryExecution": {
-                "QueryExecutionId": exec_id,
-                "Query": execution.query,
-                "StatementType": statement_type,
-                "ResultConfiguration": execution.config,
-                "ResultReuseConfiguration": {
-                    "ResultReuseByAgeConfiguration": {"Enabled": False}
-                },
-                "QueryExecutionContext": execution.context,
-                "Status": {
-                    "State": execution.status,
-                    "SubmissionDateTime": execution.start_time,
-                    "CompletionDateTime": execution.end_time,
-                },
-                "Statistics": {
-                    "EngineExecutionTimeInMillis": 0,
-                    "DataScannedInBytes": 0,
-                    "TotalExecutionTimeInMillis": 0,
-                    "QueryQueueTimeInMillis": 0,
-                    "ServicePreProcessingTimeInMillis": 0,
-                    "QueryPlanningTimeInMillis": 0,
-                    "ServiceProcessingTimeInMillis": 0,
-                    "ResultReuseInformation": {"ReusedPreviousResult": False},
-                },
-                "WorkGroup": execution.workgroup.name if execution.workgroup else None,
-            }
+        result: dict[str, Any] = {
+            "QueryExecutionId": execution.id,
+            "Query": execution.query,
+            "StatementType": statement_type,
+            "ResultConfiguration": execution.config,
+            "ResultReuseConfiguration": {
+                "ResultReuseByAgeConfiguration": {"Enabled": False}
+            },
+            "QueryExecutionContext": execution.context,
+            "Status": {
+                "State": execution.status,
+                "SubmissionDateTime": execution.start_time,
+                "CompletionDateTime": execution.end_time,
+            },
+            "Statistics": {
+                "EngineExecutionTimeInMillis": 0,
+                "DataScannedInBytes": 0,
+                "TotalExecutionTimeInMillis": 0,
+                "QueryQueueTimeInMillis": 0,
+                "ServicePreProcessingTimeInMillis": 0,
+                "QueryPlanningTimeInMillis": 0,
+                "ServiceProcessingTimeInMillis": 0,
+                "ResultReuseInformation": {"ReusedPreviousResult": False},
+            },
+            "WorkGroup": execution.workgroup.name if execution.workgroup else None,
         }
         if execution.execution_parameters is not None:
-            result["QueryExecution"]["ExecutionParameters"] = (
-                execution.execution_parameters
-            )
-        return json.dumps(result)
+            result["ExecutionParameters"] = execution.execution_parameters
+        return result
 
     def create_capacity_reservation(self) -> tuple[str, dict[str, int]] | str:
         name = self._get_param("Name")
@@ -173,18 +189,26 @@ class AthenaResponse(BaseResponse):
     def get_named_query(self) -> str:
         query_id = self._get_param("NamedQueryId")
         nq = self.athena_backend.get_named_query(query_id)
+        return json.dumps({"NamedQuery": nq.to_dict()})  # type: ignore[union-attr]
+
+    def batch_get_named_query(self) -> str:
+        query_ids = self._get_param("NamedQueryIds")
+        named_queries, unprocessed_ids = self.athena_backend.batch_get_named_query(
+            query_ids
+        )
         return json.dumps(
             {
-                "NamedQuery": {
-                    "Name": nq.name,  # type: ignore[union-attr]
-                    "Description": nq.description,  # type: ignore[union-attr]
-                    "Database": nq.database,  # type: ignore[union-attr]
-                    "QueryString": nq.query_string,  # type: ignore[union-attr]
-                    "NamedQueryId": nq.id,  # type: ignore[union-attr]
-                    "WorkGroup": nq.workgroup.name,  # type: ignore[union-attr]
-                }
+                "NamedQueries": [nq.to_dict() for nq in named_queries],
+                "UnprocessedNamedQueryIds": [
+                    {"NamedQueryId": query_id} for query_id in unprocessed_ids
+                ],
             }
         )
+
+    def delete_named_query(self) -> str:
+        query_id = self._get_param("NamedQueryId")
+        self.athena_backend.delete_named_query(query_id)
+        return json.dumps({})
 
     def list_data_catalogs(self) -> str:
         return json.dumps(
