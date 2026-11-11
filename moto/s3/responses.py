@@ -1243,6 +1243,10 @@ class S3Response(BaseResponse):
                         "Key": rule.filter.tag_key,
                         "Value": rule.filter.tag_value,
                     }
+                if rule.filter.object_size_greater_than is not None:
+                    f["ObjectSizeGreaterThan"] = rule.filter.object_size_greater_than
+                if rule.filter.object_size_less_than is not None:
+                    f["ObjectSizeLessThan"] = rule.filter.object_size_less_than
                 if rule.filter.and_filter:
                     and_f: dict[str, Any] = {}
                     if rule.filter.and_filter.prefix is not None:
@@ -1252,6 +1256,13 @@ class S3Response(BaseResponse):
                             {"Key": k, "Value": v}
                             for k, v in rule.filter.and_filter.tags.items()
                         ]
+                    and_filter = rule.filter.and_filter
+                    if and_filter.object_size_greater_than is not None:
+                        and_f["ObjectSizeGreaterThan"] = (
+                            and_filter.object_size_greater_than
+                        )
+                    if and_filter.object_size_less_than is not None:
+                        and_f["ObjectSizeLessThan"] = and_filter.object_size_less_than
                     f["And"] = and_f
                 r["Filter"] = f
             else:

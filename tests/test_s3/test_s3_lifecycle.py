@@ -641,3 +641,71 @@ def test_lifecycle_empty_configuration():
     assert ex.value.response["Error"]["Message"] == (
         "The lifecycle configuration does not exist"
     )
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "lc_filter",
+    [
+        {"ObjectSizeGreaterThan": 0},
+        {"ObjectSizeLessThan": 1024},
+        {
+            "And": {
+                "Prefix": "logs/",
+                "Tags": [{"Key": "k", "Value": "v"}],
+                "ObjectSizeGreaterThan": 0,
+            }
+        },
+        {"And": {"ObjectSizeGreaterThan": 128, "ObjectSizeLessThan": 1024}},
+    ],
+    ids=["greater_than", "less_than", "and_with_prefix_and_tags", "and_sizes_only"],
+)
+def test_lifecycle_with_object_size_filters(lc_filter):
+    client = boto3.client("s3", DEFAULT_REGION_NAME)
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
+
+    lfc = {
+        "Rules": [
+            {
+                "Expiration": {"Days": 7},
+                "ID": "sizes",
+                "Filter": lc_filter,
+                "Status": "Enabled",
+            }
+        ]
+    }
+    client.put_bucket_lifecycle_configuration(
+        Bucket=bucket_name, LifecycleConfiguration=lfc
+    )
+
+    result = client.get_bucket_lifecycle_configuration(Bucket=bucket_name)
+    assert result["Rules"][0]["Filter"] == lc_filter
+
+
+@mock_aws
+def test_lifecycle_with_object_size_filters_outside_and():
+    client = boto3.client("s3", DEFAULT_REGION_NAME)
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
+
+    # Only one of Prefix, Tag, ObjectSizeGreaterThan, ObjectSizeLessThan or And is allowed
+    for lc_filter in [
+        {"ObjectSizeGreaterThan": 128, "ObjectSizeLessThan": 1024},
+        {"Prefix": "logs/", "ObjectSizeGreaterThan": 128},
+    ]:
+        lfc = {
+            "Rules": [
+                {
+                    "Expiration": {"Days": 7},
+                    "ID": "sizes",
+                    "Filter": lc_filter,
+                    "Status": "Enabled",
+                }
+            ]
+        }
+        with pytest.raises(ClientError) as ex:
+            client.put_bucket_lifecycle_configuration(
+                Bucket=bucket_name, LifecycleConfiguration=lfc
+            )
+        assert ex.value.response["Error"]["Code"] == "MalformedXML"

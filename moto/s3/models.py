@@ -751,6 +751,16 @@ def get_canned_acl(acl: str) -> FakeAcl:
     return FakeAcl(grants=grants)
 
 
+def _object_size(lifecycle_filter: dict[str, Any], name: str) -> int | None:
+    value = lifecycle_filter.get(name)
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        raise MalformedXML()
+
+
 class LifecycleFilter(BaseModel):
     tag_key: str | None
     tag_value: str | None
@@ -760,10 +770,14 @@ class LifecycleFilter(BaseModel):
         prefix: str | None = None,
         tag: tuple[str, str] | None = None,
         and_filter: LifecycleAndFilter | None = None,
+        object_size_greater_than: int | None = None,
+        object_size_less_than: int | None = None,
     ):
         self.prefix = prefix
         (self.tag_key, self.tag_value) = tag if tag else (None, None)
         self.and_filter = and_filter
+        self.object_size_greater_than = object_size_greater_than
+        self.object_size_less_than = object_size_less_than
 
     def to_config_dict(self) -> dict[str, Any]:
         if self.prefix is not None:
@@ -779,19 +793,30 @@ class LifecycleFilter(BaseModel):
                 }
             }
 
-        else:
+        elif self.and_filter:
             return {
                 "predicate": {
                     "type": "LifecycleAndOperator",
-                    "operands": self.and_filter.to_config_dict(),  # type: ignore
+                    "operands": self.and_filter.to_config_dict(),
                 }
             }
 
+        else:
+            return {"predicate": None}
+
 
 class LifecycleAndFilter(BaseModel):
-    def __init__(self, prefix: str | None = None, tags: dict[str, str] | None = None):
+    def __init__(
+        self,
+        prefix: str | None = None,
+        tags: dict[str, str] | None = None,
+        object_size_greater_than: int | None = None,
+        object_size_less_than: int | None = None,
+    ):
         self.prefix = prefix
         self.tags = tags or {}
+        self.object_size_greater_than = object_size_greater_than
+        self.object_size_less_than = object_size_less_than
 
     def to_config_dict(self) -> list[dict[str, Any]]:
         data: list[dict[str, Any]] = []
@@ -1290,7 +1315,16 @@ class FakeBucket(CloudFormationModel):
                     except KeyError:
                         and_prefix = None
 
-                    and_filter = LifecycleAndFilter(prefix=and_prefix, tags=and_tags)
+                    and_filter = LifecycleAndFilter(
+                        prefix=and_prefix,
+                        tags=and_tags,
+                        object_size_greater_than=_object_size(
+                            rule["Filter"]["And"], "ObjectSizeGreaterThan"
+                        ),
+                        object_size_less_than=_object_size(
+                            rule["Filter"]["And"], "ObjectSizeLessThan"
+                        ),
+                    )
 
                 filter_tag = None
                 if rule["Filter"].get("Tag"):
@@ -1300,12 +1334,27 @@ class FakeBucket(CloudFormationModel):
                         rule["Filter"]["Tag"].get("Value", ""),
                     )
 
+                object_size_greater_than = _object_size(
+                    rule["Filter"], "ObjectSizeGreaterThan"
+                )
+                if object_size_greater_than is not None:
+                    filters += 1
+                object_size_less_than = _object_size(
+                    rule["Filter"], "ObjectSizeLessThan"
+                )
+                if object_size_less_than is not None:
+                    filters += 1
+
                 # Can't have more than 1 filter:
                 if filters > 1:
                     raise MalformedXML()
 
                 lc_filter = LifecycleFilter(
-                    prefix=prefix_filter, tag=filter_tag, and_filter=and_filter
+                    prefix=prefix_filter,
+                    tag=filter_tag,
+                    and_filter=and_filter,
+                    object_size_greater_than=object_size_greater_than,
+                    object_size_less_than=object_size_less_than,
                 )
 
             # If no top level prefix and no filter is present, then this is invalid:
