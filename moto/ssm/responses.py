@@ -500,6 +500,10 @@ class SimpleSystemManagerResponse(BaseResponse):
         )
         return ActionResult({"BaselineId": baseline_id})
 
+    def get_patch_baseline(self) -> ActionResult:
+        baseline_id = self._get_param("BaselineId")
+        return ActionResult(self.ssm_backend.get_patch_baseline(baseline_id))
+
     def describe_patch_baselines(self) -> ActionResult:
         filters = self._get_param("Filters", None)
         baselines = [

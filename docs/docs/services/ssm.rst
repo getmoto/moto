@@ -151,7 +151,9 @@ The NextExecutionTime-field is not returned.
 - [X] get_parameters_by_path
   Implement the get-parameters-by-path-API in the backend.
 
-- [ ] get_patch_baseline
+- [X] get_patch_baseline
+  Retrieves customer-created baselines by ID. AWS-managed baselines are not supported.
+
 - [X] get_patch_baseline_for_patch_group
   get baselineid for patch group for operating system
 

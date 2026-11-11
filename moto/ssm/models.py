@@ -1226,6 +1226,7 @@ class FakePatchBaseline:
         self.description = description
         self.sources = sources
         self.default_baseline = False
+        self.created_date = utcnow()
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -2560,6 +2561,25 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
             self.add_tags_to_resource("PatchBaseline", baseline.id, baseline_tags)
 
         return baseline.id
+
+    def get_patch_baseline(self, baseline_id: str) -> dict[str, Any]:
+        """Retrieves customer-created baselines by ID. AWS-managed baselines are not supported."""
+        if baseline_id not in self.baselines:
+            raise BaselineDoesNotExistException
+        baseline = self.baselines[baseline_id]
+        result = baseline.to_json()
+        result["Name"] = result.pop("BaselineName")
+        result["Description"] = result.pop("BaselineDescription")
+        result.pop("DefaultBaseline")
+        result["OperatingSystem"] = baseline.operating_system or "WINDOWS"
+        result["CreatedDate"] = baseline.created_date
+        result["ModifiedDate"] = baseline.created_date
+        result["PatchGroups"] = [
+            group.name
+            for group in self.patch_groups.values()
+            if baseline_id in group.associations.values()
+        ]
+        return {key: value for key, value in result.items() if value is not None}
 
     def describe_patch_baselines(
         self, filters: list[dict[str, Any]] | None
