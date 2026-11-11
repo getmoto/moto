@@ -540,7 +540,8 @@ class IamResponse(BaseResponse):
         return ActionResult(result)
 
     def list_groups(self) -> ActionResult:
-        groups = self.backend.list_groups()
+        path_prefix = self._get_param("PathPrefix")
+        groups = self.backend.list_groups(path_prefix)
         result = {"Groups": groups}
         return ActionResult(result)
 
