@@ -11568,7 +11568,7 @@
 - [X] update_map_run
 - [X] update_state_machine
 - [X] update_state_machine_alias
-- [ ] validate_state_machine_definition
+- [X] validate_state_machine_definition
 </details>
 
 ## sts

@@ -52,5 +52,9 @@ stepfunctions
 - [X] update_map_run
 - [X] update_state_machine
 - [X] update_state_machine_alias
-- [ ] validate_state_machine_definition
+- [X] validate_state_machine_definition
+  
+Only syntax and schema errors are reported, as diagnostics with severity ERROR.
+AWS' semantic checks (unreachable states, unknown Next-targets, ...) and warnings are not yet supported.
+
 

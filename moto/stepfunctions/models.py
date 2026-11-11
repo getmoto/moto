@@ -795,6 +795,38 @@ class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
             sm.publish(version_description)
         return sm
 
+    def validate_state_machine_definition(
+        self, definition: str, sm_type: str | None = None
+    ) -> list[dict[str, str]]:
+        """
+        Only syntax and schema errors are reported, as diagnostics with severity ERROR.
+        AWS' semantic checks (unreachable states, unknown Next-targets, ...) and warnings are not yet supported.
+        """
+        from .parser.asl.parse.asl_parser import ASLParserException
+        from .parser.asl.static_analyser.express_static_analyser import (
+            ExpressStaticAnalyser,
+        )
+        from .parser.asl.static_analyser.static_analyser import StaticAnalyser
+
+        analyser = ExpressStaticAnalyser() if sm_type == "EXPRESS" else StaticAnalyser()
+        try:
+            analyser.analyse(definition)
+        except ASLParserException as asl_parser_exception:
+            message = repr(asl_parser_exception)
+        except Exception as exception:
+            message = (
+                f"Error={exception.__class__.__name__} Args={list(exception.args)}"
+            )
+        else:
+            return []
+        return [
+            {
+                "severity": "ERROR",
+                "code": "SCHEMA_VALIDATION_FAILED",
+                "message": message,
+            }
+        ]
+
     def update_state_machine_alias(
         self,
         arn: str,
