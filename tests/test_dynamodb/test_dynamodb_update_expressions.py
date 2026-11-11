@@ -1,10 +1,46 @@
 from decimal import Decimal
+from itertools import permutations
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
 from . import dynamodb_aws_verified
+
+
+@pytest.mark.parametrize(
+    "first, second", list(permutations(("SET", "REMOVE", "ADD", "DELETE"), 2))
+)
+@dynamodb_aws_verified()
+def test_update_expression_comma_between_clauses(first, second, table_name=None):
+    table = boto3.resource("dynamodb", "us-east-1").Table(table_name)
+    original = {
+        "pk": "foo",
+        "set_attr": {"old"},
+        "remove_attr": "old",
+        "add_attr": {"old"},
+        "delete_attr": {"old", "new"},
+    }
+    table.put_item(Item=original)
+
+    clauses = {
+        "SET": "SET set_attr = :v",
+        "REMOVE": "REMOVE remove_attr",
+        "ADD": "ADD add_attr :v",
+        "DELETE": "DELETE delete_attr :v",
+    }
+    update_expression = f"{clauses[first]}, {clauses[second]}"
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "foo"},
+            UpdateExpression=update_expression,
+            ExpressionAttributeValues={":v": {"new"}},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "Invalid UpdateExpression" in err["Message"]
+    assert f'token: "{second}"' in err["Message"]
+    assert table.get_item(Key={"pk": "foo"}, ConsistentRead=True)["Item"] == original
 
 
 @pytest.mark.aws_verified
