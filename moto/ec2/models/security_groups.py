@@ -223,20 +223,21 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.is_default = is_default or False
         self.arn = f"arn:aws:ec2:{ec2_backend.region_name}:{ec2_backend.account_id}:security-group/{group_id}"
 
-        # Append default IPv6 egress rule for VPCs with IPv6 support
         if vpc_id:
-            vpc = self.ec2_backend.vpcs.get(vpc_id)
-            if vpc:
-                self.egress_rules.append(
-                    SecurityGroupRule(
-                        self.ec2_backend,
-                        "-1",
-                        self.id,
-                        None,
-                        None,
-                        {"CidrIp": "0.0.0.0/0"},
-                    )
+            # Every VPC security group starts with a rule that allows all outbound IPv4 traffic,
+            # even if the VPC itself is unknown to Moto
+            self.egress_rules.append(
+                SecurityGroupRule(
+                    self.ec2_backend,
+                    "-1",
+                    self.id,
+                    None,
+                    None,
+                    {"CidrIp": "0.0.0.0/0"},
                 )
+            )
+            # Append default IPv6 egress rule for VPCs with IPv6 support
+            vpc = self.ec2_backend.vpcs.get(vpc_id)
             if vpc and len(vpc.get_cidr_block_association_set(ipv6=True)) > 0:
                 self.egress_rules.append(
                     SecurityGroupRule(

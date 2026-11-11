@@ -298,10 +298,12 @@ def test_authorize_ip_range_and_revoke():
 
     egress_security_group.authorize_egress(IpPermissions=egress_permissions)
 
-    assert egress_security_group.ip_permissions_egress[0]["FromPort"] == 22
-    assert egress_security_group.ip_permissions_egress[0]["IpProtocol"] == "tcp"
-    assert egress_security_group.ip_permissions_egress[0]["ToPort"] == 2222
-    assert egress_security_group.ip_permissions_egress[0]["IpRanges"] == [
+    # The first rule is the default outbound rule
+    assert len(egress_security_group.ip_permissions_egress) == 2
+    assert egress_security_group.ip_permissions_egress[1]["FromPort"] == 22
+    assert egress_security_group.ip_permissions_egress[1]["IpProtocol"] == "tcp"
+    assert egress_security_group.ip_permissions_egress[1]["ToPort"] == 2222
+    assert egress_security_group.ip_permissions_egress[1]["IpRanges"] == [
         {"CidrIp": "123.123.123.123/32"}
     ]
 
@@ -1591,6 +1593,30 @@ def test_revoke_security_group_egress():
             }
         ]
     )
+
+    sg.reload()
+    assert len(sg.ip_permissions_egress) == 0
+
+
+@mock_aws
+def test_revoke_security_group_egress__in_unknown_vpc():
+    ec2 = boto3.resource("ec2", REGION)
+    # Moto accepts a VpcId it does not know about
+    sg = ec2.create_security_group(
+        Description="Test SG", GroupName=str(uuid4()), VpcId="vpc-12345678"
+    )
+
+    # The group still gets the default outbound rule
+    default_egress = {
+        "IpProtocol": "-1",
+        "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+        "UserIdGroupPairs": [],
+        "Ipv6Ranges": [],
+        "PrefixListIds": [],
+    }
+    assert sg.ip_permissions_egress == [default_egress]
+
+    sg.revoke_egress(IpPermissions=[default_egress])
 
     sg.reload()
     assert len(sg.ip_permissions_egress) == 0
