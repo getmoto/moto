@@ -1,20 +1,32 @@
-from moto.core.exceptions import AWSError
+from moto.core.exceptions import ServiceException
 
 
-class AWSValidationException(AWSError):
-    TYPE = "ValidationException"
+class ACMException(ServiceException):
+    pass
 
 
-class AWSResourceNotFoundException(AWSError):
-    TYPE = "ResourceNotFoundException"
+class AWSValidationException(ACMException):
+    code = "ValidationException"
+
+
+class AWSResourceNotFoundException(ACMException):
+    code = "ResourceNotFoundException"
 
 
 class CertificateNotFound(AWSResourceNotFoundException):
     def __init__(self, arn: str, account_id: str):
         super().__init__(
-            message=f"Certificate with arn {arn} not found in account {account_id}"
+            f"Certificate with arn {arn} not found in account {account_id}"
         )
 
 
-class AWSTooManyTagsException(AWSError):
-    TYPE = "TooManyTagsException"
+class AWSTooManyTagsException(ACMException):
+    code = "TooManyTagsException"
+
+
+class InvalidDomainValidationOptionsException(ACMException):
+    code = "InvalidDomainValidationOptionsException"
+
+
+class LimitExceededException(ACMException):
+    code = "LimitExceededException"

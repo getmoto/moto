@@ -2,7 +2,11 @@ import base64
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
-from .exceptions import AWSError, AWSValidationException
+from .exceptions import (
+    AWSValidationException,
+    InvalidDomainValidationOptionsException,
+    LimitExceededException,
+)
 from .models import AWSCertificateManagerBackend, acm_backends
 
 
@@ -168,7 +172,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             msg = (
                 "An ACM limit has been exceeded. Need to request SAN limit to be raised"
             )
-            raise AWSError(msg, exception_type="LimitExceededException")
+            raise LimitExceededException(msg)
 
         arn = self.acm_backend.request_certificate(
             domain_name,
@@ -198,8 +202,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         if cert_bundle.common_name != domain:
             msg = "Parameter Domain does not match certificate domain"
-            _type = "InvalidDomainValidationOptionsException"
-            raise AWSError(message=msg, exception_type=_type)
+            raise InvalidDomainValidationOptionsException(msg)
 
         return EmptyResult()
 
