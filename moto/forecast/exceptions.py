@@ -1,25 +1,29 @@
-from moto.core.exceptions import AWSError
+from moto.core.exceptions import ServiceException
 
 
-class InvalidInputException(AWSError):
-    TYPE = "InvalidInputException"
+class ForecastException(ServiceException):
+    pass
 
 
-class ResourceAlreadyExistsException(AWSError):
-    TYPE = "ResourceAlreadyExistsException"
+class InvalidInputException(ForecastException):
+    code = "InvalidInputException"
 
 
-class ResourceNotFoundException(AWSError):
-    TYPE = "ResourceNotFoundException"
+class ResourceAlreadyExistsException(ForecastException):
+    code = "ResourceAlreadyExistsException"
 
 
-class ResourceInUseException(AWSError):
-    TYPE = "ResourceInUseException"
+class ResourceNotFoundException(ForecastException):
+    code = "ResourceNotFoundException"
 
 
-class LimitExceededException(AWSError):
-    TYPE = "LimitExceededException"
+class ResourceInUseException(ForecastException):
+    code = "ResourceInUseException"
 
 
-class ValidationException(AWSError):
-    TYPE = "ValidationException"
+class LimitExceededException(ForecastException):
+    code = "LimitExceededException"
+
+
+class ValidationException(ForecastException):
+    code = "ValidationException"
