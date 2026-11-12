@@ -25,12 +25,12 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v7
+      uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v7
+      uses: actions/setup-python@v7.1.0
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -70,7 +70,7 @@ jobs:
         docker stop motoserver
     - name: Archive TF logs
       if: always()
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v7.0.2
       with:
         name: test-${{ matrix.responses-version }}-${{ matrix.werkzeug-version }}-${{ matrix.werkzeug-version }}-${{ matrix.openapi-spec-validator-version }}-${{ matrix.botocore }}
         path: |

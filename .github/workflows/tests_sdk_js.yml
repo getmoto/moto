@@ -9,17 +9,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
         fetch-depth: 0
     - name: Set up Python
-      uses: actions/setup-python@v7
+      uses: actions/setup-python@v7.1.0
       with:
         python-version: "3.11"
     - name: Start MotoServer
-      uses: ./.github/actions/run_moto_server
-    - uses: actions/setup-node@v7
+      uses: $/.github/actions/run_moto_server
+    - uses: actions/setup-node@v7.1.0
     - name: Install dependencies
       run: |
         cd other_langs/tests_js && npm install && npm list

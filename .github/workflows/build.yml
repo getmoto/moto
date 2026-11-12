@@ -29,11 +29,11 @@ jobs:
         python-version: [ "3.10", "3.11", "3.12", "3.13", "3.14" ]
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
       - name: Get pip cache dir
@@ -42,7 +42,7 @@ jobs:
           echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
       - name: pip cache
         id: pip-cache
-        uses: actions/cache@v6
+        uses: actions/cache@v6.1.0
         with:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
           key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -64,11 +64,11 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v7
+      uses: actions/setup-python@v7.1.0
       with:
         python-version: ${{ matrix.python-version }}
     # Retrieve the previously cached dependencies
@@ -77,7 +77,7 @@ jobs:
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v6
+      uses: actions/cache@v6.1.0
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -98,11 +98,11 @@ jobs:
     needs: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
       # Retrieve the previously cached dependencies
@@ -111,20 +111,20 @@ jobs:
         run: |
           echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
       - name: pip cache
-        uses: actions/cache@v6
+        uses: actions/cache@v6.1.0
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
           key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@v4.4.1
       - name: Build Docker Image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v7.4.0
         with:
           tags: motoserver/moto:local
           outputs: type=docker,dest=/tmp/localimage.tar
           push: false
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: localimage
           path: /tmp/localimage.tar

@@ -24,17 +24,17 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v7
+      uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
 
     - name: Set up Python
-      uses: actions/setup-python@v7
+      uses: actions/setup-python@v7.1.0
       with:
         python-version: 3.14
 
     - name: Configure AWS
-      uses: aws-actions/configure-aws-credentials@v6
+      uses: aws-actions/configure-aws-credentials@v6.3.0
       with:
         aws-region: us-east-1
         role-to-assume: arn:aws:iam::682283128318:role/GithubActionsRole
@@ -44,7 +44,7 @@ jobs:
         pip install -r requirements-dev.txt
         make aws_managed_policies
     - name: Create PR
-      uses: peter-evans/create-pull-request@v8
+      uses: peter-evans/create-pull-request@v8.1.3
       with:
         branch: 'chore-update-iam-managed-policies-${{ github.run_number }}'
         title: 'chore: update IAM Managed Policies'
