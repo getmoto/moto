@@ -3577,6 +3577,67 @@
 - [ ] update_subscriptions_to_event_bridge
 </details>
 
+## docdb
+<details>
+<summary>81% implemented</summary>
+
+- [ ] add_source_identifier_to_subscription
+- [X] add_tags_to_resource
+- [ ] apply_pending_maintenance_action
+- [X] copy_db_cluster_parameter_group
+- [X] copy_db_cluster_snapshot
+- [X] create_db_cluster
+- [X] create_db_cluster_parameter_group
+- [X] create_db_cluster_snapshot
+- [X] create_db_instance
+- [X] create_db_subnet_group
+- [X] create_event_subscription
+- [X] create_global_cluster
+- [X] delete_db_cluster
+- [X] delete_db_cluster_parameter_group
+- [X] delete_db_cluster_snapshot
+- [X] delete_db_instance
+- [X] delete_db_subnet_group
+- [X] delete_event_subscription
+- [X] delete_global_cluster
+- [ ] describe_certificates
+- [X] describe_db_cluster_parameter_groups
+- [X] describe_db_cluster_parameters
+- [X] describe_db_cluster_snapshot_attributes
+- [X] describe_db_cluster_snapshots
+- [X] describe_db_clusters
+- [X] describe_db_engine_versions
+- [X] describe_db_instances
+- [X] describe_db_subnet_groups
+- [X] describe_engine_default_cluster_parameters
+- [ ] describe_event_categories
+- [X] describe_event_subscriptions
+- [X] describe_events
+- [X] describe_global_clusters
+- [X] describe_orderable_db_instance_options
+- [ ] describe_pending_maintenance_actions
+- [X] failover_db_cluster
+- [ ] failover_global_cluster
+- [X] list_tags_for_resource
+- [X] modify_db_cluster
+- [X] modify_db_cluster_parameter_group
+- [X] modify_db_cluster_snapshot_attribute
+- [X] modify_db_instance
+- [X] modify_db_subnet_group
+- [ ] modify_event_subscription
+- [ ] modify_global_cluster
+- [X] reboot_db_instance
+- [X] remove_from_global_cluster
+- [ ] remove_source_identifier_from_subscription
+- [X] remove_tags_from_resource
+- [X] reset_db_cluster_parameter_group
+- [X] restore_db_cluster_from_snapshot
+- [X] restore_db_cluster_to_point_in_time
+- [X] start_db_cluster
+- [X] stop_db_cluster
+- [ ] switchover_global_cluster
+</details>
+
 ## ds
 <details>
 <summary>31% implemented</summary>
@@ -7922,7 +7983,7 @@
 
 ## neptune
 <details>
-<summary>67% implemented</summary>
+<summary>74% implemented</summary>
 
 - [X] add_role_to_db_cluster
 - [ ] add_source_identifier_to_subscription
@@ -7937,7 +7998,7 @@
 - [X] create_db_cluster_snapshot
 - [X] create_db_instance
 - [X] create_db_parameter_group
-- [ ] create_db_subnet_group
+- [X] create_db_subnet_group
 - [X] create_event_subscription
 - [X] create_global_cluster
 - [X] delete_db_cluster
@@ -7946,7 +8007,7 @@
 - [X] delete_db_cluster_snapshot
 - [X] delete_db_instance
 - [X] delete_db_parameter_group
-- [ ] delete_db_subnet_group
+- [X] delete_db_subnet_group
 - [X] delete_event_subscription
 - [X] delete_global_cluster
 - [ ] describe_db_cluster_endpoints
@@ -7955,12 +8016,12 @@
 - [X] describe_db_cluster_snapshot_attributes
 - [X] describe_db_cluster_snapshots
 - [X] describe_db_clusters
-- [ ] describe_db_engine_versions
+- [X] describe_db_engine_versions
 - [X] describe_db_instances
 - [X] describe_db_parameter_groups
 - [ ] describe_db_parameters
 - [X] describe_db_subnet_groups
-- [ ] describe_engine_default_cluster_parameters
+- [X] describe_engine_default_cluster_parameters
 - [ ] describe_engine_default_parameters
 - [ ] describe_event_categories
 - [X] describe_event_subscriptions
@@ -7987,7 +8048,7 @@
 - [ ] remove_role_from_db_cluster
 - [ ] remove_source_identifier_from_subscription
 - [X] remove_tags_from_resource
-- [ ] reset_db_cluster_parameter_group
+- [X] reset_db_cluster_parameter_group
 - [ ] reset_db_parameter_group
 - [X] restore_db_cluster_from_snapshot
 - [X] restore_db_cluster_to_point_in_time
@@ -9103,7 +9164,7 @@
 - [X] create_db_security_group
 - [X] create_db_shard_group
 - [X] create_db_snapshot
-- [ ] create_db_subnet_group
+- [X] create_db_subnet_group
 - [X] create_event_subscription
 - [X] create_global_cluster
 - [ ] create_integration
@@ -9124,7 +9185,7 @@
 - [ ] delete_db_security_group
 - [ ] delete_db_shard_group
 - [X] delete_db_snapshot
-- [ ] delete_db_subnet_group
+- [X] delete_db_subnet_group
 - [X] delete_event_subscription
 - [X] delete_global_cluster
 - [ ] delete_integration
@@ -9143,7 +9204,7 @@
 - [X] describe_db_cluster_snapshot_attributes
 - [X] describe_db_cluster_snapshots
 - [X] describe_db_clusters
-- [ ] describe_db_engine_versions
+- [X] describe_db_engine_versions
 - [X] describe_db_instance_automated_backups
 - [X] describe_db_instances
 - [X] describe_db_log_files
@@ -9161,7 +9222,7 @@
 - [ ] describe_db_snapshot_tenant_databases
 - [X] describe_db_snapshots
 - [X] describe_db_subnet_groups
-- [ ] describe_engine_default_cluster_parameters
+- [X] describe_engine_default_cluster_parameters
 - [ ] describe_engine_default_parameters
 - [ ] describe_event_categories
 - [X] describe_event_subscriptions
@@ -9221,7 +9282,7 @@
 - [ ] remove_role_from_db_instance
 - [ ] remove_source_identifier_from_subscription
 - [X] remove_tags_from_resource
-- [ ] reset_db_cluster_parameter_group
+- [X] reset_db_cluster_parameter_group
 - [ ] reset_db_parameter_group
 - [ ] restore_db_cluster_from_s3
 - [X] restore_db_cluster_from_snapshot
@@ -12328,16 +12389,13 @@
 - devops-guru
 - discovery
 - dlm
-- docdb
 - docdb-elastic
 - drs
 - ds-data
 - ecr-public
 - eks-auth
 - elementalinference
-- endusermessaging
 - entityresolution
-- eventbridgev2
 - evs
 - fms
 - forecastquery
