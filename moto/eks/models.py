@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -14,6 +15,7 @@ from .exceptions import (
 from .utils import validate_role_arn
 
 # String Templates
+ACCESS_ENTRY_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:access-entry/{cluster_name}/{principal_type}/{principal_account_id}/{principal_name}/{uuid}"
 CLUSTER_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:cluster/{name}"
 FARGATE_PROFILE_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:fargateprofile/{cluster_name}/{fargate_profile_name}/{uuid}"
 NODEGROUP_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:nodegroup/{cluster_name}/{nodegroup_name}/{uuid}"
@@ -88,6 +90,33 @@ NODEGROUP_EXISTS_MSG = (
 )
 NODEGROUP_NOT_FOUND_MSG = "No node group found for name: {nodegroupName}."
 
+# Defaults and validation for Access Entries, as described in
+# https://docs.aws.amazon.com/eks/latest/userguide/creating-access-entries.html
+DEFAULT_ACCESS_ENTRY_TYPE = "STANDARD"
+ACCESS_ENTRY_NODE_USERNAMES = {
+    "EC2_LINUX": "system:node:{{EC2PrivateDNSName}}",
+    "EC2_WINDOWS": "system:node:{{EC2PrivateDNSName}}",
+    "FARGATE_LINUX": "system:node:{{SessionName}}",
+    "HYBRID_LINUX": "system:node:{{SessionName}}",
+}
+ACCESS_ENTRY_RESERVED_USERNAME_PREFIXES = ("system:", "eks:", "aws:", "amazon:", "iam:")
+PRINCIPAL_ARN_REGEX = re.compile(
+    r"^arn:(?P<partition>[^:]+):iam::(?P<account_id>[0-9]{12}):(?P<principal_type>role|user)/(?:.*/)?(?P<name>[^/]+)$"
+)
+ACCESS_ENTRY_EXISTS_MSG = (
+    "The specified access entry resource is already in use on this cluster."
+)
+ACCESS_ENTRY_NOT_FOUND_MSG = "The specified principalArn could not be found. You can view your available access entries with 'list-access-entries'."
+ACCESS_ENTRY_GROUPS_NOT_ALLOWED_MSG = (
+    "Kubernetes groups can only be specified for access entries of type STANDARD."
+)
+ACCESS_ENTRY_INVALID_PRINCIPAL_MSG = (
+    "The specified principalArn is invalid: {principalArn}"
+)
+ACCESS_ENTRY_RESERVED_USERNAME_MSG = (
+    "The username can't start with system:, eks:, aws:, amazon:, or iam:."
+)
+
 
 class Cluster:
     def __init__(
@@ -113,6 +142,8 @@ class Cluster:
 
         self.nodegroups: dict[str, Nodegroup] = {}
         self.nodegroup_count = 0
+
+        self.access_entries: dict[str, AccessEntry] = {}
 
         self.fargate_profiles: dict[str, FargateProfile] = {}
         self.fargate_profile_count = 0
@@ -147,6 +178,44 @@ class Cluster:
     @property
     def is_active(self) -> bool:
         return self.status == "ACTIVE"
+
+
+class AccessEntry:
+    def __init__(
+        self,
+        cluster_name: str,
+        principal_arn: str,
+        account_id: str,
+        region_name: str,
+        aws_partition: str,
+        kubernetes_groups: list[str] | None = None,
+        tags: dict[str, str] | None = None,
+        username: str | None = None,
+        type: str | None = None,
+    ):
+        principal = _parse_principal_arn(principal_arn)
+
+        self.created_at = utcnow()
+        self.modified_at = self.created_at
+        self.access_entry_arn = ACCESS_ENTRY_ARN_TEMPLATE.format(
+            partition=aws_partition,
+            region=region_name,
+            account_id=account_id,
+            cluster_name=cluster_name,
+            principal_type=principal["principal_type"],
+            principal_account_id=principal["account_id"],
+            principal_name=principal["name"],
+            uuid=random.uuid4(),
+        )
+
+        self.cluster_name = cluster_name
+        self.principal_arn = principal_arn
+        self.kubernetes_groups = kubernetes_groups or []
+        self.tags = tags or {}
+        self.type = type or DEFAULT_ACCESS_ENTRY_TYPE
+        self.username = username or _default_access_entry_username(
+            principal_arn, principal, self.type
+        )
 
 
 class FargateProfile:
@@ -842,6 +911,88 @@ class EKSBackend(BaseBackend):
             "errors": [],
         }
 
+    def create_access_entry(
+        self,
+        cluster_name: str,
+        principal_arn: str,
+        kubernetes_groups: list[str] | None = None,
+        tags: dict[str, str] | None = None,
+        username: str | None = None,
+        type: str | None = None,
+    ) -> AccessEntry:
+        cluster = self.describe_cluster(name=cluster_name)
+        if principal_arn in cluster.access_entries:
+            raise ResourceInUseException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                addonName=None,
+                message=ACCESS_ENTRY_EXISTS_MSG,
+            )
+        _validate_access_entry(
+            type or DEFAULT_ACCESS_ENTRY_TYPE, kubernetes_groups, username
+        )
+
+        access_entry = AccessEntry(
+            cluster_name=cluster_name,
+            principal_arn=principal_arn,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            aws_partition=self.partition,
+            kubernetes_groups=kubernetes_groups,
+            tags=tags,
+            username=username,
+            type=type,
+        )
+        cluster.access_entries[principal_arn] = access_entry
+        return access_entry
+
+    def describe_access_entry(
+        self, cluster_name: str, principal_arn: str
+    ) -> AccessEntry:
+        cluster = self.describe_cluster(name=cluster_name)
+        try:
+            return cluster.access_entries[principal_arn]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=ACCESS_ENTRY_NOT_FOUND_MSG,
+            )
+
+    def list_access_entries(
+        self, cluster_name: str, max_results: int, next_token: str | None
+    ) -> tuple[list[str], str | None]:
+        """
+        The AssociatedPolicyArn-filter is not yet implemented, as access policies are not yet supported.
+        """
+        cluster = self.describe_cluster(name=cluster_name)
+        return paginated_list(
+            list(cluster.access_entries.keys()), max_results, next_token
+        )
+
+    def update_access_entry(
+        self,
+        cluster_name: str,
+        principal_arn: str,
+        kubernetes_groups: list[str] | None = None,
+        username: str | None = None,
+    ) -> AccessEntry:
+        access_entry = self.describe_access_entry(cluster_name, principal_arn)
+        _validate_access_entry(access_entry.type, kubernetes_groups, username)
+
+        if kubernetes_groups is not None:
+            access_entry.kubernetes_groups = kubernetes_groups
+        if username is not None:
+            access_entry.username = username
+        access_entry.modified_at = utcnow()
+        return access_entry
+
+    def delete_access_entry(self, cluster_name: str, principal_arn: str) -> None:
+        self.describe_access_entry(cluster_name, principal_arn)
+        del self.clusters[cluster_name].access_entries[principal_arn]
+
 
 def paginated_list(
     full_list: list[Any], max_results: int, next_token: str | None
@@ -909,6 +1060,37 @@ def _validate_fargate_profile_selectors(selectors: list[dict[str, Any]]) -> None
         # If a selector has labels, it can not have more than 5
         if len(selector.get("labels", {})) > 5:
             raise_exception(message=FARGATE_PROFILE_TOO_MANY_LABELS)
+
+
+def _parse_principal_arn(principal_arn: str) -> dict[str, str]:
+    match = PRINCIPAL_ARN_REGEX.match(principal_arn or "")
+    if not match:
+        raise InvalidParameterException(
+            message=ACCESS_ENTRY_INVALID_PRINCIPAL_MSG.format(
+                principalArn=principal_arn
+            )
+        )
+    return match.groupdict()
+
+
+def _default_access_entry_username(
+    principal_arn: str, principal: dict[str, str], type: str
+) -> str:
+    if type in ACCESS_ENTRY_NODE_USERNAMES:
+        return ACCESS_ENTRY_NODE_USERNAMES[type]
+    if principal["principal_type"] == "user":
+        return principal_arn
+    # Any path in the role ARN is removed from the generated username
+    return f"arn:{principal['partition']}:sts::{principal['account_id']}:assumed-role/{principal['name']}/{{{{SessionName}}}}"
+
+
+def _validate_access_entry(
+    type: str, kubernetes_groups: list[str] | None, username: str | None
+) -> None:
+    if kubernetes_groups and type != DEFAULT_ACCESS_ENTRY_TYPE:
+        raise InvalidParameterException(message=ACCESS_ENTRY_GROUPS_NOT_ALLOWED_MSG)
+    if username and username.startswith(ACCESS_ENTRY_RESERVED_USERNAME_PREFIXES):
+        raise InvalidParameterException(message=ACCESS_ENTRY_RESERVED_USERNAME_MSG)
 
 
 eks_backends = BackendDict(EKSBackend, "eks")
