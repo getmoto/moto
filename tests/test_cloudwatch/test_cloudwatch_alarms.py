@@ -290,3 +290,86 @@ def test_alarm_state():
     # Just for sanity
     resp = client.describe_alarms()
     assert len(resp["MetricAlarms"]) == 2
+
+
+def _put_metric_alarm(client, name):
+    client.put_metric_alarm(
+        AlarmName=name,
+        Namespace="tester",
+        MetricName="metric",
+        ComparisonOperator="GreaterThanThreshold",
+        EvaluationPeriods=1,
+        Period=60,
+        Threshold=1.0,
+        Statistic="Average",
+    )
+
+
+@mock_aws
+def test_put_composite_alarm():
+    client = boto3.client("cloudwatch", region_name="us-east-1")
+    _put_metric_alarm(client, "child")
+    client.put_composite_alarm(
+        AlarmName="parent",
+        AlarmRule='ALARM("child")',
+        AlarmDescription="composite alarm",
+        AlarmActions=["arn:aws:sns:us-east-1:123456789012:topic"],
+        Tags=[{"Key": "team", "Value": "infra"}],
+    )
+
+    resp = client.describe_alarms(AlarmTypes=["CompositeAlarm"])
+    assert resp["MetricAlarms"] == []
+    assert len(resp["CompositeAlarms"]) == 1
+    alarm = resp["CompositeAlarms"][0]
+    assert alarm["AlarmName"] == "parent"
+    assert alarm["AlarmRule"] == 'ALARM("child")'
+    assert alarm["AlarmDescription"] == "composite alarm"
+    assert alarm["AlarmActions"] == ["arn:aws:sns:us-east-1:123456789012:topic"]
+    assert alarm["ActionsEnabled"] is True
+    assert alarm["StateValue"] == "OK"
+    assert (
+        alarm["AlarmArn"] == f"arn:aws:cloudwatch:us-east-1:{ACCOUNT_ID}:alarm:parent"
+    )
+
+    tags = client.list_tags_for_resource(ResourceARN=alarm["AlarmArn"])["Tags"]
+    assert tags == [{"Key": "team", "Value": "infra"}]
+
+
+@mock_aws
+def test_describe_alarms_alarm_types():
+    client = boto3.client("cloudwatch", region_name="us-east-1")
+    _put_metric_alarm(client, "child")
+    client.put_composite_alarm(AlarmName="parent", AlarmRule='ALARM("child")')
+
+    # AWS only returns metric alarms when AlarmTypes is omitted
+    resp = client.describe_alarms()
+    assert [a["AlarmName"] for a in resp["MetricAlarms"]] == ["child"]
+    assert resp["CompositeAlarms"] == []
+
+    resp = client.describe_alarms(AlarmTypes=["MetricAlarm"])
+    assert [a["AlarmName"] for a in resp["MetricAlarms"]] == ["child"]
+    assert resp["CompositeAlarms"] == []
+
+    resp = client.describe_alarms(AlarmTypes=["MetricAlarm", "CompositeAlarm"])
+    assert [a["AlarmName"] for a in resp["MetricAlarms"]] == ["child"]
+    assert [a["AlarmName"] for a in resp["CompositeAlarms"]] == ["parent"]
+
+    # AlarmTypes is combined with the other filters
+    resp = client.describe_alarms(AlarmNames=["parent"], AlarmTypes=["CompositeAlarm"])
+    assert [a["AlarmName"] for a in resp["CompositeAlarms"]] == ["parent"]
+    resp = client.describe_alarms(AlarmNames=["parent"])
+    assert resp["MetricAlarms"] == []
+    assert resp["CompositeAlarms"] == []
+
+
+@mock_aws
+def test_delete_composite_alarm():
+    client = boto3.client("cloudwatch", region_name="us-east-1")
+    _put_metric_alarm(client, "child")
+    client.put_composite_alarm(AlarmName="parent", AlarmRule='ALARM("child")')
+
+    client.delete_alarms(AlarmNames=["parent"])
+
+    resp = client.describe_alarms(AlarmTypes=["MetricAlarm", "CompositeAlarm"])
+    assert resp["CompositeAlarms"] == []
+    assert [a["AlarmName"] for a in resp["MetricAlarms"]] == ["child"]

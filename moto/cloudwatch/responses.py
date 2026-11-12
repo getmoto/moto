@@ -129,6 +129,7 @@ class CloudWatchResponse(BaseResponse):
         alarm_name_prefix = self._get_param("AlarmNamePrefix")
         alarm_names = self._get_param("AlarmNames", [])
         state_value = self._get_param("StateValue")
+        alarm_types = self._get_param("AlarmTypes", [])
 
         if action_prefix:
             alarms = self.cloudwatch_backend.get_alarms_by_action_prefix(action_prefix)
@@ -143,11 +144,31 @@ class CloudWatchResponse(BaseResponse):
         else:
             alarms = self.cloudwatch_backend.describe_alarms()
 
+        alarms = list(alarms)
+        # AWS only returns metric alarms when AlarmTypes is omitted
+        alarm_types = alarm_types or ["MetricAlarm"]
         metric_alarms = [a for a in alarms if a.rule is None]
         composite_alarms = [a for a in alarms if a.rule is not None]
-
-        result = {"MetricAlarms": metric_alarms, "CompositeAlarms": composite_alarms}
+        result = {
+            "MetricAlarms": metric_alarms if "MetricAlarm" in alarm_types else [],
+            "CompositeAlarms": composite_alarms
+            if "CompositeAlarm" in alarm_types
+            else [],
+        }
         return ActionResult(result)
+
+    def put_composite_alarm(self) -> ActionResult:
+        self.cloudwatch_backend.put_composite_alarm(
+            name=self._get_param("AlarmName"),
+            rule=self._get_param("AlarmRule"),
+            description=self._get_param("AlarmDescription"),
+            alarm_actions=self._get_param("AlarmActions", []),
+            ok_actions=self._get_param("OKActions", []),
+            insufficient_data_actions=self._get_param("InsufficientDataActions", []),
+            actions_enabled=self._get_bool_param("ActionsEnabled"),
+            tags=self._get_param("Tags", []),
+        )
+        return EmptyResult()
 
     def delete_alarms(self) -> ActionResult:
         alarm_names = self._get_param("AlarmNames", [])
