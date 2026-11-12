@@ -1,6 +1,9 @@
 name: Unit tests in Server Mode
 on: [workflow_call]
 
+permissions:
+  contents: read
+
 jobs:
   cdk_start:
     runs-on: ubuntu-latest
@@ -10,13 +13,15 @@ jobs:
         python-version: ["3.12"]
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
+      with:
+        persist-credentials: false
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v7
+      uses: actions/setup-python@v7.1.0
       with:
         python-version: ${{ matrix.python-version }}
     - name: Start MotoServer
-      uses: ./.github/actions/run_moto_server
+      uses: $/.github/actions/run_moto_server
     - name: Install CDK
       id: install-cdk
       run: |
@@ -47,7 +52,9 @@ jobs:
     outputs:
       folders: ${{ steps.set-folders.outputs.folders }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
       - id: set-folders
         name: Get CDK Examples
         shell: bash
@@ -66,13 +73,15 @@ jobs:
         service: ${{ fromJson(needs.find-jobs.outputs.folders )}}
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
+      with:
+        persist-credentials: false
     - name: Set up Python
-      uses: actions/setup-python@v7
+      uses: actions/setup-python@v7.1.0
       with:
         python-version: "3.12"
     - name: Start MotoServer
-      uses: ./.github/actions/run_moto_server
+      uses: $/.github/actions/run_moto_server
     - name: Install Dependencies
       run: |
         pip install -r other_langs/tests_cdk/${{ matrix.service }}/requirements.txt

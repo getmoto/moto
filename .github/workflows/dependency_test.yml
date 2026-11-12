@@ -5,11 +5,16 @@ on:
   schedule:
     - cron: '0 0 * * *'  # every day at midnight
 
+permissions:
+  contents: read
+
 jobs:
   prepare_list:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
+      with:
+        persist-credentials: false
     - id: set-matrix
       run: echo "matrix=[$(ls -A1 moto | grep -v '.py' | awk '{ printf "%s\047%s\047", (NR==1?"":", "), $0 } END{ print "" }')]" >> $GITHUB_OUTPUT
     - run: echo "matrix=[$(ls -A1 moto | grep -v '.py' | awk '{ printf "%s\047%s\047", (NR==1?"":", "), $0 } END{ print "" }')]"
@@ -27,9 +32,11 @@ jobs:
 
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v7
+      uses: actions/checkout@v7.0.1
+      with:
+        persist-credentials: false
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v7
+      uses: actions/setup-python@v7.1.0
       with:
         python-version: ${{ matrix.python-version }}
     - name: Run test

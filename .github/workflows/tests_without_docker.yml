@@ -8,6 +8,9 @@ on:
   schedule:
     - cron: '0 1 * * *'  # every day at 1AM
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -17,11 +20,12 @@ jobs:
         python-version: ["3.11"]
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
       with:
+        persist-credentials: false
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v7
+      uses: actions/setup-python@v7.1.0
       with:
         python-version: ${{ matrix.python-version }}
     - name: Update pip

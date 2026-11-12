@@ -3,19 +3,23 @@ on:
   workflow_call:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
       with:
+        persist-credentials: false
         fetch-depth: 0
     - name: Setup Go
-      uses: actions/setup-go@v7
+      uses: actions/setup-go@v7.0.0
       with:
           go-version: '1.24.x'
     - name: Start MotoServer
-      uses: ./.github/actions/run_moto_server
+      uses: $/.github/actions/run_moto_server
     - name: Install Dependencies
       run: cd other_langs/tests_go && go get -t .
     - name: Run Tests

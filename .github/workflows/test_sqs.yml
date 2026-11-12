@@ -11,6 +11,9 @@ on:
   workflow_dispatch:
 env:
   python-version: "3.12"
+permissions:
+  contents: read
+
 jobs:
   test-sqs-protocols:
     name: "${{ matrix.protocol }} protocol, server mode: ${{ matrix.test-server-mode }}"
@@ -22,11 +25,12 @@ jobs:
         test-server-mode: [ "true", "false" ]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Set up Python ${{ env.python-version }}
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: ${{ env.python-version }}
       - name: Start MotoServer
@@ -64,7 +68,7 @@ jobs:
           cp server_output.log serverlogs/server_output.log
       - name: Archive Server logs
         if: always() && matrix.test-server-mode == 'true'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: motoserver-with-client-using-${{ matrix.protocol }}-protocol
           path: |
