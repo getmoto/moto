@@ -1,5 +1,9 @@
 name: Unit tests in Server Mode
-on: [workflow_call]
+on:
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: false
 
 jobs:
   test:
