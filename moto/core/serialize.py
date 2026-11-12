@@ -922,6 +922,40 @@ class JSONSerializer(BaseJSONSerializer):
         return self.APPLICATION_AMZ_JSON.format(version=json_version)
 
 
+class DynamoDBJSONSerializer(JSONSerializer):
+    def get_value(self, value: Any, key: str, shape: Shape) -> Any:
+        # AttributeValue dictionaries already use the modeled DynamoDB type tags.
+        # Avoid searching aliases for every absent tag in each nested value.
+        parent = getattr(shape, "parent", None)
+        picker = self._value_picker
+        if (
+            parent is not None
+            and parent.name == "AttributeValue"
+            and key in parent.members
+            and type(value) is dict
+            and value.keys() <= parent.members.keys()
+            and (
+                type(picker) is DefaultAttributePicker
+                or (
+                    type(picker) is XFormedAttributePicker
+                    and not picker.response_transformers
+                    # Custom aliases must retain the normal lookup behavior.
+                    and picker.alias_providers
+                    == [
+                        ExplicitAlias,
+                        ShapeNameAlias,
+                        NoAlias,
+                        ShapePrefixAlias,
+                        ClassPrefixAlias,
+                        ModelAlias,
+                    ]
+                )
+            )
+        ):
+            return value.get(key)
+        return super().get_value(value, key, shape)
+
+
 class RpcV2CBORSerializer(BaseJSONSerializer):
     # https://smithy.io/2.0/additional-specs/protocols/smithy-rpc-v2-cbor.html
     # The JSON serializer builds a tree of plain Python values, which is exactly
@@ -1333,6 +1367,7 @@ SERIALIZERS = {
     "smithy-rpc-v2-cbor": RpcV2CBORSerializer,
 }
 SERVICE_SPECIFIC_SERIALIZERS: dict[str, dict[str, type[ResponseSerializer]]] = {
+    "dynamodb": {"json": DynamoDBJSONSerializer},
     "s3": {"rest-xml": S3Serializer},
     "sqs": {"query": SqsQuerySerializer},
 }
