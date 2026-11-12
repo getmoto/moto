@@ -65,6 +65,28 @@ class User(NamedTuple):
     Timezone: str
 
 
+# Lowercase AttributePath -> attribute name, for the attributes that can be updated
+USER_ATTRIBUTES = {
+    field.lower(): field
+    for field in User._fields
+    if field not in ["UserId", "IdentityStoreId"]
+}
+NAME_ATTRIBUTES = {field.lower(): field for field in Name._fields}
+GROUP_ATTRIBUTES = {"displayname": "DisplayName", "description": "Description"}
+
+
+def _capitalize_keys(value: Any) -> Any:
+    """
+    Complex attribute values (emails, addresses, etc.) are provided using camelCase keys,
+    but are returned (and stored) using PascalCase keys
+    """
+    if isinstance(value, list):
+        return [_capitalize_keys(v) for v in value]
+    if isinstance(value, dict):
+        return {key[:1].upper() + key[1:]: v for key, v in value.items()}
+    return value
+
+
 class IdentityStoreData:
     def __init__(self) -> None:
         self.groups: dict[str, Group] = {}
@@ -172,6 +194,36 @@ class IdentityStoreBackend(BaseBackend):
             message="GROUP not found.", resource_type="GROUP"
         )
 
+    def update_group(
+        self, identity_store_id: str, group_id: str, operations: list[dict[str, Any]]
+    ) -> None:
+        identity_store = self.__get_identity_store(identity_store_id)
+        if group_id not in identity_store.groups:
+            raise ResourceNotFoundException(
+                message="GROUP not found.", resource_type="GROUP"
+            )
+
+        group = identity_store.groups[group_id]
+        for operation in operations:
+            path = operation["AttributePath"]
+            if path.lower() not in GROUP_ATTRIBUTES:
+                raise ValidationException(message=f"Invalid attribute path: {path}")
+            value: Any = operation.get("AttributeValue")
+            group = group._replace(**{GROUP_ATTRIBUTES[path.lower()]: value})
+
+        matching = [
+            g
+            for g in identity_store.groups.values()
+            if g.GroupId != group_id and g.DisplayName == group.DisplayName
+        ]
+        if group.DisplayName and len(matching) > 0:
+            raise ConflictException(
+                message="Duplicate GroupDisplayName",
+                reason="UNIQUENESS_CONSTRAINT_VIOLATION",
+            )
+
+        identity_store.groups[group_id] = group
+
     def delete_group(self, identity_store_id: str, group_id: str) -> None:
         identity_store = self.__get_identity_store(identity_store_id)
         if group_id in identity_store.groups:
@@ -214,7 +266,7 @@ class IdentityStoreBackend(BaseBackend):
             locale,
             timezone,
         )
-        self.__validate_create_user(new_user, identity_store)
+        self.__validate_user(new_user, identity_store)
 
         identity_store.users[user_id] = new_user
 
@@ -259,6 +311,35 @@ class IdentityStoreBackend(BaseBackend):
             return identity_store.users[user_id]
 
         raise ResourceNotFoundException(message="USER not found.", resource_type="USER")
+
+    def update_user(
+        self, identity_store_id: str, user_id: str, operations: list[dict[str, Any]]
+    ) -> None:
+        identity_store = self.__get_identity_store(identity_store_id)
+        if user_id not in identity_store.users:
+            raise ResourceNotFoundException(
+                message="USER not found.", resource_type="USER"
+            )
+
+        user = identity_store.users[user_id]
+        for operation in operations:
+            path = operation["AttributePath"]
+            value = _capitalize_keys(operation.get("AttributeValue"))
+            parent, _, child = path.lower().partition(".")
+            if parent == "name" and child in NAME_ATTRIBUTES:
+                name = user.Name or Name(None, None, None, None, None, None)
+                name = name._replace(**{NAME_ATTRIBUTES[child]: value})
+                user = user._replace(Name=name)
+            elif parent == "name" and not child:
+                user = user._replace(Name=Name.from_dict(value))
+            elif parent in USER_ATTRIBUTES and not child:
+                user = user._replace(**{USER_ATTRIBUTES[parent]: value})
+            else:
+                raise ValidationException(message=f"Invalid attribute path: {path}")
+
+        self.__validate_user(user, identity_store)
+
+        identity_store.users[user_id] = user
 
     def delete_user(self, identity_store_id: str, user_id: str) -> None:
         identity_store = self.__get_identity_store(identity_store_id)
@@ -425,7 +506,7 @@ class IdentityStoreBackend(BaseBackend):
             self.identity_stores[store_id] = IdentityStoreData()
         return self.identity_stores[store_id]
 
-    def __validate_create_user(
+    def __validate_user(
         self, new_user: User, identity_store: IdentityStoreData
     ) -> None:
         if not new_user.UserName:
@@ -450,7 +531,9 @@ class IdentityStoreBackend(BaseBackend):
             raise ValidationException(message=message)
 
         matching = [
-            u for u in identity_store.users.values() if u.UserName == new_user.UserName
+            u
+            for u in identity_store.users.values()
+            if u.UserName == new_user.UserName and u.UserId != new_user.UserId
         ]
         if len(matching) > 0:
             raise ConflictException(
