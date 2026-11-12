@@ -34,7 +34,7 @@ These authorization checks are quite basic for now. Moto will only throw an Acce
   Delete the alias.
 
 - [ ] delete_custom_key_store
-- [ ] delete_imported_key_material
+- [X] delete_imported_key_material
 - [ ] derive_shared_secret
 - [ ] describe_custom_key_stores
 - [X] describe_key
@@ -53,9 +53,12 @@ These authorization checks are quite basic for now. Moto will only throw an Acce
 - [ ] get_key_last_usage
 - [X] get_key_policy
 - [X] get_key_rotation_status
-- [ ] get_parameters_for_import
+- [X] get_parameters_for_import
+
+  Supported wrapping algorithms: RSAES_OAEP_SHA_256, RSAES_OAEP_SHA_1.
+  RSA_AES_KEY_WRAP variants are not yet implemented.
 - [X] get_public_key
-- [ ] import_key_material
+- [X] import_key_material
 - [X] list_aliases
 - [X] list_grants
 - [X] list_key_policies

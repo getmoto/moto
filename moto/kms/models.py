@@ -17,13 +17,18 @@ from moto.utilities.utils import get_partition
 
 from .exceptions import (
     AccessDeniedException,
+    InvalidCiphertextException,
+    InvalidImportTokenException,
     InvalidKeyUsageException,
     KMSInvalidMacException,
+    KMSInvalidStateException,
+    UnsupportedOperationException,
     ValidationException,
 )
 from .utils import (
     RESERVED_ALIASES,
     KeySpec,
+    RSAWrappingKey,
     SigningAlgorithm,
     decrypt,
     encrypt,
@@ -159,8 +164,13 @@ class Key(CloudFormationModel):
             }
         self.key_rotation_status = False
         self.deletion_date: datetime | None = None
-        self.key_material = generate_master_key()
         self.origin = origin
+        if self.origin == "EXTERNAL":
+            self.key_material: bytes | None = None
+            self.key_state = "PendingImport"
+            self.enabled = False
+        else:
+            self.key_material = generate_master_key()
         self.key_manager = "CUSTOMER"
         self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
         self.private_key = generate_private_key(self.key_spec)
@@ -171,6 +181,11 @@ class Key(CloudFormationModel):
 
         self.rotations: list[dict[str, Any]] = []
         self.aliases: dict[str, Alias] = {}
+
+        # Import key material fields
+        self.import_token: bytes | None = None
+        self.wrapping_private_key: RSAWrappingKey | None = None
+        self.wrapping_algorithm: str | None = None
 
     def add_grant(
         self,
@@ -590,6 +605,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         self, key_id: str, plaintext: bytes, encryption_context: dict[str, str]
     ) -> tuple[bytes, str]:
         key_id = self.any_id_to_key_id(key_id)
+        key = self.keys[key_id]
 
         ciphertext_blob = encrypt(
             master_keys=self.keys,
@@ -597,7 +613,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
             plaintext=plaintext,
             encryption_context=encryption_context,
         )
-        arn = self.keys[key_id].arn
+        arn = key.arn
         return ciphertext_blob, arn
 
     def decrypt(
@@ -676,6 +692,124 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         # Marker to indicate this is implemented
         # Responses uses 'generate_data_key'
         pass
+
+    def get_parameters_for_import(
+        self, key_id: str, wrapping_algorithm: str, wrapping_key_spec: str
+    ) -> tuple[bytes, bytes, float]:
+        """
+        Supported wrapping algorithms: RSAES_OAEP_SHA_256, RSAES_OAEP_SHA_1.
+        RSA_AES_KEY_WRAP variants are not yet implemented.
+        """
+        key_id = self.any_id_to_key_id(key_id)
+        key = self.keys[key_id]
+
+        if key.origin != "EXTERNAL":
+            raise UnsupportedOperationException(
+                "The request was rejected because the specified KMS key cannot "
+                "accept imported key material. The Origin of the KMS key must be EXTERNAL."
+            )
+
+        if key.key_state not in ("PendingImport", "Enabled"):
+            raise KMSInvalidStateException(
+                f"arn:aws:kms:{key.region}:{key.account_id}:key/{key.id} is pending deletion."
+            )
+
+        # Validate wrapping key spec and generate wrapping key
+        if wrapping_key_spec == "RSA_2048":
+            key_size = 2048
+        elif wrapping_key_spec == "RSA_3072":
+            key_size = 3072
+        elif wrapping_key_spec == "RSA_4096":
+            key_size = 4096
+        else:
+            raise ValidationException(
+                f"1 validation error detected: Value '{wrapping_key_spec}' at 'wrappingKeySpec' "
+                "failed to satisfy constraint: Member must satisfy enum value set: "
+                "[RSA_2048, RSA_3072, RSA_4096]"
+            )
+
+        wrapping_key = RSAWrappingKey(key_size)
+
+        # Store the wrapping key and algorithm on the key for later use
+        key.wrapping_private_key = wrapping_key
+        key.wrapping_algorithm = wrapping_algorithm
+
+        # Generate import token
+        key.import_token = os.urandom(32)
+
+        # Expiration: 24 hours from now
+        parameters_valid_to = unix_time(utcnow() + timedelta(days=1))
+
+        return wrapping_key.public_key(), key.import_token, parameters_valid_to
+
+    def import_key_material(
+        self,
+        key_id: str,
+        import_token: bytes,
+        encrypted_key_material: bytes,
+        expiration_model: str,
+        valid_to: float | None,
+    ) -> None:
+        key_id = self.any_id_to_key_id(key_id)
+        key = self.keys[key_id]
+
+        if key.origin != "EXTERNAL":
+            raise UnsupportedOperationException(
+                "The request was rejected because the specified KMS key cannot "
+                "accept imported key material. The Origin of the KMS key must be EXTERNAL."
+            )
+
+        if key.key_state not in ("PendingImport", "Enabled"):
+            raise KMSInvalidStateException(
+                f"arn:aws:kms:{key.region}:{key.account_id}:key/{key.id} is not in a valid "
+                "state for this operation."
+            )
+
+        # Validate import token
+        if key.import_token is None or import_token != key.import_token:
+            raise InvalidImportTokenException(
+                "The request was rejected because the provided import token is "
+                "invalid or is associated with a different KMS key."
+            )
+
+        # Validate wrapping key exists
+        if key.wrapping_private_key is None:
+            raise InvalidImportTokenException(
+                "The request was rejected because the provided import token is "
+                "invalid or is associated with a different KMS key."
+            )
+
+        # Decrypt the encrypted key material using the stored wrapping key
+        try:
+            plaintext_key_material = key.wrapping_private_key.unwrap(
+                encrypted_key_material, key.wrapping_algorithm
+            )
+        except Exception:
+            raise InvalidCiphertextException()
+
+        # Set the key material
+        key.key_material = plaintext_key_material
+        key.key_state = "Enabled"
+        key.enabled = True
+
+    def delete_imported_key_material(self, key_id: str) -> None:
+        key_id = self.any_id_to_key_id(key_id)
+        key = self.keys[key_id]
+
+        if key.origin != "EXTERNAL":
+            raise UnsupportedOperationException(
+                "The request was rejected because the specified KMS key cannot "
+                "have its imported key material deleted. The Origin of the KMS key must be EXTERNAL."
+            )
+
+        if key.key_state in ("PendingDeletion",):
+            raise KMSInvalidStateException(
+                f"arn:aws:kms:{key.region}:{key.account_id}:key/{key.id} is pending deletion."
+            )
+
+        key.key_material = None
+        key.key_state = "PendingImport"
+        key.enabled = False
 
     def list_resource_tags(self, key_id_or_arn: str) -> dict[str, list[dict[str, str]]]:
         key_id = self.get_key_id(key_id_or_arn)
