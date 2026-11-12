@@ -2818,6 +2818,55 @@ def test_item_size_is_under_400KB():
     )
 
 
+@pytest.mark.parametrize(
+    "value,expected_size",
+    [
+        ("0", 2),
+        ("1", 2),
+        ("-5", 2),
+        ("100", 2),  # trailing zeroes in the integer part are insignificant
+        ("100.00", 2),  # ditto once combined with insignificant fraction digits
+        ("1.50", 2),  # trailing zeroes after the decimal point are insignificant
+        ("100.5", 3),
+        ("0.007", 2),  # leading zeroes are insignificant regardless of position
+        ("1786461547", 6),  # the example from #10176
+        ("12345678901234567890123456789012345678", 20),  # max 38-digit precision
+    ],
+)
+def test_dynamo_type_number_size(value, expected_size):
+    from moto.dynamodb.models.dynamo_type import DynamoType
+
+    assert DynamoType({"N": value}).size() == expected_size
+
+
+# https://github.com/getmoto/moto/issues/10176
+@mock_aws
+def test_item_size_accounts_for_compact_number_encoding():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    # 100 Numbers, each a 38-digit value with only 1 significant digit, cost
+    # ~490 bytes toward the item-size limit under the fixed (compact)
+    # accounting, vs. ~4090 bytes under the old len(str(value)) accounting
+    # - a ~3600 byte swing. The binary filler is sized so the item comfortably
+    # fits under the limit with the fix (by ~1800 bytes) but would have
+    # comfortably exceeded it under the old, incorrect accounting (by ~1800
+    # bytes), without hugging moto's internal safety margin closely enough
+    # for this test to be sensitive to small changes in that margin.
+    item = {
+        "pk": {"S": "x" * 40},
+        "data": {"B": b"x" * 402668},
+    }
+    item.update({f"n{i}": {"N": "1" + "0" * 37} for i in range(100)})
+    client.put_item(TableName=table_name, Item=item)
+
+
 def assert_failure_due_to_item_size(func, **kwargs):
     with pytest.raises(ClientError) as ex:
         func(**kwargs)

@@ -16,7 +16,7 @@ from moto.dynamodb.exceptions import (
 )
 from moto.utilities.utils import md5_hash
 
-from .utilities import bytesize, find_nested_key
+from .utilities import bytesize, find_nested_key, number_size
 
 deserializer = TypeDeserializer()
 serializer = TypeSerializer()
@@ -214,7 +214,7 @@ class DynamoType:
 
     def size(self) -> int:
         if self.is_number():
-            value_size = len(str(self.value))
+            value_size = number_size(str(self.value))
         elif self.is_set():
             sub_type = self.type[0]
             value_size = sum([DynamoType({sub_type: v}).size() for v in self.value])

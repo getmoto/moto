@@ -1,5 +1,6 @@
 import base64
 import json
+import math
 import re
 from datetime import datetime
 from typing import Any
@@ -66,6 +67,29 @@ def dynamo_to_dict(obj: Any) -> Any:
 
 def bytesize(val: str) -> int:
     return len(val if isinstance(val, bytes) else val.encode("utf-8"))
+
+
+def number_size(val: str) -> int:
+    """
+    DynamoDB stores Numbers as normalized decimal floats (sign + exponent +
+    up to 38-digit mantissa), not as their literal decimal string
+    representation, so their item-size contribution isn't `len(val)`. Per
+    AWS's item size docs
+    (https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/CapacityUnitCalculations.html):
+    each Number uses roughly one byte per two significant digits, plus one
+    byte - i.e. `ceil(significant_digits / 2) + 1`.
+
+    Because only the numeric value (not its formatting) is stored, trailing
+    zeroes are insignificant on both sides of the decimal point - 100 and
+    1.00 each normalize to a single significant digit, the same as 1E2 and
+    1E0 would. Concatenating the integer and fractional digits and
+    stripping zeroes off both ends of that combined string gives exactly
+    the digits that can't be dropped without changing the value.
+    """
+    val = val.strip().lstrip("+-")
+    int_part, _, frac_part = val.partition(".")
+    significant_digits = (int_part + frac_part).strip("0")
+    return math.ceil(max(len(significant_digits), 1) / 2) + 1
 
 
 def find_nested_key(
