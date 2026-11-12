@@ -179,6 +179,22 @@ class InstanceTypeOfferingBackend:
         ]
         return matches
 
+    def zone_offerings(self) -> list[dict[str, Any]]:
+        region: str = self.region_name  # type: ignore[attr-defined]
+        return INSTANCE_TYPE_OFFERINGS["availability-zone"].get(region, [])
+
+    def availability_zones_offering_instance_type(
+        self, instance_type: str
+    ) -> list[str]:
+        return sorted(
+            o["Location"]
+            for o in self.zone_offerings()
+            if o["InstanceType"] == instance_type
+        )
+
+    def availability_zones_in_region(self) -> set[str]:
+        return {o["Location"] for o in self.zone_offerings()}
+
     def matches_filters(
         self, offering: dict[str, Any], filters: Any, location_type: str
     ) -> bool:

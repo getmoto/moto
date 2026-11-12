@@ -302,6 +302,22 @@ class InvalidInstanceTypeError(EC2ClientError):
         super().__init__(error_type, msg)
 
 
+class UnsupportedInstanceTypeInAvailabilityZone(EC2ClientError):
+    def __init__(
+        self,
+        instance_type: str,
+        availability_zone: str,
+        offered_availability_zones: Iterable[str],
+    ):
+        super().__init__(
+            "Unsupported",
+            f"Your requested instance type ({instance_type}) is not supported in "
+            f"your requested Availability Zone ({availability_zone}). Please retry "
+            f"your request by not specifying an Availability Zone or choosing "
+            f"{', '.join(offered_availability_zones)}.",
+        )
+
+
 class InvalidAMIIdError(EC2ClientError):
     def __init__(self, ami_id: list[str] | str):
         if isinstance(ami_id, str):
