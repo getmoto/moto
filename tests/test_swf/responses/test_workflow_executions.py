@@ -115,6 +115,41 @@ def test_start_already_started_workflow_execution():
 
 
 @mock_aws
+def test_start_already_started_but_closed_workflow_execution():
+    client = setup_swf_environment()
+    run_id = client.start_workflow_execution(
+        domain="test-domain",
+        workflowId="uid-abcd1234",
+        workflowType={"name": "test-workflow", "version": "v1.0"},
+    )["runId"]
+    client.terminate_workflow_execution(
+        domain="test-domain",
+        workflowId="uid-abcd1234",
+        runId=run_id,
+    )
+
+    # The previous run is closed, but the workflowId is still taken for the
+    # retention period of the domain, so a second run cannot reuse it.
+    with pytest.raises(ClientError) as ex:
+        client.start_workflow_execution(
+            domain="test-domain",
+            workflowId="uid-abcd1234",
+            workflowType={"name": "test-workflow", "version": "v1.0"},
+        )
+    assert ex.value.response["Error"]["Code"] == "WorkflowExecutionAlreadyStartedFault"
+    assert ex.value.response["Error"]["Message"] == "Already Started"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+    # A different workflowId is of course still free to use.
+    other = client.start_workflow_execution(
+        domain="test-domain",
+        workflowId="uid-abcd12345",
+        workflowType={"name": "test-workflow", "version": "v1.0"},
+    )
+    assert "runId" in other
+
+
+@mock_aws
 def test_start_workflow_execution_on_deprecated_type():
     client = setup_swf_environment()
     client.deprecate_workflow_type(
