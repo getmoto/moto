@@ -17,6 +17,19 @@ _EVENT_S3_OBJECT_CREATED: EventMessageType = {
     "detail": {},
 }
 
+# https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-instance-state-changes.html
+_EVENT_EC2_INSTANCE_STATE_CHANGE: EventMessageType = {
+    "version": "0",
+    "id": "17793124-05d4-b198-2fde-7ededc63b104",
+    "detail-type": "EC2 Instance State-change Notification",
+    "source": "aws.ec2",
+    "account": "123456789012",
+    "time": "2021-11-12T00:00:00Z",
+    "region": "us-west-2",
+    "resources": [],
+    "detail": {},
+}
+
 
 def send_notification(
     source: str, event_name: str, region: str, resources: Any, detail: Any
@@ -34,11 +47,25 @@ def _send_safe_notification(
     from .models import events_backends
 
     event = None
+    detail_key = "eventName"
     if source == "aws.s3" and event_name == "CreateBucket":
         event = _EVENT_S3_OBJECT_CREATED.copy()
         event["region"] = region
         event["resources"] = resources
         event["detail"] = detail
+    elif source == "aws.ec2" and event_name in (
+        "running",
+        "stopped",
+        "terminated",
+    ):
+        # EC2 Instance State-change Notification is a native EventBridge
+        # event, not a CloudTrail-forwarded API call - it's filtered on
+        # detail.state rather than detail.eventName
+        event = _EVENT_EC2_INSTANCE_STATE_CHANGE.copy()
+        event["region"] = region
+        event["resources"] = resources
+        event["detail"] = detail
+        detail_key = "state"
 
     if event is None:
         return
@@ -54,7 +81,7 @@ def _send_safe_notification(
                         continue
                     pattern = rule.event_pattern.get_pattern()
                     if source in pattern.get("source", []):
-                        if event_name in pattern.get("detail", {}).get("eventName", []):
+                        if event_name in pattern.get("detail", {}).get(detail_key, []):
                             applicable_targets.extend(rule.targets)
 
             for target in applicable_targets:
