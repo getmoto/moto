@@ -1,23 +1,17 @@
-from moto.core.exceptions import AWSError
+from moto.core.exceptions import ServiceException
 
 
-class InvalidRequestException(AWSError):
-    TYPE = "InvalidRequestException"
+class BatchException(ServiceException):
+    pass
 
 
-class InvalidParameterValueException(AWSError):
-    TYPE = "InvalidParameterValue"
+class InvalidParameterValueException(BatchException):
+    code = "InvalidParameterValue"
 
 
-class ValidationError(AWSError):
-    TYPE = "ValidationError"
+class ValidationError(BatchException):
+    code = "ValidationError"
 
 
-class InternalFailure(AWSError):
-    TYPE = "InternalFailure"
-    STATUS = 500
-
-
-class ClientException(AWSError):
-    TYPE = "ClientException"
-    STATUS = 400
+class ClientException(BatchException):
+    code = "ClientException"
