@@ -1,3 +1,4 @@
+import time
 import unittest
 from io import BytesIO
 from unittest import SkipTest
@@ -112,3 +113,14 @@ def test_threaded_moto_server__using_requests():
         assert r.status_code == 200
     finally:
         server.stop()
+
+
+def test_threaded_moto_server__stop_does_not_wait_for_a_full_poll():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("No point in testing ServerMode within ServerMode")
+    server = ThreadedMotoServer(port=0, verbose=False)
+    server.start()
+    started = time.monotonic()
+    server.stop()
+    # With serve_forever's default 0.5s poll interval, stop() took about 0.5s
+    assert time.monotonic() - started < 0.3
