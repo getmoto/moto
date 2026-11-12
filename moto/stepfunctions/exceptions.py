@@ -31,6 +31,11 @@ class StateMachineDoesNotExist(AWSError):
     STATUS = 400
 
 
+class StateMachineTypeNotSupported(AWSError):
+    TYPE = "StateMachineTypeNotSupported"
+    STATUS = 400
+
+
 class InvalidToken(AWSError):
     TYPE = "InvalidToken"
     STATUS = 400

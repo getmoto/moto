@@ -11530,7 +11530,7 @@
 
 ## stepfunctions
 <details>
-<summary>78% implemented</summary>
+<summary>81% implemented</summary>
 
 - [X] create_activity
 - [X] create_state_machine
@@ -11560,7 +11560,7 @@
 - [X] send_task_heartbeat
 - [X] send_task_success
 - [X] start_execution
-- [ ] start_sync_execution
+- [X] start_sync_execution
 - [X] stop_execution
 - [X] tag_resource
 - [ ] test_state
