@@ -1375,7 +1375,7 @@ def all_arn_values_should_be_valid(expected_arn_values, pattern, arn_under_test)
 
 def assert_expected_exception(raised_exception, expected_exception, expected_msg):
     error = raised_exception.value.response[ErrorAttributes.ERROR]
-    assert error[ErrorAttributes.CODE] == expected_exception.TYPE
+    assert error[ErrorAttributes.CODE] == expected_exception.code
     assert error[ErrorAttributes.MESSAGE] == expected_msg
 
 
