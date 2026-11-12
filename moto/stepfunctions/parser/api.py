@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import Enum
 from typing import IO, Optional, TypedDict
 
-from ..exceptions import AWSError as ServiceException
+from moto.core.exceptions import ServiceException
 
 AliasDescription = str
 Arn = str
@@ -323,13 +323,9 @@ class InvalidOutput(ServiceException):
 
 class InvalidToken(ServiceException):
     code: str = "InvalidToken"
-    exception_type: str = "InvalidToken"
     sender_fault: bool = False
     status_code: int = 400
     message: str = "Invalid Token: 'Invalid token'"
-
-    def __init__(self):
-        super().__init__(self.message, self.exception_type, self.status_code)
 
 
 class InvalidTracingConfiguration(ServiceException):
