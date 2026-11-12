@@ -283,6 +283,10 @@ def test_bot_alias():
     assert desc_resp.get("lastUpdatedDateTime")
     assert desc_resp["parentBotNetworks"] == []
 
+    client.create_bot_alias(
+        botAliasName="other_bot_alias", botVersion="1", botId="other_bot_id"
+    )
+
     list_resp = client.list_bot_aliases(botId="test_bot_id")["botAliasSummaries"]
 
     assert len(list_resp) == 1
