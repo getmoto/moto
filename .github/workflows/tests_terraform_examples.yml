@@ -5,6 +5,9 @@
 name: Terraform Examples
 on: [workflow_call]
 
+permissions:
+  contents: read
+
 jobs:
   find-jobs:
     runs-on: ubuntu-latest

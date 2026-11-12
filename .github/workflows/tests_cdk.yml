@@ -1,6 +1,9 @@
 name: Unit tests in Server Mode
 on: [workflow_call]
 
+permissions:
+  contents: read
+
 jobs:
   cdk_start:
     runs-on: ubuntu-latest

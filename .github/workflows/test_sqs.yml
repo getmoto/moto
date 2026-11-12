@@ -11,6 +11,9 @@ on:
   workflow_dispatch:
 env:
   python-version: "3.12"
+permissions:
+  contents: read
+
 jobs:
   test-sqs-protocols:
     name: "${{ matrix.protocol }} protocol, server mode: ${{ matrix.test-server-mode }}"

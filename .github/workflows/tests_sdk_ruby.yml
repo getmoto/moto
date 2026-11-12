@@ -1,6 +1,9 @@
 name: Ruby SDK test
 on: [workflow_call]
 
+permissions:
+  contents: read
+
 jobs:
   test:
 

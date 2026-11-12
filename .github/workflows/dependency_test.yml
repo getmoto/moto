@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: '0 0 * * *'  # every day at midnight
 
+permissions:
+  contents: read
+
 jobs:
   prepare_list:
     runs-on: ubuntu-latest
