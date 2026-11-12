@@ -290,3 +290,47 @@ def test_describe_export_tasks_raises_ResourceNotFoundException_task_id_not_foun
 ):
     with pytest.raises(logs.exceptions.ResourceNotFoundException):
         logs.describe_export_tasks(taskId="368a7022dea3dd621")
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "status_code",
+    ["COMPLETED", "PENDING", "RUNNING", "FAILED", "CANCELLED", "PENDING_CANCEL"],
+)
+def test_describe_export_tasks_filters_by_status(status_code):
+    client = boto3.client("logs", region_name="us-east-1")
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    group = "miruky-tnctjwhvuyrqfsep"
+    bucket = "miruky-jsgwhqgfnvytmsin"
+    client.create_log_group(logGroupName=group)
+    s3_client.create_bucket(Bucket=bucket)
+    task_ids = {
+        client.create_export_task(
+            taskName=name,
+            logGroupName=group,
+            destination=bucket,
+            **{"from": 0, "to": 1},
+        )["taskId"]
+        for name in ["miruky-kqnsbsvbkbtdqwzr", "miruky-flxfwleltrkynymg"]
+    }
+
+    expected = task_ids if status_code == "COMPLETED" else set()
+    result = client.describe_export_tasks(statusCode=status_code)["exportTasks"]
+    assert {task["taskId"] for task in result} == expected
+
+    task_id = next(iter(task_ids))
+    result = client.describe_export_tasks(taskId=task_id, statusCode=status_code)[
+        "exportTasks"
+    ]
+    assert {task["taskId"] for task in result} == ({task_id} if expected else set())
+
+    # Filtering must not remove tasks from the backend.
+    assert {
+        task["taskId"] for task in client.describe_export_tasks()["exportTasks"]
+    } == task_ids
+
+
+@mock_aws
+def test_describe_export_tasks_status_on_empty_backend():
+    client = boto3.client("logs", region_name="us-east-1")
+    assert client.describe_export_tasks(statusCode="COMPLETED")["exportTasks"] == []
