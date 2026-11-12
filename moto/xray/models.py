@@ -6,7 +6,6 @@ from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.exceptions import AWSError
 
 from .exceptions import BadSegmentException
 
@@ -175,11 +174,8 @@ class SegmentCollection:
     ) -> dict[str, Any]:
         # This beast https://docs.aws.amazon.com/xray/latest/api/API_GetTraceSummaries.html#API_GetTraceSummaries_ResponseSyntax
         if filter_expression is not None:
-            raise AWSError(
-                "Not implemented yet - moto",
-                exception_type="InternalFailure",
-                status=500,
-            )
+            # Surfaced to the client as an InternalFailure by XRayResponse
+            raise NotImplementedError("Not implemented yet - moto")
 
         summaries = []
 

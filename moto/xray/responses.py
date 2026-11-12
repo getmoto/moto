@@ -2,7 +2,6 @@ import datetime
 import json
 from typing import Any
 
-from moto.core.exceptions import AWSError
 from moto.core.responses import BaseResponse
 
 from .exceptions import BadSegmentException
@@ -101,8 +100,6 @@ class XRayResponse(BaseResponse):
                 end_time,  # type: ignore[arg-type]
                 filter_expression,
             )
-        except AWSError as err:
-            raise err
         except Exception as err:
             return (
                 json.dumps({"__type": "InternalFailure", "message": str(err)}),
@@ -123,8 +120,6 @@ class XRayResponse(BaseResponse):
 
         try:
             result = self.xray_backend.get_trace_ids(trace_ids)
-        except AWSError as err:
-            raise err
         except Exception as err:
             return (
                 json.dumps({"__type": "InternalFailure", "message": str(err)}),
