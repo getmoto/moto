@@ -1043,6 +1043,8 @@ class SecretsManagerBackend(BaseBackend, TaggableResourcesMixin):
         max_results: int = MAX_RESULTS_DEFAULT,
         next_token: str | None = None,
         include_planned_deletion: bool = False,
+        sort_by: str | None = None,
+        sort_order: str | None = None,
     ) -> tuple[list[dict[str, Any]], str | None]:
         secret_list: list[dict[str, Any]] = []
         for secret in self.secrets.values():
@@ -1051,6 +1053,18 @@ class SecretsManagerBackend(BaseBackend, TaggableResourcesMixin):
                     continue
             if _matches(secret, filters):
                 secret_list.append(secret.to_dict())
+
+        # Secrets are stored in creation order, so a stable sort keeps
+        # secrets with equal values (e.g. the same CreatedDate) in that order
+        sort_attr = {
+            "created-date": "CreatedDate",
+            "last-accessed-date": "LastAccessedDate",
+            "last-changed-date": "LastChangedDate",
+            "name": "Name",
+        }.get(sort_by or "created-date", "CreatedDate")
+        secret_list.sort(key=lambda s: s[sort_attr] or 0)
+        if sort_order == "desc":
+            secret_list.reverse()
 
         return self._get_secret_values_page_and_next_token(
             secret_list, max_results, next_token
