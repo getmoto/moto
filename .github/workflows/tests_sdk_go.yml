@@ -12,6 +12,7 @@ jobs:
     steps:
     - uses: actions/checkout@v7
       with:
+        persist-credentials: false
         fetch-depth: 0
     - name: Setup Go
       uses: actions/setup-go@v7
