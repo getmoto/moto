@@ -264,6 +264,75 @@ class TestSetUpInBaseClass(Baseclass):
 
 
 @mock_aws
+class SetupMixin:
+    def setUp(self) -> None:
+        self.s3 = boto3.client("s3", region_name="us-east-1")
+        assert self.s3.list_buckets()["Buckets"] == []
+        self.s3.create_bucket(Bucket="mixin-bucket")
+
+    def tearDown(self) -> None:
+        assert self.s3.head_bucket(Bucket="mixin-bucket") is not None
+
+    def test_setup_state(self) -> None:
+        assert self.s3.head_bucket(Bucket="mixin-bucket") is not None
+        self.s3.create_bucket(Bucket="test-method-bucket")
+
+    def test_setup_state_again(self) -> None:
+        assert [b["Name"] for b in self.s3.list_buckets()["Buckets"]] == [
+            "mixin-bucket"
+        ]
+
+
+class TestSetupMixin(SetupMixin, unittest.TestCase):
+    # https://github.com/getmoto/moto/issues/4967
+    pass
+
+
+@mock_aws
+class TestUnusedUnittestSetup:
+    def setUp(self) -> None:
+        self.setup_called = True
+
+    def _check_isolation(self) -> None:
+        assert not hasattr(self, "setup_called")
+        s3 = boto3.client("s3", region_name="us-east-1")
+        assert s3.list_buckets()["Buckets"] == []
+        s3.create_bucket(Bucket="unused-setup-bucket")
+
+    def test_isolated(self) -> None:
+        self._check_isolation()
+
+    def test_isolated_again(self) -> None:
+        self._check_isolation()
+
+
+@mock_aws
+class ShadowedSetupMixin:
+    def setUp(self) -> None:
+        raise AssertionError("This setUp is shadowed and must not run")
+
+    def _check_isolation(self) -> None:
+        s3 = boto3.client("s3", region_name="us-east-1")
+        assert s3.list_buckets()["Buckets"] == []
+        s3.create_bucket(Bucket="shadowed-setup-bucket")
+
+    def test_isolated(self) -> None:
+        self._check_isolation()
+
+    def test_isolated_again(self) -> None:
+        self._check_isolation()
+
+
+class TestReverseMixinOrder(unittest.TestCase, ShadowedSetupMixin):
+    pass
+
+
+class TestOverriddenMixinSetup(ShadowedSetupMixin, unittest.TestCase):
+    def setUp(self) -> None:
+        pass
+
+
+@mock_aws
 class TestWithNestedClasses:
     class NestedClass(unittest.TestCase):
         def _ensure_bucket_exists(self) -> None:
