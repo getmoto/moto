@@ -39,8 +39,10 @@ from .exceptions import (
     QueueAlreadyExists,
     QueueDoesNotExist,
     ReceiptHandleIsInvalid,
+    ResourceNotFoundException,
     SQSException,
     TooManyEntriesInBatchRequest,
+    UnsupportedOperation,
 )
 from .utils import generate_receipt_handle
 
@@ -96,6 +98,8 @@ class Message(BaseModel):
         self.visible_at = 0.0
         self.delayed_until = 0.0
         self.system_attributes = system_attributes or {}
+        # ARN of the queue this message was moved from by its redrive policy
+        self.dead_letter_source_arn: str | None = None
 
     @property
     def body_md5(self) -> str:
@@ -691,12 +695,51 @@ def _filter_message_attributes(
     message.message_attributes = filtered_message_attributes
 
 
+class MessageMoveTask(BaseModel):
+    def __init__(
+        self,
+        source_arn: str,
+        destination_arn: str | None,
+        max_number_of_messages_per_second: int | None,
+        approximate_number_of_messages_to_move: int,
+    ):
+        self.task_handle = str(random.uuid4())
+        self.source_arn = source_arn
+        self.destination_arn = destination_arn
+        self.max_number_of_messages_per_second = max_number_of_messages_per_second
+        self.approximate_number_of_messages_to_move = (
+            approximate_number_of_messages_to_move
+        )
+        self.approximate_number_of_messages_moved = 0
+        self.status = "COMPLETED"
+        self.started_timestamp = int(unix_time_millis())
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Status": self.status,
+            "SourceArn": self.source_arn,
+            "ApproximateNumberOfMessagesMoved": self.approximate_number_of_messages_moved,
+            "ApproximateNumberOfMessagesToMove": self.approximate_number_of_messages_to_move,
+            "StartedTimestamp": self.started_timestamp,
+        }
+        # AWS only returns the TaskHandle of RUNNING tasks, and tasks here
+        # complete as soon as they are created, so it is never included
+        if self.destination_arn:
+            result["DestinationArn"] = self.destination_arn
+        if self.max_number_of_messages_per_second is not None:
+            result["MaxNumberOfMessagesPerSecond"] = (
+                self.max_number_of_messages_per_second
+            )
+        return result
+
+
 class SQSBackend(BaseBackend, TaggableResourcesMixin):
     SERVICE_NAMESPACE = "sqs"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.queues: dict[str, Queue] = {}
+        self.message_move_tasks: dict[str, MessageMoveTask] = {}
 
     def create_queue(
         self, name: str, tags: dict[str, str] | None = None, **kwargs: Any
@@ -1046,6 +1089,7 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
 
             for message in messages_to_dlq:
                 queue._messages.remove(message)
+                message.dead_letter_source_arn = queue.queue_arn
                 queue.dead_letter_queue.add_message(message)  # type: ignore
 
             if previous_result_count == len(result):
@@ -1168,6 +1212,113 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
                 queues.append(queue)
 
         return queues
+
+    def _get_queue_by_arn(self, queue_arn: str, parameter: str) -> Queue:
+        # arn:<partition>:sqs:<region>:<account-id>:<queue-name>
+        parts = queue_arn.split(":") if queue_arn else []
+        if len(parts) == 6 and parts[2] == "sqs":
+            _, _, _, region, account_id, name = parts
+            try:
+                queue = sqs_backends[account_id][region].queues.get(name)
+            except KeyError:
+                queue = None
+            if queue is not None and queue.queue_arn == queue_arn:
+                return queue
+        raise ResourceNotFoundException(
+            f"The resource that you specified for the {parameter} parameter doesn't exist."
+        )
+
+    def _get_dead_letter_queue_by_arn(
+        self, queue_arn: str
+    ) -> tuple[Queue, list[Queue]]:
+        dlq = self._get_queue_by_arn(queue_arn, "SourceArn")
+        backend = sqs_backends[dlq.account_id][dlq.region]
+        source_queues = backend.list_dead_letter_source_queues(dlq.name)
+        if not source_queues:
+            raise UnsupportedOperation(
+                "Source queue must be configured as a Dead Letter Queue."
+            )
+        return dlq, source_queues
+
+    def start_message_move_task(
+        self,
+        source_arn: str,
+        destination_arn: str | None = None,
+        max_number_of_messages_per_second: int | None = None,
+    ) -> str:
+        """
+        The messages are moved immediately, so the task is COMPLETED as soon as it is created.
+
+        Without a DestinationArn, each message is moved back to the queue it was moved to the dead-letter queue from. Messages that did not get there through a redrive policy are moved to the source queue if the dead-letter queue has exactly one, and are left in place otherwise.
+        """
+        dlq, source_queues = self._get_dead_letter_queue_by_arn(source_arn)
+        destination = (
+            self._get_queue_by_arn(destination_arn, "DestinationArn")
+            if destination_arn
+            else None
+        )
+        if max_number_of_messages_per_second is not None and not (
+            1 <= max_number_of_messages_per_second <= 500
+        ):
+            raise InvalidParameterValue(
+                "Value for parameter MaxNumberOfMessagesPerSecond is invalid. Reason: Must be between 1 and 500."
+            )
+        messages = dlq.messages
+        task = MessageMoveTask(
+            source_arn=source_arn,
+            destination_arn=destination_arn,
+            max_number_of_messages_per_second=max_number_of_messages_per_second,
+            approximate_number_of_messages_to_move=len(messages),
+        )
+        self.message_move_tasks[task.task_handle] = task
+
+        queues_by_arn = {queue.queue_arn: queue for queue in source_queues}
+        default_target = source_queues[0] if len(source_queues) == 1 else None
+        for message in messages:
+            target = destination or queues_by_arn.get(
+                message.dead_letter_source_arn or "", default_target
+            )
+            if target is None:
+                continue
+            dlq._messages.remove(message)
+            # A moved message can be received again, so it starts with a fresh receive state
+            message.approximate_receive_count = 0
+            message.approximate_first_receive_timestamp = None
+            message.receipt_handle = None
+            message.visible_at = 0.0
+            message.dead_letter_source_arn = None
+            target.add_message(message)
+            task.approximate_number_of_messages_moved += 1
+
+        return task.task_handle
+
+    def list_message_move_tasks(
+        self, source_arn: str, max_results: int | None = None
+    ) -> list[MessageMoveTask]:
+        self._get_dead_letter_queue_by_arn(source_arn)
+        max_results = 1 if max_results is None else max_results
+        if not 1 <= max_results <= 10:
+            raise InvalidParameterValue(
+                "Value for parameter MaxResults is invalid. Reason: Must be between 1 and 10."
+            )
+        tasks = [
+            task
+            for task in self.message_move_tasks.values()
+            if task.source_arn == source_arn
+        ]
+        # Most recent first
+        return list(reversed(tasks))[:max_results]
+
+    def cancel_message_move_task(self, task_handle: str) -> int:
+        """
+        Only RUNNING tasks can be cancelled. Message move tasks complete as soon as they are created, so cancelling an existing task always raises an UnsupportedOperation error.
+        """
+        task = self.message_move_tasks.get(task_handle)
+        if task is None:
+            raise ResourceNotFoundException("Task does not exist.")
+        raise UnsupportedOperation(
+            f"Only RUNNING tasks can be cancelled. Current status of the task is {task.status}."
+        )
 
     def add_permission(
         self,
