@@ -8,7 +8,6 @@ import datetime
 import gzip
 import itertools
 import json
-import os
 import string
 import sys
 import tempfile
@@ -466,7 +465,7 @@ class FakeMultipart(BaseModel):
         self.partlist: list[int] = []  # ordered list of part ID's
         # Sizes of the parts that make up the completed object, in order.
         self.completed_part_sizes: list[int] = []
-        rand_b64 = base64.b64encode(os.urandom(UPLOAD_ID_BYTES))
+        rand_b64 = base64.b64encode(random.randbytes(UPLOAD_ID_BYTES))
         self.id = (
             rand_b64.decode("utf-8").replace("=", "").replace("+", "").replace("/", "")
         )

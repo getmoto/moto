@@ -431,6 +431,33 @@ def test_multipart_upload_cancel():
     assert "Uploads" not in s3_client.list_multipart_uploads(Bucket=bucket_name)
 
 
+def _seed(a: int) -> None:
+    base = (
+        "http://localhost:5000"
+        if settings.TEST_SERVER_MODE
+        else "https://motoapi.amazonaws.com"
+    )
+    kwargs = {}
+    if settings.is_test_proxy_mode():
+        add_proxy_details(kwargs)
+    requests.post(f"{base}/moto-api/seed?a={a}", **kwargs)
+
+
+@mock_aws
+def test_multipart_upload_ids_follow_the_seed():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
+
+    _seed(42)
+    first = client.create_multipart_upload(Bucket=bucket_name, Key="k")["UploadId"]
+    _seed(42)
+    second = client.create_multipart_upload(Bucket=bucket_name, Key="k")["UploadId"]
+
+    assert first == second
+    assert re.match(r"^[A-Za-z0-9]{40,}$", first)
+
+
 @mock_aws
 @reduced_min_part_size
 def test_multipart_etag_quotes_stripped():
