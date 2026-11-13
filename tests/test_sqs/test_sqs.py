@@ -1517,7 +1517,7 @@ def test_send_large_message_fails():
 def test_message_becomes_inflight_when_received():
     sqs = boto3.resource("sqs", region_name="eu-west-1")
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "1"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "5"}
     )
 
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
@@ -1535,7 +1535,7 @@ def test_message_becomes_inflight_when_received():
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
     # Wait
-    time.sleep(1.1)
+    time.sleep(5.5)
 
     queue.reload()
     assert queue.attributes["ApproximateNumberOfMessages"] == "1"
@@ -1545,7 +1545,7 @@ def test_message_becomes_inflight_when_received():
 def test_receive_message_with_explicit_visibility_timeout():
     sqs = boto3.resource("sqs", region_name=REGION)
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "1"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "1"}
     )
 
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
@@ -1567,7 +1567,7 @@ def test_receive_message_with_explicit_visibility_timeout():
 def test_change_message_visibility():
     sqs = boto3.resource("sqs", region_name=REGION)
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "5"}
     )
 
     body = "this is a test message"
@@ -1582,7 +1582,7 @@ def test_change_message_visibility():
     queue.reload()
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
-    messages[0].change_visibility(VisibilityTimeout=2)
+    messages[0].change_visibility(VisibilityTimeout=5)
 
     # Wait
     time.sleep(1)
@@ -1591,7 +1591,7 @@ def test_change_message_visibility():
     queue.reload()
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
-    time.sleep(1.1)
+    time.sleep(4.5)
 
     # Message now becomes visible
     queue.reload()
@@ -1624,7 +1624,7 @@ def test_change_message_visibility_on_unknown_receipt_handle():
 def test_queue_length():
     sqs = boto3.resource("sqs", region_name=REGION)
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "2"}
     )
 
     queue.send_message(MessageBody="this is a test message")
@@ -1638,7 +1638,7 @@ def test_queue_length():
 def test_delete_batch_operation():
     sqs = boto3.resource("sqs", region_name=REGION)
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "2"}
     )
 
     queue.send_message(MessageBody="test message 1")
@@ -1660,7 +1660,7 @@ def test_delete_batch_operation():
 def test_change_message_visibility_on_old_message():
     sqs = boto3.resource("sqs", region_name=REGION)
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "1"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "5"}
     )
 
     queue.send_message(MessageBody="test message 1")
@@ -1674,7 +1674,7 @@ def test_change_message_visibility_on_old_message():
     queue.reload()
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
-    time.sleep(1.1)
+    time.sleep(5.5)
 
     queue.reload()
     assert queue.attributes["ApproximateNumberOfMessages"] == "1"
@@ -1688,7 +1688,7 @@ def test_change_message_visibility_on_old_message():
     # Docs indicate this should throw a MessageNotInflight, but this is allowed in AWS
     original_message.change_visibility(VisibilityTimeout=100)
 
-    time.sleep(1.2)
+    time.sleep(5.5)
 
     # Message is not yet available, because of the visibility-timeout
     messages = queue.receive_messages(MaxNumberOfMessages=1)
@@ -1699,7 +1699,7 @@ def test_change_message_visibility_on_old_message():
 def test_change_message_visibility_on_visible_message():
     sqs = boto3.resource("sqs", region_name=REGION)
     queue = sqs.create_queue(
-        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "1"}
+        QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout": "5"}
     )
 
     queue.send_message(MessageBody="test message")
@@ -1710,7 +1710,7 @@ def test_change_message_visibility_on_visible_message():
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
     # Sleep longer then timeout - message is available again
-    time.sleep(1.1)
+    time.sleep(5.5)
 
     messages = queue.receive_messages(MaxNumberOfMessages=1)
     assert len(messages) == 1
@@ -1718,7 +1718,7 @@ def test_change_message_visibility_on_visible_message():
     messages[0].change_visibility(VisibilityTimeout=100)
 
     # Sleep longer then original timeout, but shorter then new timeout - message is not yet available
-    time.sleep(1.1)
+    time.sleep(5.5)
 
     queue.reload()
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
@@ -1822,7 +1822,7 @@ def test_delete_message_after_visibility_timeout():
     sqs = boto3.resource("sqs", region_name=REGION)
     queue = sqs.create_queue(
         QueueName=str(uuid4())[0:6],
-        Attributes={"VisibilityTimeout ": f"{VISIBILITY_TIMEOUT}"},
+        Attributes={"VisibilityTimeout": f"{VISIBILITY_TIMEOUT}"},
     )
 
     queue.send_message(MessageBody="Message 1!")
