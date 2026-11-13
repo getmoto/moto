@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 from moto.core.common_models import BackendDict
+from moto.moto_api._internal import mock_random
 from moto.stepfunctions.models import StateMachine, StepFunctionBackend
 from moto.stepfunctions.parser.api import (
     Definition,
@@ -165,6 +166,8 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         execution_input: SensitiveData = None,
         trace_header: TraceHeader = None,
     ) -> Execution:
+        # As the default backend and AWS: an execution started without a name gets a uuid
+        name = name or str(mock_random.uuid4())
         state_machine = self.describe_state_machine(state_machine_arn)
         existing_execution = state_machine._handle_name_input_idempotency(
             name, execution_input

@@ -1,7 +1,7 @@
 import json
 from time import sleep
 from unittest import SkipTest
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import boto3
 import pytest
@@ -9,6 +9,7 @@ import pytest
 from moto import mock_aws, settings
 
 from . import (
+    _get_default_role,
     _teardown,
     allow_aws_request,
     aws_verified,
@@ -229,3 +230,24 @@ def test_state_machine_can_be_executed_multiple_times():
             assert status == "SUCCEEDED"
     finally:
         _teardown(client, iam, role_name, state_machine_arn)
+
+
+@mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
+def test_start_execution_without_name():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("The execution engine can only be enabled in decorator mode")
+    client = boto3.client("stepfunctions", region_name="us-east-1")
+    definition = {"StartAt": "P", "States": {"P": {"Type": "Pass", "End": True}}}
+    state_machine_arn = client.create_state_machine(
+        name="unnamed", definition=json.dumps(definition), roleArn=_get_default_role()
+    )["stateMachineArn"]
+
+    first = client.start_execution(stateMachineArn=state_machine_arn)
+    second = client.start_execution(stateMachineArn=state_machine_arn)
+
+    assert first["executionArn"] != second["executionArn"]
+    for execution in (first, second):
+        name = execution["executionArn"].split(":")[-1]
+        UUID(name)
+        described = client.describe_execution(executionArn=execution["executionArn"])
+        assert described["name"] == name
