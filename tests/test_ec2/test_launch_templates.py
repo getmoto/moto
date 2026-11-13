@@ -583,6 +583,51 @@ def test_get_launch_template_data():
 
 
 @mock_aws
+@pytest.mark.parametrize("resource_count", [1, 2])
+def test_get_launch_template_data_preserves_devices_and_security_groups(resource_count):
+    client = boto3.client("ec2", region_name="us-east-1")
+    vpc_id = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet_id = client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24")["Subnet"][
+        "SubnetId"
+    ]
+    group_ids = [
+        client.create_security_group(
+            GroupName=f"group-{index}", Description="test", VpcId=vpc_id
+        )["GroupId"]
+        for index in range(resource_count)
+    ]
+    device_names = ["/dev/sdf", "/dev/sdg"][:resource_count]
+    instance = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        BlockDeviceMappings=[
+            {"DeviceName": name, "Ebs": {"VolumeSize": 8}} for name in device_names
+        ],
+        NetworkInterfaces=[
+            {"DeviceIndex": 0, "SubnetId": subnet_id, "Groups": group_ids}
+        ],
+    )["Instances"][0]
+
+    data = client.get_launch_template_data(InstanceId=instance["InstanceId"])[
+        "LaunchTemplateData"
+    ]
+    assert {mapping["DeviceName"] for mapping in data["BlockDeviceMappings"]} == set(
+        device_names
+    )
+    assert set(data["NetworkInterfaces"][0]["Groups"]) == set(group_ids)
+
+    template = client.create_launch_template(
+        LaunchTemplateName=str(uuid4()), LaunchTemplateData=data
+    )["LaunchTemplate"]
+    saved_data = client.describe_launch_template_versions(
+        LaunchTemplateId=template["LaunchTemplateId"]
+    )["LaunchTemplateVersions"][0]["LaunchTemplateData"]
+    assert saved_data["BlockDeviceMappings"] == data["BlockDeviceMappings"]
+    assert saved_data["NetworkInterfaces"] == data["NetworkInterfaces"]
+
+
+@mock_aws
 @pytest.mark.parametrize(
     "tag_specification_input",
     [
