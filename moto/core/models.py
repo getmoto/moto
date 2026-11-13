@@ -112,14 +112,25 @@ class MockAWS(AbstractContextManager["MockAWS"]):
                 self._disable_patching(remove_data)
 
     def _decorate_callable(
-        self, func: "Callable[P, T]", reset: bool, remove_data: bool
+        self,
+        func: "Callable[P, T]",
+        reset: bool,
+        remove_data: bool,
+        *,
+        unittest_setup: Callable[..., Any] | None = None,
     ) -> "Callable[P, T]":
         def wrapper(*args: Any, **kwargs: Any) -> T:
-            self.start(reset=reset)
+            preserve_data = (
+                unittest_setup is not None
+                and bool(args)
+                and isinstance(args[0], unittest.TestCase)
+                and getattr(args[0].setUp, "__func__", None) is unittest_setup
+            )
+            self.start(reset=reset and not preserve_data)
             try:
                 result = func(*args, **kwargs)
             finally:
-                self.stop(remove_data=remove_data)
+                self.stop(remove_data=remove_data and not preserve_data)
             return result
 
         functools.update_wrapper(wrapper, func)
@@ -145,7 +156,12 @@ class MockAWS(AbstractContextManager["MockAWS"]):
             or "setup_method" in supermethods
         )
 
-        for attr in itertools.chain(direct_methods, defined_classes):
+        # Wrap setUp first so test wrappers can identify the setup they preserve.
+        decorated_setup = None
+        for attr in sorted(
+            itertools.chain(direct_methods, defined_classes),
+            key=lambda name: name != "setUp",
+        ):
             if attr.startswith("_"):
                 continue
 
@@ -185,7 +201,22 @@ class MockAWS(AbstractContextManager["MockAWS"]):
                     # Method is a test, but was already reset while executing the setUp-method
                     pass
                 kwargs = {"reset": should_reset, "remove_data": should_remove_data}
-                setattr(klass, attr, self(attr_value, **kwargs))
+                if (
+                    should_reset
+                    and is_test_method
+                    and attr in direct_methods
+                    and decorated_setup is not None
+                ):
+                    # A decorated mixin can acquire TestCase through a subclass.
+                    # Its setUp already reset the state before this test runs.
+                    decorated = self._decorate_callable(
+                        attr_value, unittest_setup=decorated_setup, **kwargs
+                    )
+                else:
+                    decorated = self(attr_value, **kwargs)
+                setattr(klass, attr, decorated)
+                if attr == "setUp":
+                    decorated_setup = decorated
             except TypeError:
                 # Sometimes we can't set this for built-in types
                 continue
