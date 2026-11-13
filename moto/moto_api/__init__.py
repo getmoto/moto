@@ -60,6 +60,9 @@ state_manager.register_default_transition(
     "s3::keyrestore", transition={"progression": "immediate"}
 )
 state_manager.register_default_transition(
+    "sqs::messagemovetask", transition={"progression": "immediate"}
+)
+state_manager.register_default_transition(
     model_name="support::case", transition={"progression": "manual", "times": 1}
 )
 state_manager.register_default_transition(
