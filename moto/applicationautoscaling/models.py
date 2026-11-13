@@ -1,16 +1,26 @@
 import re
 import time
 from collections import OrderedDict
+from collections.abc import Iterator
 from enum import Enum, unique
 from typing import TYPE_CHECKING, Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.ecs import ecs_backends
 from moto.moto_api._internal import mock_random
+from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
-from .exceptions import AWSValidationException
+from .exceptions import (
+    AWSValidationException,
+    ResourceNotFoundException,
+    TooManyTagsException,
+)
+
+# AWS allows up to 50 tags per scalable target
+MAX_TAGS_PER_RESOURCE = 50
 
 if TYPE_CHECKING:
     from moto.cloudwatch.models import Alarm
@@ -70,13 +80,16 @@ class ScalableDimensionValueSet(Enum):
     KAFKA_BROKER_STORAGE_VOLUME_SIZE = "kafka:broker-storage:VolumeSize"
 
 
-class ApplicationAutoscalingBackend(BaseBackend):
+class ApplicationAutoscalingBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "application-autoscaling"
+
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.ecs_backend = ecs_backends[account_id][region_name]
         self.targets: dict[str, dict[str, FakeScalableTarget]] = OrderedDict()
         self.policies: dict[str, FakeApplicationAutoscalingPolicy] = {}
         self.scheduled_actions: list[FakeScheduledAction] = []
+        self.tagger = TaggingService()
 
     def describe_scalable_targets(
         self, namespace: str, r_ids: None | list[str], dimension: None | str
@@ -108,6 +121,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         max_capacity: int | None,
         role_arn: str,
         suspended_state: str,
+        tags: dict[str, str] | None = None,
     ) -> "FakeScalableTarget":
         _ = _target_params_are_valid(namespace, r_id, dimension)
         if namespace == ServiceNamespaceValueSet.ECS.value:
@@ -127,6 +141,8 @@ class ApplicationAutoscalingBackend(BaseBackend):
                 suspended_state,
             )
             self._add_scalable_target(target)
+        if tags:
+            self.tag_resource(target.arn, tags)
         return target
 
     def _scalable_target_exists(self, r_id: str, dimension: str) -> bool:
@@ -155,7 +171,8 @@ class ApplicationAutoscalingBackend(BaseBackend):
         self, namespace: str, r_id: str, dimension: str
     ) -> None:
         if self._scalable_target_exists(r_id, dimension):
-            del self.targets[dimension][r_id]
+            target = self.targets[dimension].pop(r_id)
+            self.tagger.delete_all_tags_for_resource(target.arn)
         else:
             raise AWSValidationException(
                 f"No scalable target found for service namespace: {namespace}, resource ID: {r_id}, scalable dimension: {dimension}"
@@ -338,6 +355,42 @@ class ApplicationAutoscalingBackend(BaseBackend):
                 self.region_name,
             )
             self.scheduled_actions.append(action)
+
+    def _get_scalable_target_by_arn(self, arn: str) -> "FakeScalableTarget":
+        for targets in self.targets.values():
+            for target in targets.values():
+                if target.arn == arn:
+                    return target
+        raise ResourceNotFoundException(f"No scalable target found for ARN: {arn}")
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        target = self._get_scalable_target_by_arn(resource_arn)
+        return self.tagger.get_tag_dict_for_resource(target.arn)
+
+    # Also used by the Resource Groups Tagging API (TaggableResourcesMixin)
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
+        target = self._get_scalable_target_by_arn(arn)
+        new_tags = {**self.tagger.get_tag_dict_for_resource(target.arn), **tags}
+        if len(new_tags) > MAX_TAGS_PER_RESOURCE:
+            raise TooManyTagsException(
+                f"A scalable target can have at most {MAX_TAGS_PER_RESOURCE} tags"
+            )
+        self.tagger.tag_resource(
+            target.arn, TaggingService.convert_dict_to_tags_input(tags)
+        )
+
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
+        target = self._get_scalable_target_by_arn(arn)
+        self.tagger.untag_resource_using_names(target.arn, tag_keys)
+
+    def iter_tagged_resources(self) -> Iterator[TaggedResource]:
+        for targets in self.targets.values():
+            for target in targets.values():
+                yield TaggedResource(
+                    arn=target.arn,
+                    tags=self.tagger.get_tag_dict_for_resource(target.arn),
+                    resource_type="application-autoscaling:scalable-target",
+                )
 
 
 def _target_params_are_valid(namespace: str, r_id: str, dimension: str) -> bool:

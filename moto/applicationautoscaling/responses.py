@@ -54,8 +54,27 @@ class ApplicationAutoScalingResponse(BaseResponse):
             max_capacity=self._get_int_param("MaxCapacity"),
             role_arn=self._get_param("RoleARN"),
             suspended_state=self._get_param("SuspendedState"),
+            tags=self._get_param("Tags"),
         )
         return json.dumps({"ScalableTargetARN": target.arn})
+
+    def tag_resource(self) -> str:
+        self.applicationautoscaling_backend.tag_resource(
+            self._get_param("ResourceARN"), self._get_param("Tags")
+        )
+        return json.dumps({})
+
+    def untag_resource(self) -> str:
+        self.applicationautoscaling_backend.untag_resource(
+            self._get_param("ResourceARN"), self._get_param("TagKeys")
+        )
+        return json.dumps({})
+
+    def list_tags_for_resource(self) -> str:
+        tags = self.applicationautoscaling_backend.list_tags_for_resource(
+            self._get_param("ResourceARN")
+        )
+        return json.dumps({"Tags": tags})
 
     def deregister_scalable_target(self) -> str:
         """Deregisters a scalable target."""
