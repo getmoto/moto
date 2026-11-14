@@ -669,11 +669,17 @@ class ECRBackend(BaseBackend):
         repository_name: str,
         registry_id: str | None = None,
         image_ids: list[dict[str, str]] | None = None,
+        tag_status: str = "ANY",
     ) -> Iterable[Image]:
+        """
+        The tagStatus filter is supported. maxResults, nextToken, and the
+        imageStatus filter are not implemented.
+        """
         repository = self._get_repository(repository_name, registry_id)
 
+        images: Iterable[Image]
         if image_ids:
-            return {
+            images = {
                 repository._get_image(
                     image_id.get("imageTag"), image_id.get("imageDigest")
                 )
@@ -681,7 +687,13 @@ class ECRBackend(BaseBackend):
             }
 
         else:
-            return list(repository.images)
+            images = list(repository.images)
+
+        if tag_status == "TAGGED":
+            return [image for image in images if image.image_tags]
+        if tag_status == "UNTAGGED":
+            return [image for image in images if not image.image_tags]
+        return images
 
     def put_image(
         self,
