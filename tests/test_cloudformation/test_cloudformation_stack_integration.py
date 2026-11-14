@@ -695,7 +695,9 @@ def test_update_stack_listener_and_rule():
 
     l_rule = elbv2_conn.describe_rules(ListenerArn=listeners[0]["ListenerArn"])["Rules"]
 
-    assert l_rule[0]["Conditions"] == [{"Field": "host-header", "Values": ["*"]}]
+    assert l_rule[0]["Conditions"] == [
+        {"Field": "host-header", "Values": ["*"], "HostHeaderConfig": {"Values": ["*"]}}
+    ]
 
 
 @mock_aws
@@ -910,14 +912,24 @@ def test_stack_elbv2_resources_integration():
             },
         }
     ]
-    assert rule[0]["Conditions"] == [{"Field": "path-pattern", "Values": ["/*"]}]
+    assert rule[0]["Conditions"] == [
+        {
+            "Field": "path-pattern",
+            "Values": ["/*"],
+            "PathPatternConfig": {"Values": ["/*"]},
+        }
+    ]
 
     assert rule[1]["Priority"] == "30"
     assert rule[1]["Actions"] == [
         {"Type": "forward", "TargetGroupArn": target_groups[1]["TargetGroupArn"]}
     ]
     assert rule[1]["Conditions"] == [
-        {"Field": "host-header", "Values": ["example.com"]}
+        {
+            "Field": "host-header",
+            "Values": ["example.com"],
+            "HostHeaderConfig": {"Values": ["example.com"]},
+        }
     ]
 
     # test outputs

@@ -854,11 +854,30 @@ class ELBv2Backend(BaseBackend, TaggableResourcesMixin):
 
         # create rule
         listener_rule = FakeListenerRule(
-            listener.arn, arn, conditions, priority, fake_actions
+            listener.arn,
+            arn,
+            [self._with_both_value_forms(c) for c in conditions],
+            priority,
+            fake_actions,
         )
         listener.register(arn, listener_rule)
         self.tagging_service.tag_resource(arn, tags)
         return listener_rule
+
+    @staticmethod
+    def _with_both_value_forms(condition: dict[str, Any]) -> dict[str, Any]:
+        """
+        AWS returns host-header and path-pattern conditions with both the Values and the *Config, whichever form was used to create them
+        """
+        config_key = {
+            "host-header": "HostHeaderConfig",
+            "path-pattern": "PathPatternConfig",
+        }.get(condition.get("Field", ""))
+        if not config_key:
+            return condition
+        config = condition.get(config_key, {})
+        values = condition.get("Values") or config.get("Values", [])
+        return {**condition, "Values": values, config_key: {**config, "Values": values}}
 
     def _validate_conditions(self, conditions: list[dict[str, Any]]) -> None:
         for condition in conditions:
@@ -1636,7 +1655,7 @@ Member must satisfy regular expression pattern: {expression}"
 
         # modify rule
         if conditions:
-            rule.conditions = conditions
+            rule.conditions = [self._with_both_value_forms(c) for c in conditions]
         if actions:
             rule.actions = fake_actions
         return rule
