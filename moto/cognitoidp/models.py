@@ -2199,6 +2199,61 @@ class CognitoIdpBackend(BaseBackend):
             # We shouldn't get here due to enum validation of auth_flow
             return None  # type: ignore[return-value]
 
+    def get_tokens_from_refresh_token(
+        self, client_id: str, refresh_token: str, client_secret: str | None
+    ) -> dict[str, Any]:
+        """
+        Refresh token rotation is not yet supported - a new RefreshToken is never returned.
+        """
+        user_pool = next(
+            (p for p in self.user_pools.values() if client_id in p.clients), None
+        )
+        if user_pool is None:
+            raise ResourceNotFoundError(f"User pool client {client_id} does not exist.")
+
+        client = user_pool.clients[client_id]
+        if client.generate_secret:
+            if not client_secret:
+                raise NotAuthorizedError(
+                    f"Client {client_id} is configured for secret but secret was not received"
+                )
+            if client_secret != client.secret:
+                raise NotAuthorizedError(
+                    f"Unable to verify secret hash for client {client_id}"
+                )
+
+        if refresh_token not in user_pool.refresh_tokens:
+            raise NotAuthorizedError("Invalid Refresh Token")
+        res = user_pool.refresh_tokens[refresh_token]
+        if res is None:
+            raise NotAuthorizedError("Refresh Token has been revoked")
+        token_client_id, username, _ = res
+        if token_client_id != client_id:
+            raise NotAuthorizedError("Refresh Token has different Client")
+        # Deleting a user leaves its refresh tokens behind
+        user = user_pool._get_user(username)
+        if user is None:
+            raise NotAuthorizedError(
+                "The user has been deleted for the associated refresh token"
+            )
+        if not user.enabled:
+            raise NotAuthorizedError("User is disabled.")
+
+        (
+            access_token,
+            id_token,
+            expires_in,
+        ) = user_pool.create_tokens_from_refresh_token(refresh_token)
+
+        return {
+            "AuthenticationResult": {
+                "IdToken": id_token,
+                "AccessToken": access_token,
+                "ExpiresIn": expires_in,
+                "TokenType": "Bearer",
+            }
+        }
+
     def associate_software_token(
         self, access_token: str, session: str
     ) -> dict[str, str]:
@@ -2459,6 +2514,14 @@ class RegionAgnosticBackend:
     ) -> dict[str, Any]:
         backend = self._find_backend_for_clientid(client_id)
         return backend.initiate_auth(client_id, auth_flow, auth_parameters)
+
+    def get_tokens_from_refresh_token(
+        self, client_id: str, refresh_token: str, client_secret: str | None
+    ) -> dict[str, Any]:
+        backend = self._find_backend_for_clientid(client_id)
+        return backend.get_tokens_from_refresh_token(
+            client_id, refresh_token, client_secret
+        )
 
     def confirm_sign_up(self, client_id: str, username: str) -> str:
         backend = self._find_backend_for_clientid(client_id)
