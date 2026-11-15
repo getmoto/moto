@@ -1794,7 +1794,14 @@ class S3Response(BaseResponse):
     def _handle_range_header(
         self, request: Any, response_headers: dict[str, Any], response_content: Any
     ) -> TYPE_RESPONSE:
-        if request.method == "HEAD":
+        def read_content(start: int = 0, end: int | None = None) -> Any:
+            if isinstance(response_content, FakeKey):
+                return response_content.get_value(start, end)
+            return response_content[start:end]
+
+        if isinstance(response_content, FakeKey):
+            length = response_content.size
+        elif request.method == "HEAD":
             length = int(response_headers["content-length"])
         else:
             length = len(response_content)
@@ -1802,13 +1809,13 @@ class S3Response(BaseResponse):
 
         _, rspec = request.headers.get("range").split("=")
         if "," in rspec:
-            return 200, response_headers, response_content
+            return 200, response_headers, read_content()
 
         try:
             begin, end = [int(i) if i else None for i in rspec.split("-")]
         except ValueError:
             # if we can't parse the Range header, S3 just treat the request as a non-range request
-            return 200, response_headers, response_content
+            return 200, response_headers, read_content()
 
         if (begin is None and end == 0) or (begin is not None and begin > last):
             if request.method == "HEAD":
@@ -1824,11 +1831,11 @@ class S3Response(BaseResponse):
             end = last
         else:
             # Treat as non-range request
-            return 200, response_headers, response_content
+            return 200, response_headers, read_content()
 
         if begin > min(end, last):
             # Treat as non-range request if after the logic is applied, the start of the range is greater than the end
-            return 200, response_headers, response_content
+            return 200, response_headers, read_content()
 
         if begin or end < last:
             # range requests do not return the checksum
@@ -1836,7 +1843,7 @@ class S3Response(BaseResponse):
                 del response_headers[key]
 
         response_headers["content-range"] = f"bytes {begin}-{end}/{length}"
-        content = response_content[begin : end + 1]
+        content = read_content(begin, end + 1)
         if request.method == "HEAD":
             response_headers["content-length"] = str((end - begin) + 1)
         else:
@@ -2094,6 +2101,8 @@ class S3Response(BaseResponse):
                     raise RangeNotSatisfiable
                 response_headers["content-range"] = f"bytes 0-{key.size - 1}/{key.size}"
                 return 206, response_headers, key.value
+        if self.headers.get("range"):
+            return self._handle_range_header(self.request, response_headers, key)
         return 200, response_headers, key.value
 
     def get_object_attributes(self) -> TYPE_RESPONSE:
