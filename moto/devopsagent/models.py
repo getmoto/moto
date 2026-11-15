@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -17,9 +17,9 @@ class AgentSpace(BaseModel):
         region_name: str,
         account_id: str,
         name: str,
-        description: Optional[str],
-        locale: Optional[str],
-        kms_key_arn: Optional[str],
+        description: str | None,
+        locale: str | None,
+        kms_key_arn: str | None,
     ):
         self.region_name = region_name
         self.account_id = account_id
@@ -35,9 +35,9 @@ class AgentSpace(BaseModel):
 
     def update(
         self,
-        name: Optional[str],
-        description: Optional[str],
-        locale: Optional[str],
+        name: str | None,
+        description: str | None,
+        locale: str | None,
     ) -> None:
         if name is not None:
             self.name = name
@@ -72,10 +72,10 @@ class DevOpsAgentBackend(BaseBackend):
     def create_agent_space(
         self,
         name: str,
-        description: Optional[str],
-        locale: Optional[str],
-        kms_key_arn: Optional[str],
-        tags: Optional[dict[str, str]],
+        description: str | None,
+        locale: str | None,
+        kms_key_arn: str | None,
+        tags: dict[str, str] | None,
     ) -> AgentSpace:
         space = AgentSpace(
             region_name=self.region_name,
@@ -106,9 +106,9 @@ class DevOpsAgentBackend(BaseBackend):
     def update_agent_space(
         self,
         agent_space_id: str,
-        name: Optional[str],
-        description: Optional[str],
-        locale: Optional[str],
+        name: str | None,
+        description: str | None,
+        locale: str | None,
     ) -> AgentSpace:
         space = self.get_agent_space(agent_space_id)
         space.update(name=name, description=description, locale=locale)

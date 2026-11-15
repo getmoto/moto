@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
-from typing import IO, Optional, TypedDict
+from typing import IO, TypedDict
 
 from moto.core.exceptions import ServiceException
 
@@ -937,13 +937,11 @@ class HistoryEvent(TypedDict, total=False):
     mapIterationFailedEventDetails: MapIterationEventDetails | None
     mapIterationAbortedEventDetails: MapIterationEventDetails | None
     lambdaFunctionFailedEventDetails: LambdaFunctionFailedEventDetails | None
-    lambdaFunctionScheduleFailedEventDetails: Optional[
-        LambdaFunctionScheduleFailedEventDetails
-    ]
+    lambdaFunctionScheduleFailedEventDetails: (
+        LambdaFunctionScheduleFailedEventDetails | None
+    )
     lambdaFunctionScheduledEventDetails: LambdaFunctionScheduledEventDetails | None
-    lambdaFunctionStartFailedEventDetails: Optional[
-        LambdaFunctionStartFailedEventDetails
-    ]
+    lambdaFunctionStartFailedEventDetails: LambdaFunctionStartFailedEventDetails | None
     lambdaFunctionSucceededEventDetails: LambdaFunctionSucceededEventDetails | None
     lambdaFunctionTimedOutEventDetails: LambdaFunctionTimedOutEventDetails | None
     stateEnteredEventDetails: StateEnteredEventDetails | None

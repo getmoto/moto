@@ -19,7 +19,7 @@ from collections.abc import Iterator
 from enum import Enum
 from importlib import reload
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any
 
 from moto.cloudwatch.models import MetricDatum
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -860,9 +860,8 @@ class LifecycleRule(BaseModel):
         transitions: list[LifecycleTransition] | None = None,
         expired_object_delete_marker: str | None = None,
         nve_noncurrent_days: str | None = None,
-        noncurrent_version_transitions: Optional[
-            list[LifeCycleNoncurrentVersionTransition]
-        ] = None,
+        noncurrent_version_transitions: list[LifeCycleNoncurrentVersionTransition]
+        | None = None,
         aimu_days: str | None = None,
     ):
         self.id = rule_id

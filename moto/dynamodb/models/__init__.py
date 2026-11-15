@@ -3,7 +3,7 @@ import re
 from collections import OrderedDict
 from collections.abc import Iterator
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import JsonRESTError
@@ -361,9 +361,7 @@ class DynamoDBBackend(BaseBackend, TaggableResourcesMixin):
         expr_values: dict[str, dict[str, str]] | None = None,
         filter_expression: str | None = None,
         hash_key_conditions: list[tuple[str, dict[str, Any]]] | None = None,
-        range_key_conditions: Optional[
-            list[tuple[str, str, list[dict[str, Any]]]]
-        ] = None,
+        range_key_conditions: list[tuple[str, str, list[dict[str, Any]]]] | None = None,
         **filter_kwargs: Any,
     ) -> tuple[list[Item], int, dict[str, Any] | None]:
         table = self.get_table(table_name)
