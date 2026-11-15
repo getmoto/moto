@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -22,7 +22,7 @@ from .exceptions import ResourceNotFoundException
 class TargetAccountConfiguration(BaseModel):
     account_id: str
     role_arn: str
-    description: Optional[str]
+    description: str | None
 
     def to_dict(self) -> dict[str, Any]:
         dct: dict[str, Any] = {
@@ -58,9 +58,9 @@ class ExperimentTemplate(BaseModel):
     targets: dict[str, Any]
     actions: dict[str, Any]
     role_arn: str
-    log_configuration: Optional[dict[str, Any]]
-    experiment_options: Optional[dict[str, Any]]
-    experiment_report_configuration: Optional[dict[str, Any]]
+    log_configuration: dict[str, Any] | None
+    experiment_options: dict[str, Any] | None
+    experiment_report_configuration: dict[str, Any] | None
     creation_time: float
     last_update_time: float
     target_account_configurations: dict[str, TargetAccountConfiguration] = field(
@@ -71,7 +71,7 @@ class ExperimentTemplate(BaseModel):
     def arn(self) -> str:
         return f"arn:{get_partition(self.region_name)}:fis:{self.region_name}:{self.account_id}:experiment-template/{self.id}"
 
-    def to_dict(self, tags: Optional[dict[str, str]] = None) -> dict[str, Any]:
+    def to_dict(self, tags: dict[str, str] | None = None) -> dict[str, Any]:
         dct: dict[str, Any] = {
             "id": self.id,
             "arn": self.arn,
@@ -90,7 +90,7 @@ class ExperimentTemplate(BaseModel):
         }
         return {k: v for k, v in dct.items() if v is not None}
 
-    def to_summary_dict(self, tags: Optional[dict[str, str]] = None) -> dict[str, Any]:
+    def to_summary_dict(self, tags: dict[str, str] | None = None) -> dict[str, Any]:
         return {
             "id": self.id,
             "arn": self.arn,
@@ -124,9 +124,9 @@ class Experiment(ManagedState, BaseModel):
         targets: dict[str, Any],
         actions: dict[str, Any],
         stop_conditions: list[dict[str, Any]],
-        log_configuration: Optional[dict[str, Any]],
+        log_configuration: dict[str, Any] | None,
         experiment_options: dict[str, Any],
-        experiment_report_configuration: Optional[dict[str, Any]],
+        experiment_report_configuration: dict[str, Any] | None,
         target_account_configurations: dict[str, TargetAccountConfiguration],
         creation_time: float,
         start_time: float,
@@ -158,7 +158,7 @@ class Experiment(ManagedState, BaseModel):
         self.target_account_configurations = target_account_configurations
         self.creation_time = creation_time
         self.start_time = start_time
-        self.end_time: Optional[float] = None
+        self.end_time: float | None = None
 
     @property
     def arn(self) -> str:
@@ -199,7 +199,7 @@ class Experiment(ManagedState, BaseModel):
             for arn in target.get("resourceArns") or []
         ]
 
-    def to_summary_dict(self, tags: Optional[dict[str, str]] = None) -> dict[str, Any]:
+    def to_summary_dict(self, tags: dict[str, str] | None = None) -> dict[str, Any]:
         status = self._sync_state()
         return {
             "id": self.id,
@@ -214,7 +214,7 @@ class Experiment(ManagedState, BaseModel):
             "experimentOptions": self.experiment_options,
         }
 
-    def to_dict(self, tags: Optional[dict[str, str]] = None) -> dict[str, Any]:
+    def to_dict(self, tags: dict[str, str] | None = None) -> dict[str, Any]:
         status = self._sync_state()
         dct: dict[str, Any] = {
             "id": self.id,
@@ -284,16 +284,16 @@ class FISBackend(BaseBackend):
 
     def create_experiment_template(
         self,
-        client_token: Optional[str],
+        client_token: str | None,
         description: str,
         stop_conditions: list[dict[str, Any]],
-        targets: Optional[dict[str, Any]],
+        targets: dict[str, Any] | None,
         actions: dict[str, Any],
         role_arn: str,
-        tags: Optional[dict[str, str]] = None,
-        log_configuration: Optional[dict[str, Any]] = None,
-        experiment_options: Optional[dict[str, Any]] = None,
-        experiment_report_configuration: Optional[dict[str, Any]] = None,
+        tags: dict[str, str] | None = None,
+        log_configuration: dict[str, Any] | None = None,
+        experiment_options: dict[str, Any] | None = None,
+        experiment_report_configuration: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         # clientToken is required per the AWS API; auto-populate to match boto3's behaviour.
         token = client_token or str(mock_random.uuid4())
@@ -369,10 +369,10 @@ class FISBackend(BaseBackend):
 
     def start_experiment(
         self,
-        client_token: Optional[str],
+        client_token: str | None,
         experiment_template_id: str,
-        experiment_options: Optional[dict[str, Any]] = None,
-        tags: Optional[dict[str, str]] = None,
+        experiment_options: dict[str, Any] | None = None,
+        tags: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         # clientToken is required per the AWS API; auto-populate to match boto3's behaviour.
         token = client_token or str(mock_random.uuid4())
@@ -448,7 +448,7 @@ class FISBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_experiments(
-        self, experiment_template_id: Optional[str] = None
+        self, experiment_template_id: str | None = None
     ) -> list[Experiment]:
         experiments = list(self.experiments.values())
         if experiment_template_id:
@@ -473,11 +473,11 @@ class FISBackend(BaseBackend):
 
     def create_target_account_configuration(
         self,
-        client_token: Optional[str],
+        client_token: str | None,
         experiment_template_id: str,
         account_id: str,
         role_arn: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ) -> dict[str, Any]:
         if experiment_template_id not in self.experiment_templates:
             raise ResourceNotFoundException(
@@ -493,14 +493,14 @@ class FISBackend(BaseBackend):
     def update_experiment_template(
         self,
         id: str,
-        description: Optional[str] = None,
-        stop_conditions: Optional[list[dict[str, Any]]] = None,
-        targets: Optional[dict[str, Any]] = None,
-        actions: Optional[dict[str, Any]] = None,
-        role_arn: Optional[str] = None,
-        log_configuration: Optional[dict[str, Any]] = None,
-        experiment_options: Optional[dict[str, Any]] = None,
-        experiment_report_configuration: Optional[dict[str, Any]] = None,
+        description: str | None = None,
+        stop_conditions: list[dict[str, Any]] | None = None,
+        targets: dict[str, Any] | None = None,
+        actions: dict[str, Any] | None = None,
+        role_arn: str | None = None,
+        log_configuration: dict[str, Any] | None = None,
+        experiment_options: dict[str, Any] | None = None,
+        experiment_report_configuration: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         if id not in self.experiment_templates:
             raise ResourceNotFoundException(f"Experiment template {id} does not exist")
@@ -567,8 +567,8 @@ class FISBackend(BaseBackend):
         self,
         experiment_template_id: str,
         account_id: str,
-        role_arn: Optional[str] = None,
-        description: Optional[str] = None,
+        role_arn: str | None = None,
+        description: str | None = None,
     ) -> dict[str, Any]:
         config = self._get_target_account_configuration(
             experiment_template_id, account_id
@@ -602,7 +602,7 @@ class FISBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_experiment_resolved_targets(
-        self, experiment_id: str, target_name: Optional[str] = None
+        self, experiment_id: str, target_name: str | None = None
     ) -> list[ResolvedTarget]:
         if experiment_id not in self.experiments:
             raise ResourceNotFoundException(

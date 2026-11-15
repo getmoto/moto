@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -140,9 +140,8 @@ class ListPermissionsResourceTable:
         catalog_id: str | None,
         database_name: str,
         name: str | None,
-        table_wildcard: Optional[
-            dict[str, str]
-        ],  # Placeholder type, table_wildcard is an empty dict in docs
+        table_wildcard: dict[str, str]
+        | None,  # Placeholder type, table_wildcard is an empty dict in docs
     ):
         if name is None and table_wildcard is None:
             raise InvalidInput("Table name and table wildcard cannot both be empty.")
@@ -214,9 +213,8 @@ class ListPermissionsResourceLFTagPolicy:
 class ListPermissionsResource:
     def __init__(
         self,
-        catalog: Optional[
-            dict[str, str]
-        ],  # Placeholder type, catalog is an empty dict in docs
+        catalog: dict[str, str]
+        | None,  # Placeholder type, catalog is an empty dict in docs
         database: ListPermissionsResourceDatabase | None,
         table: ListPermissionsResourceTable | None,
         table_with_columns: ListPermissionsResourceTableWithColumns | None,

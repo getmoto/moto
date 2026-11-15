@@ -2,7 +2,7 @@
 
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.bedrock.exceptions import (
     ResourceInUseException,
@@ -205,9 +205,9 @@ class BedrockBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.model_customization_jobs: dict[str, ModelCustomizationJob] = {}
         self.custom_models: dict[str, CustomModel] = {}
-        self.model_invocation_logging_configuration: Optional[
-            model_invocation_logging_configuration
-        ] = None
+        self.model_invocation_logging_configuration: (
+            model_invocation_logging_configuration | None
+        ) = None
         self.tagger = TaggingService()
 
     def _list_arns(self) -> list[str]:
