@@ -110,6 +110,45 @@ def test_generate_fails_for_invalid_key_spec():
 
 
 @mock_aws
+def test_generate_fails_for_mac_algorithm_not_supported_by_key_spec():
+    # Arrange
+    key_id = create_hmac_key()
+    client = boto3.client("kms", region_name="eu-central-1")
+
+    # Act + Assert
+    with pytest.raises(client.exceptions.InvalidKeyUsageException):
+        client.generate_mac(
+            KeyId=key_id,
+            MacAlgorithm="HMAC_SHA_256",
+            Message=base64.b64encode(b"Hello World"),
+        )
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "key_spec,mac_algorithm",
+    [
+        ("HMAC_224", "HMAC_SHA_224"),
+        ("HMAC_256", "HMAC_SHA_256"),
+        ("HMAC_384", "HMAC_SHA_384"),
+        ("HMAC_512", "HMAC_SHA_512"),
+    ],
+)
+def test_hmac_key_metadata_lists_its_mac_algorithm(key_spec, mac_algorithm):
+    # Arrange
+    client = boto3.client("kms", region_name="eu-central-1")
+    key_id = client.create_key(KeyUsage="GENERATE_VERIFY_MAC", KeySpec=key_spec)[
+        "KeyMetadata"
+    ]["KeyId"]
+
+    # Act
+    metadata = client.describe_key(KeyId=key_id)["KeyMetadata"]
+
+    # Assert
+    assert metadata["MacAlgorithms"] == [mac_algorithm]
+
+
+@mock_aws
 def test_verify_mac():
     # Arrange
     key_id = create_hmac_key()
