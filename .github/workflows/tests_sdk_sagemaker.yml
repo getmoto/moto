@@ -12,7 +12,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v7
       with:
-        python-version: "3.12"
+        python-version: "3.15"
     - name: Install Moto
       run: |
         pip install .[sagemaker]
