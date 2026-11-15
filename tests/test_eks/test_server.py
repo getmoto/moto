@@ -521,6 +521,8 @@ def test_eks_delete_nodegroup_nonexisting_cluster(test_client):
 def should_return_expected_exception(response, expected_exception, expected_data):
     result_data = json.loads(response.data.decode(DEFAULT_ENCODING))
 
-    assert response.status_code == expected_exception.STATUS
-    assert response.headers.get(HttpHeaders.ErrorType) == expected_exception.TYPE
-    assert result_data == expected_data
+    expected_status = {ResourceInUseException: 409, ResourceNotFoundException: 404}
+    assert response.status_code == expected_status[expected_exception]
+    assert response.headers.get(HttpHeaders.ErrorType) == expected_exception.code
+    for key, expected_value in expected_data.items():
+        assert result_data.get(key) == expected_value

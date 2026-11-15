@@ -46,7 +46,8 @@ from .utils import (
 )
 
 # FIXME: Should be per user and stored in the user's profile
-COGNITO_TOTP_MFA_SECRET: Final[str] = "asdfasdfasdf"
+# Needs to be at least 80 bits for the Python OTP library
+COGNITO_TOTP_MFA_SECRET: Final[str] = "asdf" * 25
 
 
 class UserStatus(str, enum.Enum):

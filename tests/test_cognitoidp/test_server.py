@@ -5,6 +5,7 @@ import pytest
 import requests
 
 import moto.server as server
+from moto.cognitoidp.models import COGNITO_TOTP_MFA_SECRET
 from moto.server import ThreadedMotoServer
 
 
@@ -274,7 +275,9 @@ def test_associate_software_token():
             "X-Amz-Target": "AWSCognitoIdentityProviderService.AssociateSoftwareToken"
         },
     )
-    assert json.loads(res.data.decode("utf-8")) == {"SecretCode": "asdfasdfasdf"}
+    assert json.loads(res.data.decode("utf-8")) == {
+        "SecretCode": COGNITO_TOTP_MFA_SECRET
+    }
 
 
 def test_jwks_endpoint_without_auth_header():
