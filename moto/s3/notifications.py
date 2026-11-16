@@ -73,6 +73,9 @@ def _get_s3_event(
     event_time = iso_8601_datetime_with_milliseconds()
     # https://docs.aws.amazon.com/AmazonS3/latest/userguide/notification-content-structure.html
     key_name = quote_plus(key.name)
+    s3_object: dict[str, Any] = {"key": key_name, "size": key.size, "eTag": etag}
+    if bucket.is_versioned:
+        s3_object["versionId"] = key.version_id
     return {
         "Records": [
             {
@@ -88,7 +91,7 @@ def _get_s3_event(
                         "name": bucket.name,
                         "arn": bucket.arn,
                     },
-                    "object": {"key": key_name, "size": key.size, "eTag": etag},
+                    "object": s3_object,
                 },
             }
         ]
