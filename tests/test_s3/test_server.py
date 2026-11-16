@@ -79,6 +79,52 @@ def test_ranged_get_reads_only_requested_bytes(buffer_size, versioned):
             assert read.call_args_list == [call(end - start)]
 
 
+@pytest.mark.parametrize("buffer_size", [256, 16384])
+@pytest.mark.parametrize("versioned", [False, True])
+def test_upload_part_copy_reads_only_source_range(buffer_size, versioned):
+    client = authenticated_client()
+    bucket = str(uuid.uuid4())
+    client.put(f"/{bucket}")
+    if versioned:
+        client.put(
+            f"/{bucket}?versioning",
+            data="<VersioningConfiguration><Status>Enabled</Status></VersioningConfiguration>",
+        )
+    data = bytes(range(256)) * 32
+    with patch(
+        "moto.s3.models.get_s3_default_key_buffer_size", return_value=buffer_size
+    ):
+        created = client.put(f"/{bucket}/source", data=data)
+    version = created.headers.get("x-amz-version-id")
+    if versioned:
+        client.put(f"/{bucket}/source", data=b"new version")
+    key = s3_backends[DEFAULT_ACCOUNT_ID]["aws"].get_object(
+        bucket, "source", version_id=version
+    )
+    source = f"/{bucket}/source" + (f"?versionId={version}" if version else "")
+    upload = client.post(f"/{bucket}/target?uploads")
+    upload_id = xmltodict.parse(upload.data)["InitiateMultipartUploadResult"][
+        "UploadId"
+    ]
+    with patch.object(key._value_buffer, "read", wraps=key._value_buffer.read) as read:
+        response = client.put(
+            f"/{bucket}/target?uploadId={upload_id}&partNumber=1",
+            headers={
+                "x-amz-copy-source": source,
+                "x-amz-copy-source-range": "bytes=7-22",
+            },
+        )
+        assert response.status_code == 200
+        assert read.call_args_list == [call(16)]
+    etag = xmltodict.parse(response.data)["CopyPartResult"]["ETag"]
+    completed = client.post(
+        f"/{bucket}/target?uploadId={upload_id}",
+        data=f"<CompleteMultipartUpload><Part><PartNumber>1</PartNumber><ETag>{etag}</ETag></Part></CompleteMultipartUpload>",
+    )
+    assert completed.status_code == 200
+    assert client.get(f"/{bucket}/target").data == data[7:23]
+
+
 @pytest.mark.parametrize("key_name", ["bar_baz", "bar+baz", "baz bar"])
 def test_s3_server_bucket_create(key_name):
     test_client = authenticated_client()

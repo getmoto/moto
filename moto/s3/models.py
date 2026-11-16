@@ -2806,9 +2806,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
 
         src_value = self.get_object(  # type: ignore
             src_bucket_name, src_key_name, version_id=src_version_id
-        ).value
-        if start_byte is not None:
-            src_value = src_value[start_byte : end_byte + 1]
+        ).get_value(
+            start_byte if start_byte is not None else 0,
+            end_byte + 1 if start_byte is not None else None,
+        )
         return multipart.set_part(part_id, src_value)
 
     def list_objects(
