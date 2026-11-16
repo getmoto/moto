@@ -445,6 +445,8 @@ def _seed(a: int) -> None:
 
 @mock_aws
 def test_multipart_upload_ids_follow_the_seed():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Seed behaviour only needs to be tested in DecoratorMode")
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = str(uuid4())
     client.create_bucket(Bucket=bucket_name)
