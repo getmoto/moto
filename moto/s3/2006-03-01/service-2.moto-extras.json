@@ -138,6 +138,11 @@
           "resultWrapper": "ListBucketResult"
         }
       },
+      "ListParts": {
+        "output": {
+          "resultWrapper": "ListPartsResult"
+        }
+      },
       "ObjectCORSPreflightCheck": {
         "name": "ObjectCORSPreflightCheck",
         "http": {

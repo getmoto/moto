@@ -36,6 +36,36 @@ def test_s3_server_get():
     assert b"ListAllMyBucketsResult" in res.data
 
 
+@pytest.mark.parametrize("with_part", [False, True])
+def test_list_parts_xml_result(with_part):
+    test_client = authenticated_client()
+    bucket = str(uuid.uuid4())
+    path = f"/{bucket}/multipart"
+    assert test_client.put(f"/{bucket}").status_code == 200
+    created = test_client.post(path, query_string={"uploads": ""})
+    upload_id = xmltodict.parse(created.data)["InitiateMultipartUploadResult"][
+        "UploadId"
+    ]
+    if with_part:
+        uploaded = test_client.put(
+            path, query_string={"uploadId": upload_id, "partNumber": "1"}, data=b"part"
+        )
+        assert uploaded.status_code == 200
+    response = test_client.get(path, query_string={"uploadId": upload_id})
+    assert response.status_code == 200
+    result = xmltodict.parse(response.data)["ListPartsResult"]
+    assert result["@xmlns"] == "http://s3.amazonaws.com/doc/2006-03-01/"
+    assert result["Bucket"] == bucket
+    assert result["Key"] == "multipart"
+    assert result["UploadId"] == upload_id
+    if with_part:
+        assert result["Part"]["PartNumber"] == "1"
+        assert result["Part"]["ETag"] == uploaded.headers["ETag"]
+        assert result["Part"]["Size"] == "4"
+    else:
+        assert "Part" not in result
+
+
 @pytest.mark.parametrize("key_name", ["bar_baz", "bar+baz", "baz bar"])
 def test_s3_server_bucket_create(key_name):
     test_client = authenticated_client()
