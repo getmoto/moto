@@ -28,9 +28,19 @@
           "resultWrapper": "InitiateMultipartUploadResult"
         }
       },
+      "CreateSession": {
+        "output": {
+          "resultWrapper": "CreateSessionResult"
+        }
+      },
       "DeleteObjects": {
         "output": {
           "resultWrapper": "DeleteResult"
+        }
+      },
+      "GetBucketAccelerateConfiguration": {
+        "output": {
+          "resultWrapper": "AccelerateConfiguration"
         }
       },
       "GetBucketAcl": {
@@ -48,6 +58,11 @@
           "resultWrapper": "ServerSideEncryptionConfiguration"
         }
       },
+      "GetBucketLifecycle": {
+        "output": {
+          "resultWrapper": "LifecycleConfiguration"
+        }
+      },
       "GetBucketLifecycleConfiguration": {
         "output": {
           "resultWrapper": "LifecycleConfiguration"
@@ -61,6 +76,11 @@
       "GetBucketLogging": {
         "output": {
           "resultWrapper": "BucketLoggingStatus"
+        }
+      },
+      "GetBucketNotification": {
+        "output": {
+          "resultWrapper": "NotificationConfiguration"
         }
       },
       "GetBucketNotificationConfiguration": {
@@ -78,9 +98,24 @@
           "resultWrapper": "ReplicationConfiguration"
         }
       },
+      "GetBucketRequestPayment": {
+        "output": {
+          "resultWrapper": "RequestPaymentConfiguration"
+        }
+      },
       "GetBucketTagging": {
         "output": {
           "resultWrapper": "Tagging"
+        }
+      },
+      "GetBucketVersioning": {
+        "output": {
+          "resultWrapper": "VersioningConfiguration"
+        }
+      },
+      "GetBucketWebsite": {
+        "output": {
+          "resultWrapper": "WebsiteConfiguration"
         }
       },
       "GetObjectAcl": {
@@ -113,14 +148,44 @@
           "resultWrapper": "PublicAccessBlockConfiguration"
         }
       },
+      "ListBucketAnalyticsConfigurations": {
+        "output": {
+          "resultWrapper": "ListBucketAnalyticsConfigurationResult"
+        }
+      },
+      "ListBucketIntelligentTieringConfigurations": {
+        "output": {
+          "resultWrapper": "ListBucketIntelligentTieringConfigurationsOutput"
+        }
+      },
+      "ListBucketInventoryConfigurations": {
+        "output": {
+          "resultWrapper": "ListInventoryConfigurationsResult"
+        }
+      },
+      "ListBucketMetricsConfigurations": {
+        "output": {
+          "resultWrapper": "ListMetricsConfigurationsResult"
+        }
+      },
       "ListBuckets": {
         "output": {
           "resultWrapper": "ListAllMyBucketsResult"
         }
       },
+      "ListDirectoryBuckets": {
+        "output": {
+          "resultWrapper": "ListAllMyDirectoryBucketsResult"
+        }
+      },
       "ListMultipartUploads": {
         "output": {
           "resultWrapper": "ListMultipartUploadsResult"
+        }
+      },
+      "ListObjectAnnotations": {
+        "output": {
+          "resultWrapper": "ListObjectAnnotationsOutput"
         }
       },
       "ListObjectVersions": {
@@ -138,6 +203,11 @@
           "resultWrapper": "ListBucketResult"
         }
       },
+      "ListParts": {
+        "output": {
+          "resultWrapper": "ListPartsResult"
+        }
+      },
       "ObjectCORSPreflightCheck": {
         "name": "ObjectCORSPreflightCheck",
         "http": {
@@ -153,6 +223,11 @@
           "requestUri": "/{Bucket}"
         },
         "documentation":""
+      },
+      "PutObjectAnnotation": {
+        "output": {
+          "resultWrapper": "PutObjectAnnotationOutput"
+        }
       }
     },
     "shapes": {
