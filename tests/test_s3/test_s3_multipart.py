@@ -4,6 +4,7 @@ from functools import wraps
 from io import BytesIO
 from unittest import SkipTest
 from uuid import uuid4
+from xml.etree import ElementTree
 
 import boto3
 import pytest
@@ -1082,6 +1083,13 @@ def test_multipart_list_parts_invalid_argument(part_nr, msg, msg2):
 @reduced_min_part_size
 def test_multipart_list_parts():
     s3_client = boto3.client("s3", region_name="us-east-1")
+
+    def assert_xml_root(http_response, **kwargs):
+        # Boto3 accepts incorrect root tags that stricter S3 clients reject.
+        root = ElementTree.fromstring(http_response.content)
+        assert root.tag == "{http://s3.amazonaws.com/doc/2006-03-01/}ListPartsResult"
+
+    s3_client.meta.events.register("after-call.s3.ListParts", assert_xml_root)
     bucket_name = str(uuid4())
     s3_client.create_bucket(Bucket=bucket_name)
 
