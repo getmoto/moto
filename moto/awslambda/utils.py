@@ -10,6 +10,21 @@ if TYPE_CHECKING:
 ARN = namedtuple("ARN", ["region", "account", "function_name", "version"])
 LAYER_ARN = namedtuple("LAYER_ARN", ["region", "account", "layer_name", "version"])
 
+PAGINATION_MODEL = {
+    "list_code_signing_configs": {
+        "input_token": "marker",
+        "limit_key": "max_items",
+        "limit_default": 50,
+        "unique_attribute": "code_signing_config_arn",
+    },
+    "list_functions_by_code_signing_config": {
+        "input_token": "marker",
+        "limit_key": "max_items",
+        "limit_default": 50,
+        "unique_attribute": "function_arn",
+    },
+}
+
 
 def make_arn(resource_type: str, region: str, account: str, name: str) -> str:
     return (
@@ -17,6 +32,7 @@ def make_arn(resource_type: str, region: str, account: str, name: str) -> str:
     )
 
 
+make_code_signing_config_arn = partial(make_arn, "code-signing-config")
 make_event_source_mapping_arn = partial(make_arn, "event-source-mapping")
 make_function_arn = partial(make_arn, "function")
 make_layer_arn = partial(make_arn, "layer")

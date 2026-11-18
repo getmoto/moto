@@ -44,6 +44,7 @@ from moto.s3.exceptions import MissingBucket, MissingKey
 from moto.s3.models import FakeKey, s3_backends
 from moto.sqs.models import sqs_backends
 from moto.utilities.docker_utilities import DockerModel
+from moto.utilities.paginator import paginate
 from moto.utilities.utils import (
     ARN_PARTITION_REGEX,
     get_partition,
@@ -52,6 +53,8 @@ from moto.utilities.utils import (
 )
 
 from .exceptions import (
+    CodeSigningConfigInUse,
+    CodeSigningConfigNotFound,
     ConflictException,
     CrossAccountNotAllowed,
     GenericResourcNotFound,
@@ -59,6 +62,7 @@ from .exceptions import (
     InvalidRoleFormat,
     LambdaClientError,
     UnknownAliasException,
+    UnknownCodeSigningConfig,
     UnknownEventConfig,
     UnknownFunctionException,
     UnknownLayerException,
@@ -66,7 +70,9 @@ from .exceptions import (
     ValidationException,
 )
 from .utils import (
+    PAGINATION_MODEL,
     get_backend,
+    make_code_signing_config_arn,
     make_event_source_mapping_arn,
     make_function_arn,
     make_function_ver_arn,
@@ -1303,6 +1309,44 @@ class FunctionUrlConfig:
         self.last_modified = utcnow().strftime("%Y-%m-%dT%H:%M:%S")
 
 
+class CodeSigningConfig(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        description: str | None,
+        allowed_publishers: dict[str, Any],
+        code_signing_policies: dict[str, Any] | None,
+        tags: dict[str, str] | None,
+    ):
+        self.code_signing_config_id = f"csc-{random.get_random_hex(17)}"
+        self.code_signing_config_arn = make_code_signing_config_arn(
+            region, account_id, self.code_signing_config_id
+        )
+        self.description = description or ""
+        self.allowed_publishers = allowed_publishers
+        # Lambda only warns about untrusted code unless asked to enforce
+        self.code_signing_policies = code_signing_policies or {
+            "UntrustedArtifactOnDeployment": "Warn"
+        }
+        self.tags = tags or {}
+        self.last_modified = utcnow().strftime("%Y-%m-%dT%H:%M:%S.000+0000")
+
+    def update(
+        self,
+        description: str | None,
+        allowed_publishers: dict[str, Any] | None,
+        code_signing_policies: dict[str, Any] | None,
+    ) -> None:
+        if description is not None:
+            self.description = description
+        if allowed_publishers is not None:
+            self.allowed_publishers = allowed_publishers
+        if code_signing_policies is not None:
+            self.code_signing_policies = code_signing_policies
+        self.last_modified = utcnow().strftime("%Y-%m-%dT%H:%M:%S.000+0000")
+
+
 class EventSourceMapping(CloudFormationModel):
     def __init__(self, spec: dict[str, Any]):
         # required
@@ -2006,6 +2050,7 @@ class LambdaBackend(BaseBackend, TaggableResourcesMixin):
         self._lambdas = LambdaStorage(region_name=region_name, account_id=account_id)
         self._event_source_mappings: dict[str, EventSourceMapping] = {}
         self._layers = LayerStorage()
+        self._code_signing_configs: dict[str, CodeSigningConfig] = {}
 
     def create_alias(
         self,
@@ -2467,10 +2512,14 @@ class LambdaBackend(BaseBackend, TaggableResourcesMixin):
         func = self._lambdas.get_arn(function_arn)
         func.invoke(json.dumps(event), {}, {})  # type: ignore[union-attr]
 
-    def _get_resource_by_arn(self, arn: str) -> EventSourceMapping | LambdaFunction:
+    def _get_resource_by_arn(
+        self, arn: str
+    ) -> CodeSigningConfig | EventSourceMapping | LambdaFunction:
         arn_breakdown = arn.split(":")
         resource_type = arn_breakdown[len(arn_breakdown) - 2]
         resource_name = arn_breakdown[len(arn_breakdown) - 1]
+        if resource_type == "code-signing-config":
+            return self.get_code_signing_config(arn)
         if resource_type == "event-source-mapping":
             esm = self._event_source_mappings.get(resource_name)
             if not esm:
@@ -2501,6 +2550,81 @@ class LambdaBackend(BaseBackend, TaggableResourcesMixin):
     def get_function_code_signing_config(self, function_name: str) -> dict[str, Any]:
         fn = self.get_function(function_name)
         return fn.get_function_code_signing_config()
+
+    def put_function_code_signing_config(
+        self, function_name: str, code_signing_config_arn: str
+    ) -> dict[str, Any]:
+        if code_signing_config_arn not in self._code_signing_configs:
+            raise CodeSigningConfigNotFound(code_signing_config_arn)
+        fn = self.get_function(function_name)
+        fn.code_signing_config_arn = code_signing_config_arn
+        return fn.get_function_code_signing_config()
+
+    def delete_function_code_signing_config(self, function_name: str) -> None:
+        fn = self.get_function(function_name)
+        fn.code_signing_config_arn = None
+
+    def create_code_signing_config(
+        self,
+        description: str | None,
+        allowed_publishers: dict[str, Any],
+        code_signing_policies: dict[str, Any] | None,
+        tags: dict[str, str] | None,
+    ) -> CodeSigningConfig:
+        config = CodeSigningConfig(
+            account_id=self.account_id,
+            region=self.region_name,
+            description=description,
+            allowed_publishers=allowed_publishers,
+            code_signing_policies=code_signing_policies,
+            tags=tags,
+        )
+        self._code_signing_configs[config.code_signing_config_arn] = config
+        return config
+
+    def get_code_signing_config(
+        self, code_signing_config_arn: str
+    ) -> CodeSigningConfig:
+        if code_signing_config_arn not in self._code_signing_configs:
+            raise UnknownCodeSigningConfig(code_signing_config_arn)
+        return self._code_signing_configs[code_signing_config_arn]
+
+    def update_code_signing_config(
+        self,
+        code_signing_config_arn: str,
+        description: str | None,
+        allowed_publishers: dict[str, Any] | None,
+        code_signing_policies: dict[str, Any] | None,
+    ) -> CodeSigningConfig:
+        config = self.get_code_signing_config(code_signing_config_arn)
+        config.update(description, allowed_publishers, code_signing_policies)
+        return config
+
+    def delete_code_signing_config(self, code_signing_config_arn: str) -> None:
+        self.get_code_signing_config(code_signing_config_arn)
+        if self._functions_using_code_signing_config(code_signing_config_arn):
+            raise CodeSigningConfigInUse(code_signing_config_arn)
+        self._code_signing_configs.pop(code_signing_config_arn)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_code_signing_configs(self) -> list[CodeSigningConfig]:
+        return list(self._code_signing_configs.values())
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_functions_by_code_signing_config(
+        self, code_signing_config_arn: str
+    ) -> list[LambdaFunction]:
+        self.get_code_signing_config(code_signing_config_arn)
+        return self._functions_using_code_signing_config(code_signing_config_arn)
+
+    def _functions_using_code_signing_config(
+        self, code_signing_config_arn: str
+    ) -> list[LambdaFunction]:
+        return [
+            fn
+            for fn in self.list_functions()
+            if fn.code_signing_config_arn == code_signing_config_arn
+        ]
 
     def get_policy(self, function_name: str, qualifier: str | None = None) -> str:
         fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(
@@ -2664,6 +2788,12 @@ class LambdaBackend(BaseBackend, TaggableResourcesMixin):
                 arn=fn.function_arn,
                 tags=fn.tags,
                 resource_type="lambda:function",
+            )
+        for config in self._code_signing_configs.values():
+            yield TaggedResource(
+                arn=config.code_signing_config_arn,
+                tags=config.tags,
+                resource_type="lambda:code-signing-config",
             )
 
     def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
