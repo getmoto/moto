@@ -13,6 +13,7 @@ from .models import (
     cognitoidp_backends,
     find_account_region_by_value,
 )
+from .utils import get_issuer
 
 
 class CognitoIdpResponse(BaseResponse):
@@ -668,9 +669,8 @@ class CognitoIdpOpenIdConfigurationResponse(BaseResponse):
         # The issuer has to match the "iss" claim of the tokens Moto hands out.
         # The JWKS URI is relative to wherever this request was made, so that
         # it can be reached in ServerMode as well.
-        issuer = f"https://cognito-idp.{region}.amazonaws.com/{pool_id}"
         document = {
-            "issuer": issuer,
+            "issuer": get_issuer(region, pool_id),
             "jwks_uri": f"{url.scheme}://{url.netloc}/{pool_id}/.well-known/jwks.json",
             "response_types_supported": ["code", "token"],
             "scopes_supported": ["openid", "email", "phone", "profile"],

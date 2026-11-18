@@ -41,6 +41,7 @@ from .utils import (
     expand_attrs,
     flatten_attrs,
     generate_id,
+    get_issuer,
     validate_username_format,
     verify_totp,
 )
@@ -541,7 +542,7 @@ class CognitoIdpUserPool(BaseModel):
     ) -> tuple[str, int]:
         now = int(time.time())
         payload = {
-            "iss": f"https://cognito-idp.{self.region}.amazonaws.com/{self.id}",
+            "iss": get_issuer(self.region, self.id),
             "sub": self._get_user(username).id,
             "client_id" if token_use == "access" else "aud": client_id,
             "token_use": token_use,
@@ -979,6 +980,11 @@ class CognitoIdpBackend(BaseBackend):
     Call `http://localhost:5000/userpoolid/.well-known/jwks.json` instead of you're running Moto in ServerMode or Docker.
     Because Moto cannot determine this is a CognitoIDP-request based on the URL alone, you have to add an Authorization-header instead:
     `Authorization: AWS4-HMAC-SHA256 Credential=mock_access_key/20220524/us-east-1/cognito-idp/aws4_request, SignedHeaders=content-length;content-type;host;x-amz-date, Signature=asdf`
+
+    The same goes for the OpenID configuration, which is served on `/someuserpoolid/.well-known/openid-configuration`.
+    The `issuer` of this document and the `iss` claim of the tokens that Moto creates are `https://cognito-idp.us-west-2.amazonaws.com/someuserpoolid`.
+    An OpenID client that is configured with this issuer cannot find the document when you're running Moto in ServerMode or Docker.
+    Set the environment variable `MOTO_COGNITO_IDP_ISSUER_BASE_URL=http://localhost:5000` to use `http://localhost:5000/someuserpoolid` as the issuer instead.
 
     In some cases, you need to have reproducible IDs for the user pool.
     For example, a single initialization before the start of integration tests.

@@ -1,5 +1,7 @@
 import json
+import os
 from collections.abc import Iterable
+from unittest import mock
 
 import pytest
 import requests
@@ -346,6 +348,19 @@ def test_openid_configuration_endpoint_without_auth_header():
     assert (
         data["issuer"] == "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_abc123"
     )
+
+
+@pytest.mark.parametrize(
+    "base_url", ["http://localhost:5000", "http://localhost:5000/"]
+)
+def test_openid_configuration_endpoint_with_issuer_base_url(base_url: str):
+    backend = server.create_backend_app("cognito-idp")
+    test_client = backend.test_client()
+
+    with mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_ISSUER_BASE_URL": base_url}):
+        res = test_client.get("/us-east-1_abc123/.well-known/openid-configuration")
+    assert res.status_code == 200
+    assert json.loads(res.data)["issuer"] == "http://localhost:5000/us-east-1_abc123"
 
 
 def test_openid_configuration_endpoint_on_moto_server(moto_server_url: str):
