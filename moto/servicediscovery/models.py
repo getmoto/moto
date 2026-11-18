@@ -436,6 +436,10 @@ class ServiceDiscoveryBackend(BaseBackend):
             creator_request_id=creator_request_id,
             attributes=attributes,
         )
+        # Registering an existing InstanceId updates it
+        service.instances = [
+            i for i in service.instances if i.instance_id != instance_id
+        ]
         service.instances.append(instance)
         service.instances_revision[instance_id] = (
             service.instances_revision.get(instance_id, 0) + 1
