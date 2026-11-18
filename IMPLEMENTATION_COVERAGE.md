@@ -2371,7 +2371,7 @@
 
 ## cognito-idp
 <details>
-<summary>46% implemented</summary>
+<summary>47% implemented</summary>
 
 - [X] add_custom_attributes
 - [ ] add_user_pool_client_secret
@@ -2453,7 +2453,7 @@
 - [ ] get_log_delivery_configuration
 - [ ] get_provisioned_limit
 - [ ] get_signing_certificate
-- [ ] get_tokens_from_refresh_token
+- [X] get_tokens_from_refresh_token
 - [ ] get_ui_customization
 - [X] get_user
 - [ ] get_user_attribute_verification_code
