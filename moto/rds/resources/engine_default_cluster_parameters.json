@@ -1,0 +1,11 @@
+{
+  "docdb": [
+    {"ParameterName": "audit_logs", "ParameterValue": "disabled", "Description": "Enables auditing of database events.", "Source": "system", "ApplyType": "dynamic", "DataType": "string", "AllowedValues": "enabled,disabled,ddl,dml_read,dml_write,all", "IsModifiable": true, "ApplyMethod": "pending-reboot"},
+    {"ParameterName": "change_stream_log_retention_duration", "ParameterValue": "10800", "Description": "Duration of time in seconds that the change stream log is retained and can be consumed.", "Source": "system", "ApplyType": "dynamic", "DataType": "integer", "AllowedValues": "3600-86400", "IsModifiable": true, "ApplyMethod": "pending-reboot"},
+    {"ParameterName": "profiler", "ParameterValue": "disabled", "Description": "Enables profiling of database operations.", "Source": "system", "ApplyType": "dynamic", "DataType": "string", "AllowedValues": "enabled,disabled", "IsModifiable": true, "ApplyMethod": "pending-reboot"},
+    {"ParameterName": "profiler_sampling_rate", "ParameterValue": "1.0", "Description": "Fraction of slow operations that should be profiled or logged.", "Source": "system", "ApplyType": "dynamic", "DataType": "float", "AllowedValues": "0.0-1.0", "IsModifiable": true, "ApplyMethod": "pending-reboot"},
+    {"ParameterName": "profiler_threshold_ms", "ParameterValue": "100", "Description": "Operations longer than profiler_threshold_ms will be logged.", "Source": "system", "ApplyType": "dynamic", "DataType": "integer", "AllowedValues": "50-2147483646", "IsModifiable": true, "ApplyMethod": "pending-reboot"},
+    {"ParameterName": "tls", "ParameterValue": "enabled", "Description": "Config to enable/disable TLS", "Source": "system", "ApplyType": "static", "DataType": "string", "AllowedValues": "disabled,enabled,fips-140-3", "IsModifiable": true, "ApplyMethod": "pending-reboot"},
+    {"ParameterName": "ttl_monitor", "ParameterValue": "enabled", "Description": "Enables TTL Monitoring", "Source": "system", "ApplyType": "dynamic", "DataType": "string", "AllowedValues": "disabled,enabled", "IsModifiable": true, "ApplyMethod": "pending-reboot"}
+  ]
+}
