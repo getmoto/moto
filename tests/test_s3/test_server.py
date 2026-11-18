@@ -1,7 +1,7 @@
 import io
 import uuid
 from unittest import SkipTest
-from unittest.mock import patch
+from unittest.mock import call, patch
 from urllib.parse import parse_qs, urlparse
 
 import boto3
@@ -13,6 +13,8 @@ from flask.testing import FlaskClient
 import moto.server as server
 from moto import settings
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
+from moto.s3.models import s3_backends
+from tests import DEFAULT_ACCOUNT_ID
 
 
 class AuthenticatedClient(FlaskClient):
@@ -34,6 +36,47 @@ def test_s3_server_get():
     res = test_client.get("/")
 
     assert b"ListAllMyBucketsResult" in res.data
+
+
+@pytest.mark.parametrize("buffer_size", [256, 16384])
+@pytest.mark.parametrize("versioned", [False, True])
+def test_ranged_get_reads_only_requested_bytes(buffer_size, versioned):
+    client = authenticated_client()
+    bucket = str(uuid.uuid4())
+    client.put(f"/{bucket}")
+    if versioned:
+        client.put(
+            f"/{bucket}?versioning",
+            data="<VersioningConfiguration><Status>Enabled</Status></VersioningConfiguration>",
+        )
+    data = bytes(range(256)) * 32
+    with patch(
+        "moto.s3.models.get_s3_default_key_buffer_size", return_value=buffer_size
+    ):
+        created = client.put(f"/{bucket}/key", data=data)
+    version = created.headers.get("x-amz-version-id")
+    if versioned:
+        client.put(f"/{bucket}/key", data=b"new version")
+    key = s3_backends[DEFAULT_ACCOUNT_ID]["aws"].get_object(
+        bucket, "key", version_id=version
+    )
+    path = f"/{bucket}/key" + (f"?versionId={version}" if version else "")
+    for spec, start, end in [
+        ("bytes=7-22", 7, 23),
+        ("bytes=8180-", 8180, len(data)),
+        ("bytes=-19", len(data) - 19, len(data)),
+    ]:
+        with patch.object(
+            key._value_buffer, "read", wraps=key._value_buffer.read
+        ) as read:
+            response = client.get(path, headers={"Range": spec})
+            assert response.status_code == 206
+            assert response.data == data[start:end]
+            assert response.headers["Content-Range"] == (
+                f"bytes {start}-{end - 1}/{len(data)}"
+            )
+            # Byte correctness alone would also pass after reading the whole key.
+            assert read.call_args_list == [call(end - start)]
 
 
 @pytest.mark.parametrize("key_name", ["bar_baz", "bar+baz", "baz bar"])
