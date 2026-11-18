@@ -1778,3 +1778,275 @@ def test_create_table_without_open_table_format_input_has_no_iceberg_type():
 
     assert table["Name"] == table_name
     assert table.get("Parameters", {}).get("table_type") != "ICEBERG"
+
+
+def _create_int_partitions(client, database_name, table_name, count):
+    columns = [helpers.create_column("int_col", "int")]
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name, partition_keys=columns)
+    for value in range(count):
+        helpers.create_partition(
+            client, database_name, table_name, values=[str(value)], columns=columns
+        )
+
+
+@mock_aws
+def test_get_partitions_pagination():
+    client = boto3.client("glue", region_name="us-east-1")
+    _create_int_partitions(client, "db", "tbl", 25)
+    kwargs = {"DatabaseName": "db", "TableName": "tbl"}
+
+    first = client.get_partitions(**kwargs, MaxResults=10)
+    assert len(first["Partitions"]) == 10
+    second = client.get_partitions(
+        **kwargs, MaxResults=10, NextToken=first["NextToken"]
+    )
+    assert len(second["Partitions"]) == 10
+    third = client.get_partitions(
+        **kwargs, MaxResults=10, NextToken=second["NextToken"]
+    )
+    assert len(third["Partitions"]) == 5
+    assert "NextToken" not in third
+
+    values = [
+        p["Values"][0] for page in (first, second, third) for p in page["Partitions"]
+    ]
+    assert sorted(values, key=int) == [str(value) for value in range(25)]
+
+    # Without MaxResults, a table this small fits in one page
+    response = client.get_partitions(**kwargs)
+    assert len(response["Partitions"]) == 25
+    assert "NextToken" not in response
+
+
+@mock_aws
+def test_get_partitions_paginator():
+    client = boto3.client("glue", region_name="us-east-1")
+    _create_int_partitions(client, "db", "tbl", 12)
+
+    pages = client.get_paginator("get_partitions").paginate(
+        DatabaseName="db",
+        TableName="tbl",
+        Expression="int_col >= 2",
+        PaginationConfig={"PageSize": 4},
+    )
+    values = [p["Values"][0] for page in pages for p in page["Partitions"]]
+    assert sorted(values, key=int) == [str(value) for value in range(2, 12)]
+
+
+@mock_aws
+def test_get_partitions_pagination_with_a_separator_in_the_values():
+    client = boto3.client("glue", region_name="us-east-1")
+    columns = [helpers.create_column("str_col", "string")]
+    helpers.create_database(client, "db")
+    helpers.create_table(client, "db", "tbl", partition_keys=columns)
+    expected = [f"a|{index}" for index in range(5)]
+    for value in expected:
+        helpers.create_partition(client, "db", "tbl", values=[value], columns=columns)
+
+    pages = client.get_paginator("get_partitions").paginate(
+        DatabaseName="db", TableName="tbl", PaginationConfig={"PageSize": 2}
+    )
+    values = [p["Values"][0] for page in pages for p in page["Partitions"]]
+    assert sorted(values) == expected
+
+
+@mock_aws
+def test_get_partitions_segments():
+    client = boto3.client("glue", region_name="us-east-1")
+    _create_int_partitions(client, "db", "tbl", 23)
+    kwargs = {"DatabaseName": "db", "TableName": "tbl"}
+
+    segments = [
+        [
+            p["Values"][0]
+            for p in client.get_partitions(
+                **kwargs, Segment={"SegmentNumber": number, "TotalSegments": 4}
+            )["Partitions"]
+        ]
+        for number in range(4)
+    ]
+    # Every partition is in exactly one segment
+    all_values = [value for segment in segments for value in segment]
+    assert sorted(all_values, key=int) == [str(value) for value in range(23)]
+
+    # A single segment holds everything
+    single = client.get_partitions(
+        **kwargs, Segment={"SegmentNumber": 0, "TotalSegments": 1}
+    )
+    assert len(single["Partitions"]) == 23
+
+
+@mock_aws
+def test_get_partitions_segments_with_an_expression_and_pagination():
+    client = boto3.client("glue", region_name="us-east-1")
+    _create_int_partitions(client, "db", "tbl", 30)
+
+    values = []
+    for number in range(3):
+        pages = client.get_paginator("get_partitions").paginate(
+            DatabaseName="db",
+            TableName="tbl",
+            Expression="int_col < 20",
+            Segment={"SegmentNumber": number, "TotalSegments": 3},
+            PaginationConfig={"PageSize": 2},
+        )
+        values += [p["Values"][0] for page in pages for p in page["Partitions"]]
+    assert sorted(values, key=int) == [str(value) for value in range(20)]
+
+
+@mock_aws
+def test_get_partitions_invalid_segment():
+    client = boto3.client("glue", region_name="us-east-1")
+    _create_int_partitions(client, "db", "tbl", 3)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(
+            DatabaseName="db",
+            TableName="tbl",
+            Segment={"SegmentNumber": 4, "TotalSegments": 4},
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "Segment number should be less than total segments."
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(
+            DatabaseName="db",
+            TableName="tbl",
+            Segment={"SegmentNumber": 0, "TotalSegments": 11},
+        )
+    assert exc.value.response["Error"]["Code"] == "ValidationException"
+    assert exc.value.response["Error"]["Message"] == (
+        "1 validation error detected: Value '11' at 'segment.totalSegments' failed to "
+        "satisfy constraint: Member must have value less than or equal to 10"
+    )
+
+
+@mock_aws
+def test_get_partitions_returns_at_most_500_per_page():
+    client = boto3.client("glue", region_name="us-east-1")
+    columns = [helpers.create_column("int_col", "int")]
+    helpers.create_database(client, "db")
+    helpers.create_table(client, "db", "tbl", partition_keys=columns)
+    for start in range(0, 600, 100):
+        client.batch_create_partition(
+            DatabaseName="db",
+            TableName="tbl",
+            PartitionInputList=[
+                helpers.create_partition_input(
+                    "db", "tbl", values=[str(value)], columns=columns
+                )
+                for value in range(start, start + 100)
+            ],
+        )
+    kwargs = {"DatabaseName": "db", "TableName": "tbl"}
+
+    # AWS accepts MaxResults up to 1000, but returns at most 500 partitions per page
+    for extra in ({}, {"MaxResults": 1000}):
+        first = client.get_partitions(**kwargs, **extra)
+        assert len(first["Partitions"]) == 500
+        rest = client.get_partitions(**kwargs, **extra, NextToken=first["NextToken"])
+        assert len(rest["Partitions"]) == 100
+        assert "NextToken" not in rest
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(**kwargs, MaxResults=1001)
+    assert exc.value.response["Error"]["Code"] == "ValidationException"
+    assert exc.value.response["Error"]["Message"] == (
+        "1 validation error detected: Value '1001' at 'maxResults' failed to satisfy "
+        "constraint: Member must have value less than or equal to 1000"
+    )
+
+
+@mock_aws
+def test_get_partitions_exclude_column_schema():
+    client = boto3.client("glue", region_name="us-east-1")
+    _create_int_partitions(client, "db", "tbl", 2)
+    kwargs = {"DatabaseName": "db", "TableName": "tbl"}
+
+    with_columns = client.get_partitions(**kwargs)["Partitions"]
+    assert all(p["StorageDescriptor"]["Columns"] for p in with_columns)
+
+    without_columns = client.get_partitions(**kwargs, ExcludeColumnSchema=True)[
+        "Partitions"
+    ]
+    assert len(without_columns) == 2
+    by_values = {tuple(p["Values"]): p for p in with_columns}
+    for partition in without_columns:
+        # As AWS returns them: the columns are an empty list, the rest is unchanged
+        expected = dict(by_values[tuple(partition["Values"])]["StorageDescriptor"])
+        expected["Columns"] = []
+        assert partition["StorageDescriptor"] == expected
+
+    # The stored partitions keep their columns
+    stored = helpers.get_partition(client, "db", "tbl", ["0"])["Partition"]
+    assert stored["StorageDescriptor"]["Columns"]
+
+
+@mock_aws
+def test_get_partitions_next_token_is_tied_to_its_request():
+    client = boto3.client("glue", region_name="us-east-1")
+    _create_int_partitions(client, "db", "tbl", 6)
+    columns = [helpers.create_column("int_col", "int")]
+    helpers.create_table(client, "db", "other", partition_keys=columns)
+    for value in range(6):
+        helpers.create_partition(
+            client, "db", "other", values=[str(value)], columns=columns
+        )
+
+    token = client.get_partitions(DatabaseName="db", TableName="tbl", MaxResults=2)[
+        "NextToken"
+    ]
+    for other_request in (
+        {"TableName": "other"},
+        {"TableName": "tbl", "Expression": "int_col > 2"},
+        {"TableName": "tbl", "Segment": {"SegmentNumber": 0, "TotalSegments": 2}},
+    ):
+        with pytest.raises(ClientError) as exc:
+            client.get_partitions(
+                DatabaseName="db", MaxResults=2, NextToken=token, **other_request
+            )
+        assert exc.value.response["Error"]["Code"] == "InvalidToken"
+
+
+@mock_aws
+def test_get_partitions_segments_stay_put_when_other_partitions_change():
+    client = boto3.client("glue", region_name="us-east-1")
+    _create_int_partitions(client, "db", "tbl", 40)
+    kwargs = {"DatabaseName": "db", "TableName": "tbl"}
+
+    def segment_values(number):
+        pages = client.get_paginator("get_partitions").paginate(
+            **kwargs, Segment={"SegmentNumber": number, "TotalSegments": 2}
+        )
+        return {p["Values"][0] for page in pages for p in page["Partitions"]}
+
+    zero, one = segment_values(0), segment_values(1)
+
+    # Partway through segment 0, a partition of segment 1 is deleted and one is added
+    first = client.get_partitions(
+        **kwargs, MaxResults=3, Segment={"SegmentNumber": 0, "TotalSegments": 2}
+    )
+    client.delete_partition(**kwargs, PartitionValues=[sorted(one, key=int)[0]])
+    helpers.create_partition(
+        client,
+        "db",
+        "tbl",
+        values=["100"],
+        columns=[helpers.create_column("int_col", "int")],
+    )
+    seen = {p["Values"][0] for p in first["Partitions"]}
+    token = first.get("NextToken")
+    while token:
+        page = client.get_partitions(
+            **kwargs,
+            MaxResults=3,
+            NextToken=token,
+            Segment={"SegmentNumber": 0, "TotalSegments": 2},
+        )
+        seen |= {p["Values"][0] for p in page["Partitions"]}
+        token = page.get("NextToken")
+    assert seen - {"100"} == zero
