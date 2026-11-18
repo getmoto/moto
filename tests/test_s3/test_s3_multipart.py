@@ -8,7 +8,7 @@ from uuid import uuid4
 import boto3
 import pytest
 import requests
-from botocore.client import ClientError
+from botocore.client import ClientError, Config
 
 import moto.s3.models as s3model
 from moto import mock_aws, settings
@@ -1637,3 +1637,191 @@ def test_create_multipart_upload_with_content_type(bucket_name=None):
     assert resp["Bucket"] == bucket_name
     assert resp["Key"] == key
     assert resp["UploadId"]
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "checksum_algorithm", ["CRC32", "CRC32C", "CRC64NVME", "SHA1", "SHA256"]
+)
+def test_list_parts_returns_part_checksums(checksum_algorithm):
+    if not CHECKSUM_ALGORITHM_AVAILABLE.get(checksum_algorithm, True):
+        raise SkipTest(f"Checksum algorithm {checksum_algorithm} is not available")
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
+
+    upload_id = client.create_multipart_upload(
+        Bucket=bucket_name, Key="the-key", ChecksumAlgorithm=checksum_algorithm
+    )["UploadId"]
+    bodies = [b"0" * 1024, b"1" * 1024]
+    uploaded = [
+        client.upload_part(
+            Bucket=bucket_name,
+            Key="the-key",
+            UploadId=upload_id,
+            PartNumber=part_number,
+            Body=body,
+            ChecksumAlgorithm=checksum_algorithm,
+        )
+        for part_number, body in enumerate(bodies, start=1)
+    ]
+
+    resp = client.list_parts(Bucket=bucket_name, Key="the-key", UploadId=upload_id)
+
+    assert resp["ChecksumAlgorithm"] == checksum_algorithm
+    assert len(resp["Parts"]) == 2
+    for part, body, upload in zip(resp["Parts"], bodies, uploaded, strict=True):
+        expected = compute_checksum(body, checksum_algorithm).decode()
+        assert upload[f"Checksum{checksum_algorithm}"] == expected
+        assert part[f"Checksum{checksum_algorithm}"] == expected
+        assert not [
+            k
+            for k in part
+            if k.startswith("Checksum") and k != f"Checksum{checksum_algorithm}"
+        ]
+
+
+@mock_aws
+def test_list_parts_computes_the_checksum_when_the_part_supplies_none():
+    # Without a supplied checksum, AWS still stores one for the upload's algorithm
+    client = boto3.client(
+        "s3",
+        region_name=DEFAULT_REGION_NAME,
+        config=Config(request_checksum_calculation="when_required"),
+    )
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
+    upload_id = client.create_multipart_upload(
+        Bucket=bucket_name, Key="the-key", ChecksumAlgorithm="SHA256"
+    )["UploadId"]
+    body = b"0" * 1024
+    upload = client.upload_part(
+        Bucket=bucket_name, Key="the-key", UploadId=upload_id, PartNumber=1, Body=body
+    )
+    # Only a checksum that was sent is echoed by UploadPart
+    assert "ChecksumSHA256" not in upload
+
+    (part,) = client.list_parts(Bucket=bucket_name, Key="the-key", UploadId=upload_id)[
+        "Parts"
+    ]
+
+    assert part["ChecksumSHA256"] == compute_checksum(body, "SHA256").decode()
+
+
+@mock_aws
+def test_list_parts_has_no_checksum_when_the_upload_has_no_algorithm():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
+    upload_id = client.create_multipart_upload(Bucket=bucket_name, Key="the-key")[
+        "UploadId"
+    ]
+    client.upload_part(
+        Bucket=bucket_name,
+        Key="the-key",
+        UploadId=upload_id,
+        PartNumber=1,
+        Body=b"0" * 1024,
+    )
+
+    resp = client.list_parts(Bucket=bucket_name, Key="the-key", UploadId=upload_id)
+
+    assert "ChecksumAlgorithm" not in resp
+    (part,) = resp["Parts"]
+    assert not [k for k in part if k.startswith("Checksum")]
+
+
+@mock_aws
+def test_list_parts_returns_the_checksum_signed_into_a_presigned_upload_part():
+    # A presigned UploadPart carries the checksum as a signed x-amz-checksum-* header,
+    # without x-amz-sdk-checksum-algorithm
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
+    upload_id = client.create_multipart_upload(
+        Bucket=bucket_name, Key="the-key", ChecksumAlgorithm="SHA256"
+    )["UploadId"]
+    body = b"0" * 1024
+    checksum = compute_checksum(body, "SHA256").decode()
+    url = client.generate_presigned_url(
+        "upload_part",
+        Params={
+            "Bucket": bucket_name,
+            "Key": "the-key",
+            "UploadId": upload_id,
+            "PartNumber": 1,
+            "ChecksumSHA256": checksum,
+        },
+    )
+    url = add_proxy_details(url) if is_test_proxy_mode() else url
+
+    resp = requests.put(url, data=body, headers={"x-amz-checksum-sha256": checksum})
+    assert resp.status_code == 200
+    assert resp.headers["x-amz-checksum-sha256"] == checksum
+
+    (part,) = client.list_parts(Bucket=bucket_name, Key="the-key", UploadId=upload_id)[
+        "Parts"
+    ]
+    assert part["ChecksumSHA256"] == checksum
+
+
+@mock_aws
+@reduced_min_part_size
+def test_multipart_round_trip_with_listed_part_checksums():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = str(uuid4())
+    client.create_bucket(Bucket=bucket_name)
+    upload_id = client.create_multipart_upload(
+        Bucket=bucket_name, Key="the-key", ChecksumAlgorithm="SHA256"
+    )["UploadId"]
+    bodies = [b"0" * REDUCED_PART_SIZE, b"1" * REDUCED_PART_SIZE, b"2"]
+    for part_number, body in enumerate(bodies, start=1):
+        client.upload_part(
+            Bucket=bucket_name,
+            Key="the-key",
+            UploadId=upload_id,
+            PartNumber=part_number,
+            Body=body,
+            ChecksumAlgorithm="SHA256",
+        )
+
+    # Resume as a client would: read back what arrived, one page at a time
+    listed = []
+    marker = 0
+    while True:
+        page = client.list_parts(
+            Bucket=bucket_name,
+            Key="the-key",
+            UploadId=upload_id,
+            PartNumberMarker=marker,
+            MaxParts=1,
+        )
+        listed.extend(page["Parts"])
+        if not page["IsTruncated"]:
+            break
+        marker = page["NextPartNumberMarker"]
+    assert [p["ChecksumSHA256"] for p in listed] == [
+        compute_checksum(body, "SHA256").decode() for body in bodies
+    ]
+
+    resp = client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key="the-key",
+        UploadId=upload_id,
+        MultipartUpload={
+            "Parts": [
+                {
+                    "PartNumber": p["PartNumber"],
+                    "ETag": p["ETag"],
+                    "ChecksumSHA256": p["ChecksumSHA256"],
+                }
+                for p in listed
+            ]
+        },
+    )
+    assert resp["ChecksumType"] == "COMPOSITE"
+    assert resp["ChecksumSHA256"].endswith("-3")
+
+    obj = client.get_object(Bucket=bucket_name, Key="the-key", ChecksumMode="ENABLED")
+    assert obj["ChecksumSHA256"] == resp["ChecksumSHA256"]
+    assert obj["Body"].read() == b"".join(bodies)
