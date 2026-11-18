@@ -1293,9 +1293,19 @@ class CloudFormationBackend(BaseBackend, TaggableResourcesMixin):
         raise ValidationError(stack_name, message)
 
     def describe_stack_resources(
-        self, stack_name: str, logical_resource_id: str
+        self,
+        stack_name: str | None,
+        logical_resource_id: str | None,
+        physical_resource_id: str | None = None,
     ) -> tuple[Stack, Iterable[type[CloudFormationModel]]]:
-        stack = self.get_stack(stack_name)
+        if stack_name and not physical_resource_id:
+            stack = self.get_stack(stack_name)
+        elif physical_resource_id and not stack_name:
+            stack = self._get_stack_by_physical_resource_id(physical_resource_id)
+        else:
+            raise ValidationError(
+                message="Either StackName or PhysicalResourceId must be specified."
+            )
 
         if logical_resource_id is not None:
             for res in stack.stack_resources:
@@ -1304,6 +1314,18 @@ class CloudFormationBackend(BaseBackend, TaggableResourcesMixin):
             return stack, []
 
         return stack, stack.stack_resources
+
+    def _get_stack_by_physical_resource_id(self, physical_resource_id: str) -> Stack:
+        for stack in self.stacks.values():
+            for resource in stack.stack_resources:
+                if (
+                    getattr(resource, "physical_resource_id", None)
+                    == physical_resource_id
+                ):
+                    return stack
+        raise ValidationError(
+            message=f"Stack for {physical_resource_id} does not exist"
+        )
 
     def list_stack_resources(
         self, stack_name_or_id: str
