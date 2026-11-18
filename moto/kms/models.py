@@ -429,7 +429,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         # Using copy() instead of deepcopy(), as the latter results in exception:
         #    TypeError: cannot pickle '_cffi_backend.FFI' object
         # Since we only update top level properties, copy() should suffice.
-        replica_key = copy(self.keys[key_id])
+        replica_key = copy(self.keys[self.get_key_id(key_id)])
         replica_key.region = replica_region
         replica_key.arn = replica_key.arn.replace(self.region_name, replica_region)
 
@@ -575,25 +575,27 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         pass
 
     def disable_key(self, key_id: str) -> None:
-        self.keys[key_id].enabled = False
-        self.keys[key_id].key_state = "Disabled"
+        key = self.keys[self.get_key_id(key_id)]
+        key.enabled = False
+        key.key_state = "Disabled"
 
     def enable_key(self, key_id: str) -> None:
-        self.keys[key_id].enabled = True
-        self.keys[key_id].key_state = "Enabled"
+        key = self.keys[self.get_key_id(key_id)]
+        key.enabled = True
+        key.key_state = "Enabled"
 
     def cancel_key_deletion(self, key_id: str) -> None:
-        self.keys[key_id].key_state = "Disabled"
-        self.keys[key_id].deletion_date = None
+        key = self.keys[self.get_key_id(key_id)]
+        key.key_state = "Disabled"
+        key.deletion_date = None
 
     def schedule_key_deletion(self, key_id: str, pending_window_in_days: int) -> float:  # type: ignore[return]
         if 7 <= pending_window_in_days <= 30:
-            self.keys[key_id].enabled = False
-            self.keys[key_id].key_state = "PendingDeletion"
-            self.keys[key_id].deletion_date = utcnow() + timedelta(
-                days=pending_window_in_days
-            )
-            return unix_time(self.keys[key_id].deletion_date)
+            key = self.keys[self.get_key_id(key_id)]
+            key.enabled = False
+            key.key_state = "PendingDeletion"
+            key.deletion_date = utcnow() + timedelta(days=pending_window_in_days)
+            return unix_time(key.deletion_date)
 
     def encrypt(
         self, key_id: str, plaintext: bytes, encryption_context: dict[str, str]

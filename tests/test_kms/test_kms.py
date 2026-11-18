@@ -649,6 +649,71 @@ def test_cancel_key_deletion():
 
 
 @mock_aws
+def test_disable_key_by_arn():
+    client = boto3.client("kms", region_name="us-east-1")
+    key_arn = create_simple_key(client, id_or_arn="Arn")
+    client.disable_key(KeyId=key_arn)
+
+    result = client.describe_key(KeyId=key_arn)
+    assert result["KeyMetadata"]["Enabled"] is False
+    assert result["KeyMetadata"]["KeyState"] == "Disabled"
+
+
+@mock_aws
+def test_enable_key_by_arn():
+    client = boto3.client("kms", region_name="us-east-1")
+    key_arn = create_simple_key(client, id_or_arn="Arn")
+    client.disable_key(KeyId=key_arn)
+    client.enable_key(KeyId=key_arn)
+
+    result = client.describe_key(KeyId=key_arn)
+    assert result["KeyMetadata"]["Enabled"] is True
+    assert result["KeyMetadata"]["KeyState"] == "Enabled"
+
+
+@mock_aws
+def test_schedule_key_deletion_by_arn():
+    client = boto3.client("kms", region_name="us-east-1")
+    key_arn = create_simple_key(client, id_or_arn="Arn")
+    response = client.schedule_key_deletion(KeyId=key_arn, PendingWindowInDays=7)
+    assert response["KeyId"] == key_arn
+
+    result = client.describe_key(KeyId=key_arn)
+    assert result["KeyMetadata"]["Enabled"] is False
+    assert result["KeyMetadata"]["KeyState"] == "PendingDeletion"
+    assert "DeletionDate" in result["KeyMetadata"]
+
+
+@mock_aws
+def test_cancel_key_deletion_by_arn():
+    client = boto3.client("kms", region_name="us-east-1")
+    key_arn = create_simple_key(client, id_or_arn="Arn")
+    client.schedule_key_deletion(KeyId=key_arn)
+    response = client.cancel_key_deletion(KeyId=key_arn)
+    assert response["KeyId"] == key_arn
+
+    result = client.describe_key(KeyId=key_arn)
+    assert result["KeyMetadata"]["KeyState"] == "Disabled"
+    assert "DeletionDate" not in result["KeyMetadata"]
+
+
+@mock_aws
+def test_replicate_key_by_arn():
+    from_region_client = boto3.client("kms", region_name="us-east-1")
+    to_region_client = boto3.client("kms", region_name="us-west-1")
+    metadata = from_region_client.create_key(MultiRegion=True)["KeyMetadata"]
+
+    replica = from_region_client.replicate_key(
+        KeyId=metadata["Arn"], ReplicaRegion="us-west-1"
+    )["ReplicaKeyMetadata"]
+
+    assert replica["KeyId"] == metadata["KeyId"]
+    assert replica["Arn"] == metadata["Arn"].replace("us-east-1", "us-west-1")
+    described = to_region_client.describe_key(KeyId=metadata["KeyId"])
+    assert described["KeyMetadata"]["Arn"] == replica["Arn"]
+
+
+@mock_aws
 def test_update_key_description():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
