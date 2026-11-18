@@ -460,7 +460,7 @@
 
 ## application-autoscaling
 <details>
-<summary>64% implemented</summary>
+<summary>84% implemented</summary>
 
 - [X] delete_scaling_policy
 - [X] delete_scheduled_action
@@ -470,12 +470,12 @@
 - [X] describe_scaling_policies
 - [X] describe_scheduled_actions
 - [ ] get_predictive_scaling_forecast
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] put_scaling_policy
 - [X] put_scheduled_action
 - [X] register_scalable_target
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 </details>
 
 ## appmesh
@@ -10099,7 +10099,7 @@
 
 ## s3vectors
 <details>
-<summary>85% implemented</summary>
+<summary>84% implemented</summary>
 
 - [X] create_index
 - [X] create_vector_bucket
