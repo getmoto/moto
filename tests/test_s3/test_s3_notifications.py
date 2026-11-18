@@ -69,6 +69,63 @@ def test_detail_type_unknown_event():
     )
 
 
+def _receive_s3_event(queue_url):
+    sqs = boto3.client("sqs", region_name=REGION_NAME)
+    for message in sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10).get(
+        "Messages", []
+    ):
+        body = json.loads(message["Body"])
+        # The first message is the s3:TestEvent that is sent when the
+        # notification configuration is created - skip it
+        if "Records" in body:
+            return body["Records"][0]
+    raise AssertionError("No S3 event was delivered to the queue")
+
+
+def _setup_bucket_with_sqs_notification(versioned):
+    s3 = boto3.client("s3", region_name=REGION_NAME)
+    sqs = boto3.client("sqs", region_name=REGION_NAME)
+    queue_url = sqs.create_queue(QueueName=str(uuid4()))["QueueUrl"]
+    queue_arn = sqs.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
+    bucket_name = str(uuid4())
+    s3.create_bucket(Bucket=bucket_name)
+    if versioned:
+        s3.put_bucket_versioning(
+            Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+        )
+    s3.put_bucket_notification_configuration(
+        Bucket=bucket_name,
+        NotificationConfiguration={
+            "QueueConfigurations": [
+                {"QueueArn": queue_arn, "Events": ["s3:ObjectCreated:*"]}
+            ]
+        },
+    )
+    return s3, queue_url, bucket_name
+
+
+@mock_aws
+def test_s3_event_contains_version_id_for_versioned_bucket():
+    s3, queue_url, bucket_name = _setup_bucket_with_sqs_notification(versioned=True)
+
+    version_id = s3.put_object(Bucket=bucket_name, Key="k", Body=b"x")["VersionId"]
+
+    record = _receive_s3_event(queue_url)
+    assert record["s3"]["object"]["versionId"] == version_id
+
+
+@mock_aws
+def test_s3_event_has_no_version_id_for_unversioned_bucket():
+    s3, queue_url, bucket_name = _setup_bucket_with_sqs_notification(versioned=False)
+
+    s3.put_object(Bucket=bucket_name, Key="k", Body=b"x")
+
+    record = _receive_s3_event(queue_url)
+    assert "versionId" not in record["s3"]["object"]
+
+
 @mock_aws
 def test_send_event_bridge_message():
     # setup mocks
