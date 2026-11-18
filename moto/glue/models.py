@@ -26,6 +26,7 @@ from .exceptions import (
     DatabaseNotFoundException,
     EntityNotFoundException,
     IllegalSessionStateException,
+    InvalidInputException,
     JobNotFoundException,
     JobRunNotFoundException,
     JsonRESTError,
@@ -221,6 +222,12 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
     SERVICE_NAMESPACE = "glue"
 
     PAGINATION_MODEL = {
+        "get_partitions": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 500,
+            "unique_attribute": "pagination_key",
+        },
         "get_connections": {
             "input_token": "next_token",
             "limit_key": "max_results",
@@ -465,8 +472,13 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         table = self.get_table(database_name, table_name)
         return table.get_partition(values)
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def get_partitions(
-        self, database_name: str, table_name: str, expression: str
+        self,
+        database_name: str,
+        table_name: str,
+        expression: str,
+        segment: dict[str, int] | None = None,
     ) -> list["FakePartition"]:
         """
         See https://docs.aws.amazon.com/glue/latest/webapi/API_GetPartitions.html
@@ -478,9 +490,32 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         - Literal dates and timestamps must be valid, i.e. no support for February 31st.
         - LIKE expressions are converted to Python regexes, escaping special characters.
           Only % and _ wildcards are supported, and SQL escaping using [] does not work.
+
+        As in AWS, a page holds at most 500 partitions, even if MaxResults is higher. AWS also
+        returns smaller pages when the partitions are large, which is not modelled here.
+
+        A Segment returns a deterministic, disjoint share of the partitions: the segments of one
+        TotalSegments together return every partition exactly once. A partition's segment depends
+        only on its own values, so it stays put while other partitions are added or removed. AWS
+        does not document how it assigns partitions to segments, so do not rely on which segment
+        returns a given partition.
+
+        Changing the table between pages may make a NextToken invalid.
         """
+        if segment is not None and segment["SegmentNumber"] >= segment["TotalSegments"]:
+            raise InvalidInputException(
+                "GetPartitions", "Segment number should be less than total segments."
+            )
         table = self.get_table(database_name, table_name)
-        return table.get_partitions(expression)
+        partitions = table.get_partitions(expression)
+        if segment is None:
+            return partitions
+        return [
+            partition
+            for partition in partitions
+            if int(partition.pagination_key, 16) % segment["TotalSegments"]
+            == segment["SegmentNumber"]
+        ]
 
     def update_partition(
         self,
@@ -1967,14 +2002,18 @@ class FakePartition(BaseModel):
         self.table_name = table_name
         self.partition_input = partiton_input
         self.values = self.partition_input.get("Values", [])
+        # The paginator joins unique attributes with "|", which a partition value may contain
+        self.pagination_key = hashlib.sha256(str(self.values).encode()).hexdigest()
 
-    def as_dict(self) -> dict[str, Any]:
-        obj = {
+    def as_dict(self, exclude_column_schema: bool = False) -> dict[str, Any]:
+        obj: dict[str, Any] = {
             "DatabaseName": self.database_name,
             "TableName": self.table_name,
             "CreationTime": self.creation_time,
         }
         obj.update(self.partition_input)
+        if exclude_column_schema and "StorageDescriptor" in obj:
+            obj["StorageDescriptor"] = {**obj["StorageDescriptor"], "Columns": []}
         return obj
 
 

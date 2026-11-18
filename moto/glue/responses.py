@@ -3,7 +3,11 @@ from typing import Any
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
-from .exceptions import EntityNotFoundException, InvalidInputException
+from .exceptions import (
+    EntityNotFoundException,
+    InvalidInputException,
+    ValidationException,
+)
 from .models import (
     FakeCrawler,
     FakeJob,
@@ -146,13 +150,63 @@ class GlueResponse(BaseResponse):
         database_name = self.parameters.get("DatabaseName")
         table_name = self.parameters.get("TableName")
         expression = self.parameters.get("Expression")
-        partitions = self.glue_backend.get_partitions(
-            database_name,  # type: ignore[arg-type]
-            table_name,  # type: ignore[arg-type]
-            expression,  # type: ignore[arg-type]
+        segment = self.parameters.get("Segment")
+        exclude_column_schema = self.parameters.get("ExcludeColumnSchema", False)
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        if max_results is not None:
+            if not 1 <= max_results <= 1000:
+                raise ValidationException(
+                    f"1 validation error detected: Value '{max_results}' at 'maxResults' "
+                    "failed to satisfy constraint: Member must have value "
+                    + (
+                        "greater than or equal to 1"
+                        if max_results < 1
+                        else "less than or equal to 1000"
+                    )
+                )
+            # AWS accepts up to 1000, but returns at most 500 partitions per page
+            max_results = min(max_results, 500)
+        if segment is not None:
+            for field, low, high in (
+                ("SegmentNumber", 0, 9),
+                ("TotalSegments", 1, 10),
+            ):
+                value = segment.get(field)
+                member = f"segment.{field[0].lower()}{field[1:]}"
+                if not isinstance(value, int):
+                    raise ValidationException(
+                        f"1 validation error detected: Value null at '{member}' failed to "
+                        "satisfy constraint: Member must not be null"
+                    )
+                if not low <= value <= high:
+                    raise ValidationException(
+                        f"1 validation error detected: Value '{value}' at '{member}' failed "
+                        "to satisfy constraint: Member must have value "
+                        + (
+                            f"greater than or equal to {low}"
+                            if value < low
+                            else f"less than or equal to {high}"
+                        )
+                    )
+        partitions, next_token = self.glue_backend.get_partitions(
+            database_name=database_name,
+            table_name=table_name,
+            expression=expression,
+            segment=segment,
+            next_token=next_token,
+            max_results=max_results,
         )
 
-        return ActionResult({"Partitions": [p.as_dict() for p in partitions]})
+        return ActionResult(
+            {
+                "Partitions": [
+                    p.as_dict(exclude_column_schema=exclude_column_schema)
+                    for p in partitions
+                ],
+                "NextToken": next_token,
+            }
+        )
 
     def get_partition(self) -> ActionResult:
         database_name = self.parameters.get("DatabaseName")

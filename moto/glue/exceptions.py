@@ -204,6 +204,11 @@ class InvalidInputException(GlueClientError):
         super().__init__("InvalidInputException", msg)
 
 
+class ValidationException(GlueClientError):
+    def __init__(self, msg: str):
+        super().__init__("ValidationException", msg)
+
+
 class GSRInvalidInputException(GlueClientError):
     def __init__(self, msg: str):
         super().__init__("InvalidInputException", msg)
