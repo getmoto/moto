@@ -198,6 +198,33 @@ def test_create_table():
 
 
 @mock_aws
+def test_get_table_populates_hive_defaults_when_omitted():
+    # Real AWS Glue defaults these fields when they are omitted from the
+    # TableInput. Clients that unbox them (e.g. the Hive metastore Glue client)
+    # NPE when they are absent, so moto must mirror the defaulting behaviour.
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    helpers.create_database(client, database_name)
+
+    table_name = "tablewithsparseinput"
+    table_input = {
+        "Name": table_name,
+        "StorageDescriptor": {
+            "Location": "s3://my-bucket/tablewithsparseinput/",
+            "Columns": [{"Name": "col1", "Type": "string"}],
+        },
+    }
+    client.create_table(DatabaseName=database_name, TableInput=table_input)
+
+    table = client.get_table(DatabaseName=database_name, Name=table_name)["Table"]
+
+    assert table["Retention"] == 0
+    assert table["StorageDescriptor"]["Compressed"] is False
+    assert table["StorageDescriptor"]["NumberOfBuckets"] == 0
+    assert table["StorageDescriptor"]["StoredAsSubDirectories"] is False
+
+
+@mock_aws
 def test_create_table_already_exists():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
