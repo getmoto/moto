@@ -121,3 +121,13 @@ class OverLimit(SQSException):
         super().__init__(
             "OverLimit", f"{count} Actions were found, maximum allowed is 7."
         )
+
+
+class ResourceNotFoundException(SQSException):
+    def __init__(self, message: str):
+        super().__init__("ResourceNotFoundException", message)
+
+
+class UnsupportedOperation(SQSException):
+    def __init__(self, message: str):
+        super().__init__("UnsupportedOperation", message)
