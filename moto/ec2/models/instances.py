@@ -19,6 +19,8 @@ from moto.ec2.models.instance_types import (
 from moto.ec2.models.launch_templates import LaunchTemplateVersion
 from moto.ec2.models.security_groups import SecurityGroup
 from moto.ec2.models.subnets import Subnet
+from moto.events.notifications import send_notification as events_send_notification
+from moto.utilities.utils import get_partition
 
 from ..exceptions import (
     AvailabilityZoneNotFromRegionError,
@@ -939,7 +941,24 @@ class InstanceBackend:
                 for volume in volumes:
                     volume.add_tags(volume_tags)
 
+            self._send_instance_state_change_notification(new_instance)
+
         return new_reservation
+
+    def _send_instance_state_change_notification(self, instance: Instance) -> None:
+        partition = get_partition(instance.region_name)
+        events_send_notification(
+            source="aws.ec2",
+            event_name=instance._state.name,
+            region=instance.region_name,
+            resources=[
+                f"arn:{partition}:ec2:{instance.region_name}:{instance.ec2_backend.account_id}:instance/{instance.id}"
+            ],
+            detail={
+                "instance-id": instance.id,
+                "state": instance._state.name,
+            },
+        )
 
     def start_instances(
         self, instance_ids: list[str]
@@ -948,6 +967,7 @@ class InstanceBackend:
         for instance in self.get_multi_instances_by_id(instance_ids):
             previous_state = instance.start()
             started_instances.append((instance, previous_state))
+            self._send_instance_state_change_notification(instance)
 
         return started_instances
 
@@ -960,6 +980,7 @@ class InstanceBackend:
                 raise OperationDisableApiStopNotPermitted(instance.id)
             previous_state = instance.stop()
             stopped_instances.append((instance, previous_state))
+            self._send_instance_state_change_notification(instance)
 
         return stopped_instances
 
@@ -974,6 +995,7 @@ class InstanceBackend:
                 raise OperationNotPermitted4(instance.id)
             previous_state = instance.terminate()
             terminated_instances.append((instance, previous_state))
+            self._send_instance_state_change_notification(instance)
 
         return terminated_instances
 
