@@ -114,10 +114,27 @@ def filter_resources(
 def md5_hash(data: Any = None) -> Any:
     """
     MD5-hashing for non-security usecases.
-    Required for Moto to work in FIPS-enabled systems
+    Required for Moto to work in FIPS-enabled systems.
+
+    Raises a RuntimeError if this build provides no MD5 at all.
     """
     args = (data,) if data else ()
-    return hashlib.md5(*args, usedforsecurity=False)  # type: ignore
+    try:
+        return hashlib.md5(*args, usedforsecurity=False)  # type: ignore
+    except (AttributeError, ValueError):
+        pass
+    try:
+        # OpenSSL 4 in FIPS mode refuses MD5 even for non-security use, and can
+        # leave hashlib without an `md5` attribute. `hashlib.new` falls back to
+        # the implementation that ships with Python, which does not go through
+        # OpenSSL, so the hashes are the same.
+        return hashlib.new("md5", *args)
+    except ValueError as exc:
+        raise RuntimeError(
+            "Moto requires the MD5 hash, which is not available in this "
+            "Python/OpenSSL build (FIPS mode, or OpenSSL 4 without MD5). "
+            "Run Moto in an environment that provides hashlib.md5."
+        ) from exc
 
 
 class LowercaseDict(MutableMapping[str, Any]):
