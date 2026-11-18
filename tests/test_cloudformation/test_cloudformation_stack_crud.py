@@ -1787,6 +1787,74 @@ def test_execute_change_set_w_name():
 
 
 @mock_aws
+def test_describe_stacks_has_no_last_updated_time_before_an_update():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
+
+    stack = cf.describe_stacks(StackName=TEST_STACK_NAME)["Stacks"][0]
+
+    assert "LastUpdatedTime" not in stack
+
+
+@mock_aws
+def test_update_stack_sets_last_updated_time():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
+
+    cf.update_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json2)
+
+    stack = cf.describe_stacks(StackName=TEST_STACK_NAME)["Stacks"][0]
+    assert stack["LastUpdatedTime"] >= stack["CreationTime"]
+
+
+@mock_aws
+def test_list_stacks_returns_last_updated_time():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
+    cf.update_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json2)
+    stack = cf.describe_stacks(StackName=TEST_STACK_NAME)["Stacks"][0]
+
+    [summary] = cf.list_stacks()["StackSummaries"]
+
+    assert summary["LastUpdatedTime"] == stack["LastUpdatedTime"]
+
+
+@mock_aws
+def test_execute_create_change_set_sets_last_updated_time():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_change_set(
+        StackName=TEST_STACK_NAME,
+        TemplateBody=dummy_template_json,
+        ChangeSetName="create",
+        ChangeSetType="CREATE",
+    )
+    stack = cf.describe_stacks(StackName=TEST_STACK_NAME)["Stacks"][0]
+    assert "LastUpdatedTime" not in stack
+
+    cf.execute_change_set(ChangeSetName="create", StackName=TEST_STACK_NAME)
+
+    stack = cf.describe_stacks(StackName=TEST_STACK_NAME)["Stacks"][0]
+    assert stack["LastUpdatedTime"] >= stack["CreationTime"]
+
+
+@mock_aws
+def test_execute_update_change_set_sets_last_updated_time():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
+    cf.create_change_set(
+        StackName=TEST_STACK_NAME,
+        TemplateBody=dummy_template_json2,
+        ChangeSetName="update",
+        ChangeSetType="UPDATE",
+    )
+
+    cf.execute_change_set(ChangeSetName="update", StackName=TEST_STACK_NAME)
+
+    stack = cf.describe_stacks(StackName=TEST_STACK_NAME)["Stacks"][0]
+    assert stack["LastUpdatedTime"] >= stack["CreationTime"]
+
+
+@mock_aws
 def test_describe_stack_pagination():
     conn = boto3.client("cloudformation", region_name=REGION_NAME)
     for i in range(100):
