@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives.twofactor import InvalidToken
 from cryptography.hazmat.primitives.twofactor.totp import TOTP
 
 from moto.moto_api._internal import mock_random as random
+from moto.settings import get_cognito_idp_issuer_base_url
 
 FORMATS = {
     "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
@@ -70,6 +71,15 @@ PAGINATION_MODEL = {
 }
 
 TOTP_TIME_STEP: int = 30
+
+
+def get_issuer(region: str, user_pool_id: str) -> str:
+    """The `iss` claim of the tokens of a user pool, and the `issuer` of its OpenID configuration."""
+    base_url = (
+        get_cognito_idp_issuer_base_url()
+        or f"https://cognito-idp.{region}.amazonaws.com"
+    )
+    return f"{base_url.rstrip('/')}/{user_pool_id}"
 
 
 def create_id() -> str:
