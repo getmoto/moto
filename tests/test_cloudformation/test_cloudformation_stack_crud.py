@@ -1878,6 +1878,80 @@ def test_describe_stack_resources_when_logical_resource_does_not_exist():
     assert response["StackResources"] == []
 
 
+two_queues_template_json = json.dumps(
+    {
+        "Resources": {
+            "Queue1": {"Type": "AWS::SQS::Queue"},
+            "Queue2": {"Type": "AWS::SQS::Queue"},
+        }
+    }
+)
+
+
+def physical_resource_id(cf, stack_name, logical_resource_id):
+    return cf.describe_stack_resource(
+        StackName=stack_name, LogicalResourceId=logical_resource_id
+    )["StackResourceDetail"]["PhysicalResourceId"]
+
+
+@mock_aws
+def test_describe_stack_resources_by_physical_resource_id():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName="other", TemplateBody=dummy_template_json)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=two_queues_template_json)
+    queue_url = physical_resource_id(cf, TEST_STACK_NAME, "Queue1")
+
+    resources = cf.describe_stack_resources(PhysicalResourceId=queue_url)[
+        "StackResources"
+    ]
+
+    # Every resource of the stack that owns the physical ID, not only the matching one
+    assert {r["LogicalResourceId"] for r in resources} == {"Queue1", "Queue2"}
+    assert {r["StackName"] for r in resources} == {TEST_STACK_NAME}
+
+
+@mock_aws
+def test_describe_stack_resources_by_physical_resource_id_and_logical_resource_id():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=two_queues_template_json)
+    queue_url = physical_resource_id(cf, TEST_STACK_NAME, "Queue1")
+
+    resources = cf.describe_stack_resources(
+        PhysicalResourceId=queue_url, LogicalResourceId="Queue2"
+    )["StackResources"]
+
+    assert [r["LogicalResourceId"] for r in resources] == ["Queue2"]
+
+
+@mock_aws
+def test_describe_stack_resources_by_unknown_physical_resource_id():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
+
+    with pytest.raises(ClientError) as exc:
+        cf.describe_stack_resources(PhysicalResourceId="unknown")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "Stack for unknown does not exist"
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "kwargs",
+    [{}, {"StackName": TEST_STACK_NAME, "PhysicalResourceId": "anything"}],
+    ids=["neither", "both"],
+)
+def test_describe_stack_resources_needs_stack_name_or_physical_resource_id(kwargs):
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
+
+    with pytest.raises(ClientError) as exc:
+        cf.describe_stack_resources(**kwargs)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "Either StackName or PhysicalResourceId must be specified."
+
+
 @mock_aws
 def test_describe_stack_by_name():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
