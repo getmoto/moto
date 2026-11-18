@@ -432,8 +432,16 @@ class Stream(CloudFormationModel):
 
         return sequence_number, shard.shard_id
 
-    def to_json(self, shard_limit: int | None = None) -> dict[str, Any]:
-        all_shards = list(self.shards.values())
+    def to_json(
+        self,
+        shard_limit: int | None = None,
+        exclusive_start_shard_id: str | None = None,
+    ) -> dict[str, Any]:
+        all_shards = [
+            shard
+            for shard in self.shards.values()
+            if not exclusive_start_shard_id or shard.shard_id > exclusive_start_shard_id
+        ]
         requested_shards = all_shards[0 : shard_limit or len(all_shards)]
         return {
             "StreamDescription": {

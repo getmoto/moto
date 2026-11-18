@@ -39,6 +39,39 @@ def test_describe_stream_limit_parameter():
 
 
 @mock_aws
+def test_describe_stream_exclusive_start_shard_id():
+    client = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "my_stream"
+
+    client.create_stream(StreamName=stream_name, ShardCount=5)
+
+    desc = client.describe_stream(
+        StreamName=stream_name, Limit=2, ExclusiveStartShardId="shardId-000000000001"
+    )["StreamDescription"]
+    assert [s["ShardId"] for s in desc["Shards"]] == [
+        "shardId-000000000002",
+        "shardId-000000000003",
+    ]
+    assert desc["HasMoreShards"] is True
+
+    desc = client.describe_stream(
+        StreamName=stream_name, Limit=2, ExclusiveStartShardId="shardId-000000000003"
+    )["StreamDescription"]
+    assert [s["ShardId"] for s in desc["Shards"]] == ["shardId-000000000004"]
+    assert desc["HasMoreShards"] is False
+
+    pages = client.get_paginator("describe_stream").paginate(
+        StreamName=stream_name, PaginationConfig={"PageSize": 2}
+    )
+    shard_ids = [
+        shard["ShardId"]
+        for page in pages
+        for shard in page["StreamDescription"]["Shards"]
+    ]
+    assert shard_ids == [f"shardId-00000000000{i}" for i in range(5)]
+
+
+@mock_aws
 def test_list_shards():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"

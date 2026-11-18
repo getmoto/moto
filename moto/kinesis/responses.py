@@ -24,8 +24,13 @@ class KinesisResponse(BaseResponse):
         stream_name = self._get_param("StreamName")
         stream_arn = self._get_param("StreamARN")
         limit = self._get_param("Limit")
+        exclusive_start_shard_id = self._get_param("ExclusiveStartShardId")
         stream = self.kinesis_backend.describe_stream(stream_arn, stream_name)
-        return ActionResult(stream.to_json(shard_limit=limit))
+        return ActionResult(
+            stream.to_json(
+                shard_limit=limit, exclusive_start_shard_id=exclusive_start_shard_id
+            )
+        )
 
     def describe_stream_summary(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
