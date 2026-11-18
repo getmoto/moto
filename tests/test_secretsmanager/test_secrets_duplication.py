@@ -360,3 +360,104 @@ def test_delete_while_duplication_exist():
 
     # Now we can delete
     use1.delete_secret(SecretId=arn)
+
+
+@mock_aws
+def test_stop_replication_to_replica():
+    use1 = boto3.client("secretsmanager", region_name="us-east-1")
+    use2 = boto3.client("secretsmanager", region_name="us-east-2")
+    usw2 = boto3.client("secretsmanager", region_name="us-west-2")
+
+    arn1 = use1.create_secret(
+        Name="dup",
+        SecretString="s1",
+        Description="desc",
+        Tags=[{"Key": "k", "Value": "v"}],
+        AddReplicaRegions=[{"Region": "us-east-2"}, {"Region": "us-west-2"}],
+    )["ARN"]
+    arn2 = arn1.replace("us-east-1", "us-east-2")
+    arn3 = arn1.replace("us-east-1", "us-west-2")
+    versions_to_stages = use1.describe_secret(SecretId=arn1)["VersionIdsToStages"]
+
+    # Promote the replica in us-east-2
+    resp = use2.stop_replication_to_replica(SecretId=arn2)
+    assert resp["ARN"] == arn2
+
+    # The promoted secret is now a standalone secret, with the same data
+    promoted = use2.describe_secret(SecretId=arn2)
+    assert promoted["ARN"] == arn2
+    assert promoted["Name"] == "dup"
+    assert promoted["Description"] == "desc"
+    assert promoted["Tags"] == [{"Key": "k", "Value": "v"}]
+    assert promoted["VersionIdsToStages"] == versions_to_stages
+    assert "PrimaryRegion" not in promoted
+    assert "ReplicationStatus" not in promoted
+    assert use2.get_secret_value(SecretId="dup")["SecretString"] == "s1"
+
+    # The promoted secret can be modified independently from the primary secret
+    use2.put_secret_value(SecretId=arn2, SecretString="s2")
+    assert use2.get_secret_value(SecretId=arn2)["SecretString"] == "s2"
+    assert use1.get_secret_value(SecretId=arn1)["SecretString"] == "s1"
+    assert usw2.get_secret_value(SecretId=arn3)["SecretString"] == "s1"
+
+    # Primary Secret no longer knows about us-east-2
+    replications = use1.describe_secret(SecretId=arn1)["ReplicationStatus"]
+    assert {rep["Region"] for rep in replications} == {"us-west-2"}
+
+    # us-west-2 is still a replica
+    assert usw2.describe_secret(SecretId=arn3)["PrimaryRegion"] == "us-east-1"
+
+    # Removing the remaining replica allows us to delete the primary secret
+    use1.remove_regions_from_replication(
+        SecretId=arn1, RemoveReplicaRegions=["us-west-2"]
+    )
+    use1.delete_secret(SecretId=arn1, ForceDeleteWithoutRecovery=True)
+
+    # The promoted secret is unaffected
+    assert use2.get_secret_value(SecretId=arn2)["SecretString"] == "s2"
+
+
+@mock_aws
+def test_stop_replication_to_replica__by_name():
+    use1 = boto3.client("secretsmanager", region_name="us-east-1")
+    use2 = boto3.client("secretsmanager", region_name="us-east-2")
+
+    arn1 = use1.create_secret(
+        Name="dup", SecretString="s1", AddReplicaRegions=[{"Region": "us-east-2"}]
+    )["ARN"]
+
+    resp = use2.stop_replication_to_replica(SecretId="dup")
+    assert resp["ARN"] == arn1.replace("us-east-1", "us-east-2")
+
+    assert "ReplicationStatus" not in use1.describe_secret(SecretId=arn1)
+    # The primary secret can now be deleted
+    use1.delete_secret(SecretId=arn1, ForceDeleteWithoutRecovery=True)
+
+
+@mock_aws
+def test_stop_replication_to_replica__unknown_secret():
+    use2 = boto3.client("secretsmanager", region_name="us-east-2")
+
+    with pytest.raises(ClientError) as exc:
+        use2.stop_replication_to_replica(SecretId="unknown")
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_stop_replication_to_replica__on_primary_secret():
+    use1 = boto3.client("secretsmanager", region_name="us-east-1")
+
+    arn1 = use1.create_secret(
+        Name="dup", SecretString="s1", AddReplicaRegions=[{"Region": "us-east-2"}]
+    )["ARN"]
+    use1.create_secret(Name="standalone", SecretString="s")
+
+    for secret_id in [arn1, "standalone"]:
+        with pytest.raises(ClientError) as exc:
+            use1.stop_replication_to_replica(SecretId=secret_id)
+        err = exc.value.response["Error"]
+        assert err["Code"] == "InvalidParameterException"
+
+    # Nothing has changed
+    replications = use1.describe_secret(SecretId=arn1)["ReplicationStatus"]
+    assert {rep["Region"] for rep in replications} == {"us-east-2"}
