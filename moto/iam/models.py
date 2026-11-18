@@ -2031,7 +2031,7 @@ class IAMBackend(BaseBackend):
         iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
         iam_policy_document_validator.validate()
 
-        clean_tags = self._tag_verification(tags)
+        clean_tags = self._tag_verification(tags, case_sensitive=True)
         policy = ManagedPolicy(
             policy_name,
             account_id=self.account_id,
@@ -2250,15 +2250,16 @@ class IAMBackend(BaseBackend):
         return list(role.policies.keys())
 
     def _tag_verification(
-        self, tags: list[dict[str, str]]
+        self, tags: list[dict[str, str]], case_sensitive: bool = False
     ) -> dict[str, dict[str, str]]:
         if len(tags) > 50:
             raise TooManyTags(tags)
 
         tag_keys: dict[str, dict[str, str]] = {}
         for tag in tags:
-            # Need to index by the lowercase tag key since the keys are case insensitive, but their case is retained.
-            ref_key = tag["Key"].lower()
+            # Users and roles have case-insensitive keys; other IAM resources
+            # can opt into keeping case-distinct keys separate.
+            ref_key = tag["Key"] if case_sensitive else tag["Key"].lower()
             self._check_tag_duplicate(tag_keys, ref_key)
             self._validate_tag_key(tag["Key"])
             if len(tag["Value"]) > 256:
@@ -2360,7 +2361,7 @@ class IAMBackend(BaseBackend):
         return tags, marker
 
     def tag_policy(self, policy_arn: str, tags: list[dict[str, str]]) -> None:
-        clean_tags = self._tag_verification(tags)
+        clean_tags = self._tag_verification(tags, case_sensitive=True)
         policy = self.get_policy(policy_arn)
         policy.tags.update(clean_tags)
 
@@ -2371,10 +2372,9 @@ class IAMBackend(BaseBackend):
         policy = self.get_policy(policy_arn)
 
         for key in tag_keys:
-            ref_key = key.lower()
             self._validate_tag_key(key, exception_param="tagKeys")
 
-            policy.tags.pop(ref_key, None)
+            policy.tags.pop(key, None)
 
     def create_policy_version(
         self, policy_arn: str, policy_document: str, set_as_default: bool
