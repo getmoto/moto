@@ -7,6 +7,7 @@ from typing import Any
 from moto.athena.exceptions import (
     InvalidArgumentException,
     MetadataException,
+    QueryExecutionNotFound,
     QueryStillRunning,
 )
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -396,6 +397,8 @@ class AthenaBackend(BaseBackend, TaggableResourcesMixin):
             self._store_query_result_in_s3(exec_id)
 
     def get_query_execution(self, exec_id: str) -> Execution:
+        if exec_id not in self.executions:
+            raise QueryExecutionNotFound(exec_id)
         execution = self.executions[exec_id]
         execution.advance()
         return execution
@@ -498,6 +501,8 @@ class AthenaBackend(BaseBackend, TaggableResourcesMixin):
             pass
 
     def stop_query_execution(self, exec_id: str) -> None:
+        if exec_id not in self.executions:
+            raise QueryExecutionNotFound(exec_id)
         execution = self.executions[exec_id]
         execution.status = "CANCELLED"
 

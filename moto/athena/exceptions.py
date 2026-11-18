@@ -38,3 +38,10 @@ class QueryStillRunning(JsonRESTError):
     def __init__(self, current_status: str | None):
         msg = f"Query has not yet finished. Current state: {current_status}"
         super().__init__("InvalidRequestException", msg)
+
+
+class QueryExecutionNotFound(JsonRESTError):
+    def __init__(self, exec_id: str):
+        super().__init__(
+            "InvalidRequestException", f"QueryExecution {exec_id} was not found"
+        )
