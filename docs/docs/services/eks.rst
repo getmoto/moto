@@ -19,7 +19,7 @@ eks
 - [ ] associate_encryption_config
 - [ ] associate_identity_provider_config
 - [ ] cancel_update
-- [ ] create_access_entry
+- [X] create_access_entry
 - [ ] create_addon
 - [ ] create_capability
 - [ ] create_certificate_authority
@@ -28,7 +28,7 @@ eks
 - [X] create_fargate_profile
 - [X] create_nodegroup
 - [ ] create_pod_identity_association
-- [ ] delete_access_entry
+- [X] delete_access_entry
 - [ ] delete_addon
 - [ ] delete_capability
 - [ ] delete_certificate_authority
@@ -38,7 +38,7 @@ eks
 - [X] delete_nodegroup
 - [ ] delete_pod_identity_association
 - [ ] deregister_cluster
-- [ ] describe_access_entry
+- [X] describe_access_entry
 - [ ] describe_addon
 - [ ] describe_addon_configuration
 - [ ] describe_addon_versions
@@ -56,7 +56,10 @@ eks
 - [ ] describe_update
 - [ ] disassociate_access_policy
 - [ ] disassociate_identity_provider_config
-- [ ] list_access_entries
+- [X] list_access_entries
+  
+The AssociatedPolicyArn-filter is not yet implemented, as access policies are not yet supported.
+
 - [ ] list_access_policies
 - [ ] list_addons
 - [ ] list_associated_access_policies
@@ -87,7 +90,7 @@ This function currently will tag an EKS cluster only.  It does not tag a managed
 This function currently will remove tags on an EKS cluster only.  It does not remove tags from a managed node group
 
 
-- [ ] update_access_entry
+- [X] update_access_entry
 - [ ] update_addon
 - [ ] update_capability
 - [X] update_cluster_config
