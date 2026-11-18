@@ -367,6 +367,22 @@ class PreconditionFailed(S3ClientError):
         self.condition = failed_condition
 
 
+class BadDigest(S3ClientError):
+    code = "BadDigest"
+
+    def __init__(self) -> None:
+        super().__init__(
+            "The Content-MD5 you specified did not match what we received."
+        )
+
+
+class InvalidDigest(S3ClientError):
+    code = "InvalidDigest"
+
+    def __init__(self) -> None:
+        super().__init__("The Content-MD5 you specified is not valid.")
+
+
 class InvalidRange(S3ClientError):
     code = "InvalidRange"
 
