@@ -2621,6 +2621,62 @@ def test_delete_connection():
     assert len(conns) == 0
 
 
+def _create_connection(client, name):
+    return client.create_connection(
+        Name=name,
+        AuthorizationType="API_KEY",
+        AuthParameters={
+            "ApiKeyAuthParameters": {"ApiKeyName": "test", "ApiKeyValue": "test"}
+        },
+    )["ConnectionArn"]
+
+
+@mock_aws
+def test_list_connections_filters():
+    client = boto3.client("events", "eu-central-1")
+    for name in ["orders-prod", "orders-dev", "billing"]:
+        _create_connection(client, name)
+
+    def names(**kwargs):
+        conns = client.list_connections(**kwargs)["Connections"]
+        return sorted(conn["Name"] for conn in conns)
+
+    assert names(NamePrefix="orders") == ["orders-dev", "orders-prod"]
+    assert names(NamePrefix="prod") == []
+    assert names(ConnectionState="AUTHORIZED") == [
+        "billing",
+        "orders-dev",
+        "orders-prod",
+    ]
+    assert names(ConnectionState="DEAUTHORIZED") == []
+
+
+@mock_aws
+def test_list_api_destinations_filters():
+    client = boto3.client("events", "eu-central-1")
+    orders_arn = _create_connection(client, "orders")
+    billing_arn = _create_connection(client, "billing")
+    for name, arn in [
+        ("orders-api", orders_arn),
+        ("orders-backup", billing_arn),
+        ("billing-api", billing_arn),
+    ]:
+        client.create_api_destination(
+            Name=name,
+            ConnectionArn=arn,
+            InvocationEndpoint="https://example.com",
+            HttpMethod="POST",
+        )
+
+    def names(**kwargs):
+        dests = client.list_api_destinations(**kwargs)["ApiDestinations"]
+        return sorted(dest["Name"] for dest in dests)
+
+    assert names(NamePrefix="orders") == ["orders-api", "orders-backup"]
+    assert names(ConnectionArn=billing_arn) == ["billing-api", "orders-backup"]
+    assert names(NamePrefix="orders", ConnectionArn=billing_arn) == ["orders-backup"]
+
+
 @mock_aws
 def test_create_and_list_api_destinations():
     client = boto3.client("events", "eu-central-1")
