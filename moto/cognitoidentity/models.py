@@ -113,8 +113,11 @@ class CognitoIdentityBackend(BaseBackend):
         """
         The AllowClassic-parameter has not yet been implemented
         """
-        pool = self.identity_pools[identity_pool_id]
-        pool.identity_pool_name = pool.identity_pool_name or identity_pool_name
+        pool = self.identity_pools.get(identity_pool_id)
+        if not pool:
+            raise ResourceNotFoundError(identity_pool_id)
+        if identity_pool_name:
+            pool.identity_pool_name = identity_pool_name
         if allow_unauthenticated is not None:
             pool.allow_unauthenticated_identities = allow_unauthenticated
         if login_providers is not None:

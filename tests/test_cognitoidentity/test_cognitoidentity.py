@@ -134,6 +134,40 @@ def test_update_identity_pool(key, initial_value, updated_value):
 
 
 @mock_aws
+def test_update_identity_pool_name():
+    conn = boto3.client("cognito-identity", "us-west-2")
+    pool_id = conn.create_identity_pool(
+        IdentityPoolName="TestPool", AllowUnauthenticatedIdentities=False
+    )["IdentityPoolId"]
+
+    response = conn.update_identity_pool(
+        IdentityPoolId=pool_id,
+        IdentityPoolName="RenamedPool",
+        AllowUnauthenticatedIdentities=False,
+    )
+    assert response["IdentityPoolName"] == "RenamedPool"
+
+    pool = conn.describe_identity_pool(IdentityPoolId=pool_id)
+    assert pool["IdentityPoolName"] == "RenamedPool"
+
+
+@mock_aws
+def test_update_identity_pool_with_invalid_id_raises_error():
+    conn = boto3.client("cognito-identity", "us-west-2")
+    with pytest.raises(ClientError) as cm:
+        conn.update_identity_pool(
+            IdentityPoolId="us-west-2_non-existent",
+            IdentityPoolName="TestPool",
+            AllowUnauthenticatedIdentities=False,
+        )
+
+    assert cm.value.operation_name == "UpdateIdentityPool"
+    assert cm.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert cm.value.response["Error"]["Message"] == "us-west-2_non-existent"
+    assert cm.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_aws
 def test_describe_identity_pool_with_invalid_id_raises_error():
     conn = boto3.client("cognito-identity", "us-west-2")
     with pytest.raises(ClientError) as cm:
