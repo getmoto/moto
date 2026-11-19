@@ -2074,14 +2074,22 @@ class EC2ContainerServiceBackend(BaseBackend, TaggableResourcesMixin):
                 )
 
     def list_task_definition_families(
-        self, family_prefix: str | None = None
+        self, family_prefix: str | None = None, status: str | None = None
     ) -> Iterator[str]:
         """
-        The Status and pagination parameters are not yet implemented
+        Pagination is not yet implemented
         """
-        for task_fam in self.task_definitions:
+        for task_fam, revisions in self.task_definitions.items():
             if family_prefix is not None and not task_fam.startswith(family_prefix):
                 continue
+
+            if status in ("ACTIVE", "INACTIVE"):
+                # A family is ACTIVE while at least one of its revisions is ACTIVE
+                has_active_revision = any(
+                    task_def.status == "ACTIVE" for task_def in revisions.values()
+                )
+                if has_active_revision != (status == "ACTIVE"):
+                    continue
 
             yield task_fam
 

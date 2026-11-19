@@ -97,7 +97,7 @@ The filter-parameter (cluster query language) is not yet implemented
 
 - [X] list_task_definition_families
   
-The Status and pagination parameters are not yet implemented
+Pagination is not yet implemented
 
 
 - [X] list_task_definitions
