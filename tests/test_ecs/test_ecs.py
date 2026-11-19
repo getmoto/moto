@@ -3535,6 +3535,31 @@ def test_list_task_definition_families():
 
 
 @mock_aws
+def test_list_task_definition_families_by_status():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    container = {"name": "hello_world", "image": "hello-world", "memory": 400}
+    for family in ["active_fam", "inactive_fam", "mixed_fam", "mixed_fam"]:
+        client.register_task_definition(family=family, containerDefinitions=[container])
+    # A family is INACTIVE only once every one of its revisions is deregistered
+    client.deregister_task_definition(taskDefinition="inactive_fam:1")
+    client.deregister_task_definition(taskDefinition="mixed_fam:1")
+
+    def families(**kwargs):
+        return sorted(client.list_task_definition_families(**kwargs)["families"])
+
+    all_families = ["active_fam", "inactive_fam", "mixed_fam"]
+    assert families() == all_families
+    assert families(status="ALL") == all_families
+    assert families(status="ACTIVE") == ["active_fam", "mixed_fam"]
+    assert families(status="INACTIVE") == ["inactive_fam"]
+    assert families(familyPrefix="mixed", status="INACTIVE") == []
+
+    client.deregister_task_definition(taskDefinition="mixed_fam:2")
+    assert families(status="ACTIVE") == ["active_fam"]
+    assert families(status="INACTIVE") == ["inactive_fam", "mixed_fam"]
+
+
+@mock_aws
 def test_default_container_instance_attributes():
     ecs_client = boto3.client("ecs", region_name=ECS_REGION)
     ec2 = boto3.resource("ec2", region_name=ECS_REGION)
