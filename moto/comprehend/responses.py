@@ -32,6 +32,7 @@ class ComprehendResponse(BaseResponse):
                     "VolumeKmsKeyId": r.volume_kms_key_id,
                     "VpcConfig": r.vpc_config,
                     "ModelKmsKeyId": r.model_kms_key_id,
+                    "SubmitTime": r.submit_time,
                 }
                 for r in recognizers
             ]
@@ -79,6 +80,7 @@ class ComprehendResponse(BaseResponse):
                 "VolumeKmsKeyId": recognizer.volume_kms_key_id,
                 "VpcConfig": recognizer.vpc_config,
                 "ModelKmsKeyId": recognizer.model_kms_key_id,
+                "SubmitTime": recognizer.submit_time,
             }
         }
         return ActionResult(result)
