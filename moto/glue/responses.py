@@ -1179,13 +1179,19 @@ class GlueResponse(BaseResponse):
         return EmptyResult()
 
     def get_security_configurations(self) -> ActionResult:
-        security_configurations = self.glue_backend.get_security_configurations()
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        security_configurations, next_token = (
+            self.glue_backend.get_security_configurations(
+                next_token=next_token, max_results=max_results
+            )
+        )
 
         return ActionResult(
             {
                 "SecurityConfigurations": [
                     sc.as_dict() for sc in security_configurations
                 ],
-                "NextToken": None,
+                "NextToken": next_token,
             }
         )

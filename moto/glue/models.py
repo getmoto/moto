@@ -299,6 +299,12 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
             "limit_default": 100,
             "unique_attribute": "transform_id",
         },
+        "get_security_configurations": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -1793,8 +1799,8 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         except KeyError:
             raise EntityNotFoundException(f"SecurityConfiguration {name} not found")
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def get_security_configurations(self) -> list["FakeSecurityConfiguration"]:
-        """Pagination is not yet implemented"""
         return list(self.security_configurations.values())
 
     # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
