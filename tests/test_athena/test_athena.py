@@ -665,6 +665,33 @@ def test_get_prepared_statement():
     assert "PreparedStatement" in resp
 
 
+@pytest.mark.parametrize(
+    "workgroups",
+    [("primary", "athena_workgroup"), ("athena_workgroup", "primary")],
+)
+@mock_aws
+def test_prepared_statements_are_scoped_to_workgroup(workgroups):
+    client = boto3.client("athena", region_name="us-east-1")
+    create_basic_workgroup(client=client, name="athena_workgroup")
+
+    for index, workgroup in enumerate(workgroups):
+        client.create_prepared_statement(
+            StatementName="shared-name",
+            WorkGroup=workgroup,
+            QueryStatement=f"SELECT {index}",
+            Description=f"Statement in {workgroup}",
+        )
+
+    for index, workgroup in enumerate(workgroups):
+        statement = client.get_prepared_statement(
+            StatementName="shared-name", WorkGroup=workgroup
+        )["PreparedStatement"]
+        assert statement["StatementName"] == "shared-name"
+        assert statement["WorkGroupName"] == workgroup
+        assert statement["QueryStatement"] == f"SELECT {index}"
+        assert statement["Description"] == f"Statement in {workgroup}"
+
+
 @mock_aws
 def test_get_query_runtime_statistics_no_execution_id():
     client = boto3.client("athena", region_name="us-east-1")
