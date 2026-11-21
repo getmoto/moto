@@ -107,13 +107,24 @@ class PaginatedResult(ActionResult):
         if isinstance(kwargs, XFormedDict):
             kwargs = kwargs.original_dict()
 
-        def get_result_to_paginate(**_: Any) -> Any:
-            return get_value(self._result, paging_config["result_key"])
+        # A paginator may declare multiple result keys for parallel lists
+        # (e.g. Glue ListSessions returns both `Ids` and `Sessions`).
+        # Each list is paginated independently using the same config, so the lists
+        # must match item-for-item with `unique_attribute` returning the same value
+        # for corresponding items.
+        result_keys = paging_config["result_key"]
+        if isinstance(result_keys, str):
+            result_keys = [result_keys]
+        next_token = None
+        for result_key in result_keys:
 
-        get_result_to_paginate.__name__ = operation_name
-        paginator = paginate(pagination_model)(get_result_to_paginate)
-        paginated_results, next_token = paginator(**kwargs)
-        set_value(self._result, paging_config["result_key"], paginated_results)
+            def get_result_to_paginate(_key: str = result_key, **_: Any) -> Any:
+                return get_value(self._result, _key)
+
+            get_result_to_paginate.__name__ = operation_name
+            paginator = paginate(pagination_model)(get_result_to_paginate)
+            paginated_results, next_token = paginator(**kwargs)
+            set_value(self._result, result_key, paginated_results)
         set_value(self._result, paging_config["output_token"], next_token)
         return super().execute_result(context)
 
