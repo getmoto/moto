@@ -389,6 +389,9 @@ class BaseResponse(ActionAuthenticatorMixin):
         context = ActionContext(service_model, operation_model, serializer_cls, self)
         status_code, headers, body = action_result.execute_result(context)
         headers.update(self.response_headers)
+        # HACK for downstream enrich/transform response calls
+        # TODO: refactor this out
+        headers.update({"status": status_code})
         return status_code, headers, body
 
     def call_action(self) -> TYPE_RESPONSE:
@@ -414,6 +417,8 @@ class BaseResponse(ActionAuthenticatorMixin):
             method = getattr(self, action)
             try:
                 response = method()
+                if isinstance(response, ActionResult):
+                    response = self.serialized(response)  # type: ignore[assignment]
             except ServiceException as e:
                 se_status, se_headers, se_body = self.serialized(ActionResult(e))
                 se_headers["status"] = se_status
@@ -425,9 +430,7 @@ class BaseResponse(ActionAuthenticatorMixin):
                 response_headers["status"] = http_error.code  # type: ignore[assignment]
                 response = http_error.description, response_headers  # type: ignore[assignment]
 
-            if isinstance(response, ActionResult):
-                status, headers, body = self.serialized(response)
-            elif isinstance(response, str):
+            if isinstance(response, str):
                 status = 200
                 body = response
             else:
