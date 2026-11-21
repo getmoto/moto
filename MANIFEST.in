@@ -1,5 +1,6 @@
 include README.md LICENSE AUTHORS.md
 include requirements.txt requirements-dev.txt
+include moto/*/*/paginators*.json
 include moto/py.typed
 include moto/awslambda/resources/*.txt
 include moto/cloudfront/*/*.json
