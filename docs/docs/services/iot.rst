@@ -197,7 +197,7 @@ Pagination is not yet implemented
 - [ ] list_certificate_providers
 - [X] list_certificates
   
-Pagination is not yet implemented
+The ascendingOrder-parameter is not yet implemented
 
 
 - [X] list_certificates_by_ca
