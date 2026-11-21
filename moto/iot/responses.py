@@ -1,4 +1,9 @@
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import (
+    ActionResult,
+    BaseResponse,
+    EmptyResult,
+    PaginatedResult,
+)
 
 from .models import IoTBackend, iot_backends
 
@@ -56,42 +61,20 @@ class IoTResponse(BaseResponse):
         )
 
     def list_thing_types(self) -> ActionResult:
-        previous_next_token = self._get_param("nextToken")
-        max_results = self._get_int_param(
-            "maxResults", 50
-        )  # not the default, but makes testing easier
         thing_type_name = self._get_param("thingTypeName")
         _types = self.iot_backend.list_thing_types(thing_type_name=thing_type_name)
-        thing_types = [_.to_dict() for _ in _types]
-        if previous_next_token is None:
-            result = thing_types[0:max_results]
-            next_token = str(max_results) if len(thing_types) > max_results else None
-        else:
-            token = int(previous_next_token)
-            result = thing_types[token : token + max_results]
-            next_token = (
-                str(token + max_results)
-                if len(thing_types) > token + max_results
-                else None
-            )
-
-        return ActionResult({"thingTypes": result, "nextToken": next_token})
+        return PaginatedResult({"thingTypes": [_.to_dict() for _ in _types]})
 
     def list_things(self) -> ActionResult:
-        previous_next_token = self._get_param("nextToken")
-        max_results = self._get_int_param("maxResults")
         attribute_name = self._get_param("attributeName")
         attribute_value = self._get_param("attributeValue")
         thing_type_name = self._get_param("thingTypeName")
-        things, next_token = self.iot_backend.list_things(
+        things = self.iot_backend.list_things(
             attribute_name=attribute_name,
             attribute_value=attribute_value,
             thing_type_name=thing_type_name,
-            max_results=max_results,
-            token=previous_next_token,
         )
-
-        return ActionResult({"things": things, "nextToken": next_token})
+        return PaginatedResult({"things": things})
 
     def describe_thing(self) -> ActionResult:
         thing_name = self._get_param("thingName")
@@ -225,15 +208,8 @@ class IoTResponse(BaseResponse):
             return ActionResult({"document": ""})
 
     def list_jobs(self) -> ActionResult:
-        max_results = self._get_int_param("maxResults")
-        previous_next_token = self._get_param("nextToken")
-        jobs, next_token = self.iot_backend.list_jobs(
-            max_results=max_results, next_token=previous_next_token
-        )
-
-        return ActionResult(
-            {"jobs": [job.to_dict() for job in jobs], "nextToken": next_token}
-        )
+        jobs = self.iot_backend.list_jobs()
+        return PaginatedResult({"jobs": [job.to_dict() for job in jobs]})
 
     def describe_job_execution(self) -> ActionResult:
         job_id = self._get_param("jobId")
@@ -274,36 +250,21 @@ class IoTResponse(BaseResponse):
     def list_job_executions_for_job(self) -> ActionResult:
         job_id = self._get_param("jobId")
         status = self._get_param("status")
-        max_results = self._get_int_param("maxResults")
-        next_token = self._get_param("nextToken")
-        job_executions, next_token = self.iot_backend.list_job_executions_for_job(
-            job_id=job_id, status=status, max_results=max_results, token=next_token
+        job_executions = self.iot_backend.list_job_executions_for_job(
+            job_id=job_id, status=status
         )
-
-        return ActionResult(
-            {
-                "executionSummaries": [je.to_dict() for je in job_executions],
-                "nextToken": next_token,
-            }
+        return PaginatedResult(
+            {"executionSummaries": [je.to_dict() for je in job_executions]}
         )
 
     def list_job_executions_for_thing(self) -> ActionResult:
         thing_name = self._get_param("thingName")
         status = self._get_param("status")
-        max_results = self._get_int_param("maxResults")
-        next_token = self._get_param("nextToken")
-        job_executions, next_token = self.iot_backend.list_job_executions_for_thing(
-            thing_name=thing_name,
-            status=status,
-            max_results=max_results,
-            next_token=next_token,
+        job_executions = self.iot_backend.list_job_executions_for_thing(
+            thing_name=thing_name, status=status
         )
-
-        return ActionResult(
-            {
-                "executionSummaries": [je.to_dict() for je in job_executions],
-                "nextToken": next_token,
-            }
+        return PaginatedResult(
+            {"executionSummaries": [je.to_dict() for je in job_executions]}
         )
 
     def create_keys_and_certificate(self) -> ActionResult:
@@ -357,11 +318,8 @@ class IoTResponse(BaseResponse):
         return ActionResult({"registrationCode": code})
 
     def list_certificates(self) -> ActionResult:
-        # page_size = self._get_int_param("pageSize")
-        # marker = self._get_param("marker")
-        # ascending_order = self._get_param("ascendingOrder")
         certificates = self.iot_backend.list_certificates()
-        return ActionResult({"certificates": [_.to_dict() for _ in certificates]})
+        return PaginatedResult({"certificates": [_.to_dict() for _ in certificates]})
 
     def list_certificates_by_ca(self) -> ActionResult:
         ca_certificate_id = self._get_param("caCertificateId")
@@ -553,13 +511,9 @@ class IoTResponse(BaseResponse):
         return EmptyResult()
 
     def list_principal_things(self) -> ActionResult:
-        next_token = self._get_param("nextToken")
-        # max_results = self._get_int_param("maxResults")
         principal = self._get_param("principal")
         things = self.iot_backend.list_principal_things(principal_arn=principal)
-        # TODO: implement pagination in the future
-        next_token = None
-        return ActionResult({"things": things, "nextToken": next_token})
+        return PaginatedResult({"things": things})
 
     def list_principal_things_v2(self) -> ActionResult:
         principal = self._get_param("principal")
@@ -623,8 +577,6 @@ class IoTResponse(BaseResponse):
         return EmptyResult()
 
     def list_thing_groups(self) -> ActionResult:
-        # next_token = self._get_param("nextToken")
-        # max_results = self._get_int_param("maxResults")
         parent_group = self._get_param("parentGroup")
         name_prefix_filter = self._get_param("namePrefixFilter")
         recursive = self._get_bool_param("recursive")
@@ -633,12 +585,10 @@ class IoTResponse(BaseResponse):
             name_prefix_filter=name_prefix_filter,
             recursive=recursive,
         )
-        next_token = None
         rets = [
             {"groupName": _.thing_group_name, "groupArn": _.arn} for _ in thing_groups
         ]
-        # TODO: implement pagination in the future
-        return ActionResult({"thingGroups": rets, "nextToken": next_token})
+        return PaginatedResult({"thingGroups": rets})
 
     def update_thing_group(self) -> ActionResult:
         thing_group_name = self._get_param("thingGroupName")
@@ -682,19 +632,15 @@ class IoTResponse(BaseResponse):
         things = self.iot_backend.list_things_in_thing_group(
             thing_group_name=thing_group_name
         )
-        next_token = None
         thing_names = [_.thing_name for _ in things]
-        return ActionResult({"things": thing_names, "nextToken": next_token})
+        return PaginatedResult({"things": thing_names})
 
     def list_thing_groups_for_thing(self) -> ActionResult:
         thing_name = self._get_param("thingName")
-        # next_token = self._get_param("nextToken")
-        # max_results = self._get_int_param("maxResults")
         thing_groups = self.iot_backend.list_thing_groups_for_thing(
             thing_name=thing_name
         )
-        next_token = None
-        return ActionResult({"thingGroups": thing_groups, "nextToken": next_token})
+        return PaginatedResult({"thingGroups": thing_groups})
 
     def update_thing_groups_for_thing(self) -> ActionResult:
         thing_name = self._get_param("thingName")
@@ -882,15 +828,8 @@ class IoTResponse(BaseResponse):
         )
 
     def list_job_templates(self) -> ActionResult:
-        max_results = self._get_int_param("maxResults")
-        current_next_token = self._get_param("nextToken")
-        job_templates, future_next_token = self.iot_backend.list_job_templates(
-            max_results=max_results, next_token=current_next_token
-        )
-
-        return ActionResult(
-            {"jobTemplates": job_templates, "nextToken": future_next_token}
-        )
+        job_templates = self.iot_backend.list_job_templates()
+        return PaginatedResult({"jobTemplates": job_templates})
 
     def delete_job_template(self) -> ActionResult:
         job_template_id = self._get_param("jobTemplateId")
@@ -943,14 +882,10 @@ class IoTResponse(BaseResponse):
 
     def list_billing_groups(self) -> ActionResult:
         name_prefix_filter = self._get_param("namePrefixFilter")
-        max_results = self._get_int_param("maxResults", 100)
-        token = self._get_param("nextToken")
-
-        billing_groups, next_token = self.iot_backend.list_billing_groups(
-            name_prefix_filter=name_prefix_filter, max_results=max_results, token=token
+        billing_groups = self.iot_backend.list_billing_groups(
+            name_prefix_filter=name_prefix_filter
         )
-
-        return ActionResult({"billingGroups": billing_groups, "nextToken": next_token})
+        return PaginatedResult({"billingGroups": billing_groups})
 
     def update_billing_group(self) -> ActionResult:
         billing_group_name = self._get_param("billingGroupName")
@@ -987,13 +922,7 @@ class IoTResponse(BaseResponse):
 
     def list_things_in_billing_group(self) -> ActionResult:
         billing_group_name = self._get_param("billingGroupName")
-        max_results = self._get_int_param("maxResults", 100)
-        token = self._get_param("nextToken")
-        things, next_token = self.iot_backend.list_things_in_billing_group(
-            billing_group_name=billing_group_name,
-            max_results=max_results,
-            token=token,
+        things = self.iot_backend.list_things_in_billing_group(
+            billing_group_name=billing_group_name
         )
-        return ActionResult(
-            {"things": [thing.thing_name for thing in things], "nextToken": next_token}
-        )
+        return PaginatedResult({"things": [thing.thing_name for thing in things]})

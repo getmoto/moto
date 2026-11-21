@@ -26,7 +26,6 @@ from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.settings import iot_use_valid_cert
-from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
 from .exceptions import (
@@ -41,7 +40,7 @@ from .exceptions import (
     VersionConflictException,
     VersionsLimitExceededException,
 )
-from .utils import PAGINATION_MODEL, decapitalize_dict
+from .utils import decapitalize_dict
 
 if TYPE_CHECKING:
     from moto.iotdata.models import FakeShadow
@@ -1646,8 +1645,7 @@ class IoTBackend(BaseBackend):
             ]
         return self.thing_types.values()
 
-    @paginate(PAGINATION_MODEL)
-    def list_things(  # type: ignore[misc]
+    def list_things(
         self,
         attribute_name: str,
         attribute_value: str,
@@ -1878,7 +1876,7 @@ class IoTBackend(BaseBackend):
 
     def list_certificates(self) -> Iterable[FakeCertificate]:
         """
-        Pagination is not yet implemented
+        The ascendingOrder-parameter is not yet implemented
         """
         return self.certificates.values()
 
@@ -2436,15 +2434,12 @@ class IoTBackend(BaseBackend):
 
     def list_things_in_thing_group(self, thing_group_name: str) -> Iterable[FakeThing]:
         """
-        Pagination and the recursive-parameter is not yet implemented
+        The recursive-parameter is not yet implemented
         """
         thing_group = self.describe_thing_group(thing_group_name)
         return thing_group.things.values()
 
     def list_thing_groups_for_thing(self, thing_name: str) -> list[dict[str, str]]:
-        """
-        Pagination is not yet implemented
-        """
         thing = self.describe_thing(thing_name)
         all_thing_groups = self.list_thing_groups(None, None, None)
         ret = []
@@ -2555,7 +2550,6 @@ class IoTBackend(BaseBackend):
     def get_job_document(self, job_id: str) -> FakeJob:
         return self.jobs[job_id]
 
-    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def list_jobs(self) -> list[FakeJob]:
         """
         The following parameter are not yet implemented: Status, TargetSelection, ThingGroupName, ThingGroupId
@@ -2616,7 +2610,6 @@ class IoTBackend(BaseBackend):
         else:
             raise InvalidStateTransitionException()
 
-    @paginate(PAGINATION_MODEL)
     def list_job_executions_for_job(
         self, job_id: str, status: str
     ) -> list[FakeJobExecution]:
@@ -2626,7 +2619,6 @@ class IoTBackend(BaseBackend):
             if _id == job_id and (not status or job_exec.status == status)
         ]
 
-    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def list_job_executions_for_thing(
         self, thing_name: str, status: str | None
     ) -> list[FakeJobExecution]:
@@ -2862,7 +2854,6 @@ class IoTBackend(BaseBackend):
         self.jobs_templates[job_template_id] = job_template
         return job_template
 
-    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def list_job_templates(self) -> list[dict[str, str | datetime]]:
         return [_.to_dict() for _ in self.jobs_templates.values()]
 
@@ -2906,7 +2897,6 @@ class IoTBackend(BaseBackend):
             raise ResourceNotFoundException()
         del self.billing_groups[billing_group_name]
 
-    @paginate(PAGINATION_MODEL)
     def list_billing_groups(
         self, name_prefix_filter: str | None = None
     ) -> list[dict[str, str]]:
@@ -2990,7 +2980,6 @@ class IoTBackend(BaseBackend):
             billing_group.things.remove(thing.arn)
             thing.billing_group_name = None
 
-    @paginate(PAGINATION_MODEL)
     def list_things_in_billing_group(self, billing_group_name: str) -> list[FakeThing]:
         billing_group = self.describe_billing_group(billing_group_name)
         return [self.things[arn] for arn in billing_group.things]
