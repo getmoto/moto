@@ -1079,6 +1079,55 @@ def test_list_sessions():
 
 
 @mock_aws
+def test_list_sessions_pagination():
+    client = create_glue_client()
+    session_ids = [f"session-{i}" for i in range(5)]
+    for i, session_id in enumerate(session_ids):
+        client.create_session(
+            Id=session_id,
+            Role="arn:aws:iam::123456789012:role/test-role",
+            Command={"Name": "glueetl"},
+            Tags={"env": "prod"} if i % 2 == 0 else {"env": "dev"},
+        )
+
+    # Manual pagination: Ids and Sessions are paginated together
+    page1 = client.list_sessions(MaxResults=2)
+    assert page1["Ids"] == session_ids[0:2]
+    assert [s["Id"] for s in page1["Sessions"]] == session_ids[0:2]
+    assert "NextToken" in page1
+
+    page2 = client.list_sessions(MaxResults=2, NextToken=page1["NextToken"])
+    assert page2["Ids"] == session_ids[2:4]
+    assert [s["Id"] for s in page2["Sessions"]] == session_ids[2:4]
+    assert "NextToken" in page2
+
+    page3 = client.list_sessions(MaxResults=2, NextToken=page2["NextToken"])
+    assert page3["Ids"] == session_ids[4:]
+    assert [s["Id"] for s in page3["Sessions"]] == session_ids[4:]
+    assert "NextToken" not in page3
+
+    # Without MaxResults, everything fits on a single page
+    resp = client.list_sessions()
+    assert resp["Ids"] == session_ids
+    assert [s["Id"] for s in resp["Sessions"]] == session_ids
+    assert "NextToken" not in resp
+
+    # Tag filtering is applied before pagination, so pages are full
+    prod_ids = session_ids[0::2]
+    page1 = client.list_sessions(MaxResults=2, Tags={"env": "prod"})
+    assert page1["Ids"] == prod_ids[0:2]
+    assert [s["Id"] for s in page1["Sessions"]] == prod_ids[0:2]
+    assert "NextToken" in page1
+
+    page2 = client.list_sessions(
+        MaxResults=2, NextToken=page1["NextToken"], Tags={"env": "prod"}
+    )
+    assert page2["Ids"] == prod_ids[2:]
+    assert [s["Id"] for s in page2["Sessions"]] == prod_ids[2:]
+    assert "NextToken" not in page2
+
+
+@mock_aws
 def test_delete_session():
     client = create_glue_client()
     session_id = create_test_session(client)
@@ -1918,6 +1967,55 @@ def test_get_security_configurations():
         "test-security-configuration-2",
     }
     assert "NextToken" not in response
+
+
+@mock_aws
+def test_get_security_configurations_pagination():
+    client = create_glue_client()
+    names = [f"security-configuration-{i}" for i in range(5)]
+    for name in names:
+        client.create_security_configuration(
+            Name=name,
+            EncryptionConfiguration={
+                "CloudWatchEncryption": {"CloudWatchEncryptionMode": "DISABLED"}
+            },
+        )
+
+    # Manual pagination
+    page1 = client.get_security_configurations(MaxResults=2)
+    assert [sc["Name"] for sc in page1["SecurityConfigurations"]] == names[0:2]
+    assert "NextToken" in page1
+
+    page2 = client.get_security_configurations(
+        MaxResults=2, NextToken=page1["NextToken"]
+    )
+    assert [sc["Name"] for sc in page2["SecurityConfigurations"]] == names[2:4]
+    assert "NextToken" in page2
+
+    page3 = client.get_security_configurations(
+        MaxResults=2, NextToken=page2["NextToken"]
+    )
+    assert [sc["Name"] for sc in page3["SecurityConfigurations"]] == names[4:]
+    assert "NextToken" not in page3
+
+    # Without MaxResults, everything fits on a single page
+    resp = client.get_security_configurations()
+    assert [sc["Name"] for sc in resp["SecurityConfigurations"]] == names
+    assert "NextToken" not in resp
+
+    # Botocore paginator
+    paginator = client.get_paginator("get_security_configurations")
+    pages = list(paginator.paginate(PaginationConfig={"PageSize": 2}))
+    assert [len(p["SecurityConfigurations"]) for p in pages] == [2, 2, 1]
+    paginated_names = [sc["Name"] for p in pages for sc in p["SecurityConfigurations"]]
+    assert paginated_names == names
+
+    # Botocore paginator with MaxItems
+    result = paginator.paginate(
+        PaginationConfig={"PageSize": 2, "MaxItems": 3}
+    ).build_full_result()
+    assert [sc["Name"] for sc in result["SecurityConfigurations"]] == names[0:3]
+    assert "NextToken" in result
 
 
 @mock_aws

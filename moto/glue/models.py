@@ -13,7 +13,6 @@ from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.utils import get_partition
 
-from ..utilities.paginator import paginate
 from ..utilities.tagging_service import TaggingService
 from .exceptions import (
     AlreadyExistsException,
@@ -219,87 +218,6 @@ class FakeMLTransform(BaseModel):
 
 class GlueBackend(BaseBackend, TaggableResourcesMixin):
     SERVICE_NAMESPACE = "glue"
-
-    PAGINATION_MODEL = {
-        "get_connections": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 100,
-            "unique_attribute": "name",
-        },
-        "get_jobs": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 100,
-            "unique_attribute": "name",
-        },
-        "get_triggers": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 100,
-            "unique_attribute": "name",
-        },
-        "list_crawlers": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 100,
-            "unique_attribute": "name",
-        },
-        "list_jobs": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 100,
-            "unique_attribute": "name",
-        },
-        "list_sessions": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 100,
-            "unique_attribute": "session_id",
-        },
-        "list_triggers": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 100,
-            "unique_attribute": "name",
-        },
-        "get_dev_endpoints": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 100,
-            "unique_attribute": "endpoint_name",
-        },
-        "get_job_runs": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 100,
-            "unique_attribute": "job_run_id",
-        },
-        "list_crawls": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 20,
-            "unique_attribute": "crawl_id",
-        },
-        "list_workflows": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 20,
-            "unique_attribute": "name",
-        },
-        "get_workflow_runs": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 100,
-            "unique_attribute": "workflow_run_id",
-        },
-        "get_ml_transforms": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 100,
-            "unique_attribute": "transform_id",
-        },
-    }
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -546,7 +464,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
     def get_crawlers(self) -> list["FakeCrawler"]:
         return [self.crawlers[key] for key in self.crawlers] if self.crawlers else []
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def list_crawlers(self) -> list["FakeCrawler"]:
         return [crawler for _, crawler in self.crawlers.items()]
 
@@ -564,7 +481,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         except KeyError:
             raise CrawlerNotFoundException(name)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def list_crawls(
         self, crawler_name: str, filters: list[CrawlFilter]
     ) -> list["FakeCrawl"]:
@@ -692,7 +608,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         except KeyError:
             raise JobNotFoundException(name)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def get_jobs(self) -> list["FakeJob"]:
         return [job for _, job in self.jobs.items()]
 
@@ -726,12 +641,10 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         job = self.get_job(name)
         return job.get_job_run(run_id)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def get_job_runs(self, job_name: str) -> list["FakeJobRun"]:
         job = self.get_job(job_name)
         return job.get_job_runs()
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self) -> list["FakeJob"]:
         return [job for _, job in self.jobs.items()]
 
@@ -1135,7 +1048,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         except KeyError:
             raise SessionNotFoundException(session_id)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def list_sessions(self) -> list["FakeSession"]:
         return [session for _, session in self.sessions.items()]
 
@@ -1190,7 +1102,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         trigger = self.get_trigger(name)
         trigger.stop_trigger()
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def get_triggers(self, dependent_job_name: str) -> list["FakeTrigger"]:
         if dependent_job_name:
             triggers = []
@@ -1202,7 +1113,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
 
         return list(self.triggers.values())
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def list_triggers(self, dependent_job_name: str) -> list["FakeTrigger"]:
         if dependent_job_name:
             triggers = []
@@ -1342,7 +1252,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
                 triggers.append(self.triggers[trigger_name].as_dict())
         return triggers
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def get_dev_endpoints(self) -> list["FakeDevEndpoint"]:
         return list(self.dev_endpoints.values())
 
@@ -1449,7 +1358,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         except KeyError:
             raise EntityNotFoundException(f"MLTransform {transform_id} not found")
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def get_ml_transforms(self) -> list["FakeMLTransform"]:
         return list(self.ml_transforms.values())
 
@@ -1485,7 +1393,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
             raise EntityNotFoundException(f"Connection {name} not found")
         return connection
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def get_connections(
         self, catalog_id: str, filter: dict[str, Any]
     ) -> list["FakeConnection"]:
@@ -1679,7 +1586,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         else:
             raise EntityNotFoundException("Entity not found")
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def list_workflows(self) -> list[str]:
         return [workflow.name for workflow in self.workflows.values()]
 
@@ -1723,7 +1629,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
             raise EntityNotFoundException("Entity not found")
         return workflow.get_run(run_id).as_dict()
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def get_workflow_runs(
         self,
         workflow_name: str,
@@ -1794,7 +1699,6 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
             raise EntityNotFoundException(f"SecurityConfiguration {name} not found")
 
     def get_security_configurations(self) -> list["FakeSecurityConfiguration"]:
-        """Pagination is not yet implemented"""
         return list(self.security_configurations.values())
 
     # Resource Groups Tagging API (TaggableResourcesMixin method overrides)

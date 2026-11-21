@@ -1,4 +1,9 @@
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import (
+    ActionResult,
+    BaseResponse,
+    EmptyResult,
+    PaginatedResult,
+)
 
 from .exceptions import EntityNotFoundException, InvalidInputException
 from .models import (
@@ -281,19 +286,10 @@ class GlueResponse(BaseResponse):
         return ActionResult({"Crawlers": [crawler.as_dict() for crawler in crawlers]})
 
     def list_crawlers(self) -> ActionResult:
-        next_token = self._get_param("NextToken")
-        max_results = self._get_int_param("MaxResults")
         tags = self._get_param("Tags")
-        crawlers, next_token = self.glue_backend.list_crawlers(
-            next_token=next_token, max_results=max_results
-        )
+        crawlers = self.glue_backend.list_crawlers()
         filtered_crawler_names = self.filter_crawlers_by_tags(crawlers, tags)
-        return ActionResult(
-            {
-                "CrawlerNames": list(filtered_crawler_names),
-                "NextToken": next_token,
-            }
-        )
+        return PaginatedResult({"CrawlerNames": filtered_crawler_names})
 
     def filter_crawlers_by_tags(
         self, crawlers: list[FakeCrawler], tags: dict[str, str]
@@ -324,8 +320,8 @@ class GlueResponse(BaseResponse):
     def list_crawls(self) -> ActionResult:
         crawler_name = self._get_param("CrawlerName")
         filters = validate_crawl_filters(self._get_param("Filters", []))
-        crawls = self.glue_backend.list_crawls(crawler_name, filters)[0]
-        return ActionResult({"Crawls": [crawl.as_dict() for crawl in crawls]})
+        crawls = self.glue_backend.list_crawls(crawler_name, filters)
+        return PaginatedResult({"Crawls": [crawl.as_dict() for crawl in crawls]})
 
     def create_job(self) -> ActionResult:
         name = self._get_param("Name")
@@ -382,17 +378,8 @@ class GlueResponse(BaseResponse):
         return ActionResult({"Job": job.as_dict()})
 
     def get_jobs(self) -> ActionResult:
-        next_token = self._get_param("NextToken")
-        max_results = self._get_int_param("MaxResults")
-        jobs, next_token = self.glue_backend.get_jobs(
-            next_token=next_token, max_results=max_results
-        )
-        return ActionResult(
-            {
-                "Jobs": [job.as_dict() for job in jobs],
-                "NextToken": next_token,
-            }
-        )
+        jobs = self.glue_backend.get_jobs()
+        return PaginatedResult({"Jobs": [job.as_dict() for job in jobs]})
 
     def start_job_run(self) -> ActionResult:
         allocated_capacity = self._get_int_param("AllocatedCapacity")
@@ -433,34 +420,14 @@ class GlueResponse(BaseResponse):
 
     def get_job_runs(self) -> ActionResult:
         job_name = self._get_param("JobName")
-        next_token = self._get_param("NextToken")
-        max_results = self._get_int_param("MaxResults")
-        job_runs, next_token = self.glue_backend.get_job_runs(
-            job_name,
-            next_token=next_token,
-            max_results=max_results,
-        )
-        return ActionResult(
-            {
-                "JobRuns": [job_run.as_dict() for job_run in job_runs],
-                "NextToken": next_token,
-            }
-        )
+        job_runs = self.glue_backend.get_job_runs(job_name)
+        return PaginatedResult({"JobRuns": [job_run.as_dict() for job_run in job_runs]})
 
     def list_jobs(self) -> ActionResult:
-        next_token = self._get_param("NextToken")
-        max_results = self._get_int_param("MaxResults")
         tags = self._get_param("Tags")
-        jobs, next_token = self.glue_backend.list_jobs(
-            next_token=next_token, max_results=max_results
-        )
+        jobs = self.glue_backend.list_jobs()
         filtered_job_names = self.filter_jobs_by_tags(jobs, tags)
-        return ActionResult(
-            {
-                "JobNames": list(filtered_job_names),
-                "NextToken": next_token,
-            }
-        )
+        return PaginatedResult({"JobNames": filtered_job_names})
 
     def delete_job(self) -> ActionResult:
         name = self._get_param("JobName")
@@ -629,22 +596,16 @@ class GlueResponse(BaseResponse):
         return ActionResult({"Session": session.as_dict()})
 
     def list_sessions(self) -> ActionResult:
-        next_token = self._get_param("NextToken")
-        max_results = self._get_int_param("MaxResults")
         tags = self._get_param("Tags")
-        sessions, next_token = self.glue_backend.list_sessions(
-            next_token=next_token, max_results=max_results
-        )
+        sessions = self.glue_backend.list_sessions()
         filtered_session_ids = self._filter_sessions_by_tags(sessions, tags)
-
-        return ActionResult(
+        return PaginatedResult(
             {
-                "Ids": list(filtered_session_ids),
+                "Ids": filtered_session_ids,
                 "Sessions": [
                     self.glue_backend.get_session(session_id).as_dict()
                     for session_id in filtered_session_ids
                 ],
-                "NextToken": next_token,
             }
         )
 
@@ -741,38 +702,20 @@ class GlueResponse(BaseResponse):
         return ActionResult({"Trigger": trigger.as_dict()})
 
     def get_triggers(self) -> ActionResult:
-        next_token = self._get_param("NextToken")
         dependent_job_name = self._get_param("DependentJobName")
-        max_results = self._get_int_param("MaxResults")
-        triggers, next_token = self.glue_backend.get_triggers(
-            next_token=next_token,
-            dependent_job_name=dependent_job_name,
-            max_results=max_results,
-        )
-        return ActionResult(
-            {
-                "Triggers": [trigger.as_dict() for trigger in triggers],
-                "NextToken": next_token,
-            }
+        triggers = self.glue_backend.get_triggers(dependent_job_name=dependent_job_name)
+        return PaginatedResult(
+            {"Triggers": [trigger.as_dict() for trigger in triggers]}
         )
 
     def list_triggers(self) -> ActionResult:
-        next_token = self._get_param("NextToken")
         dependent_job_name = self._get_param("DependentJobName")
-        max_results = self._get_int_param("MaxResults")
         tags = self._get_param("Tags")
-        triggers, next_token = self.glue_backend.list_triggers(
-            next_token=next_token,
-            dependent_job_name=dependent_job_name,
-            max_results=max_results,
+        triggers = self.glue_backend.list_triggers(
+            dependent_job_name=dependent_job_name
         )
         filtered_trigger_names = self.filter_triggers_by_tags(triggers, tags)
-        return ActionResult(
-            {
-                "TriggerNames": list(filtered_trigger_names),
-                "NextToken": next_token,
-            }
-        )
+        return PaginatedResult({"TriggerNames": filtered_trigger_names})
 
     def batch_get_triggers(self) -> ActionResult:
         trigger_names = self._get_param("TriggerNames")
@@ -803,18 +746,9 @@ class GlueResponse(BaseResponse):
         return ActionResult({"Name": name})
 
     def get_dev_endpoints(self) -> ActionResult:
-        next_token = self._get_param("NextToken")
-        max_results = self._get_int_param("MaxResults")
-
-        endpoints, next_token = self.glue_backend.get_dev_endpoints(
-            next_token=next_token, max_results=max_results
-        )
-
-        return ActionResult(
-            {
-                "DevEndpoints": [endpoint.as_dict() for endpoint in endpoints],
-                "NextToken": next_token,
-            }
+        endpoints = self.glue_backend.get_dev_endpoints()
+        return PaginatedResult(
+            {"DevEndpoints": [endpoint.as_dict() for endpoint in endpoints]}
         )
 
     def create_dev_endpoint(self) -> ActionResult:
@@ -902,16 +836,9 @@ class GlueResponse(BaseResponse):
         return ActionResult(ml_transform.as_dict())
 
     def get_ml_transforms(self) -> ActionResult:
-        next_token = self._get_param("NextToken")
-        max_results = self._get_int_param("MaxResults")
-        ml_transforms, next_token = self.glue_backend.get_ml_transforms(
-            next_token=next_token, max_results=max_results
-        )
-        return ActionResult(
-            {
-                "Transforms": [transform.as_dict() for transform in ml_transforms],
-                "NextToken": next_token,
-            }
+        ml_transforms = self.glue_backend.get_ml_transforms()
+        return PaginatedResult(
+            {"Transforms": [transform.as_dict() for transform in ml_transforms]}
         )
 
     def delete_ml_transform(self) -> ActionResult:
@@ -948,20 +875,13 @@ class GlueResponse(BaseResponse):
         catalog_id = self._get_param("CatalogId")
         filter = self._get_param("Filter")
         hide_password = self._get_param("HidePassword")
-        next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults")
-        connections, next_token = self.glue_backend.get_connections(
-            catalog_id=catalog_id,
-            filter=filter,
-            next_token=next_token,
-            max_results=max_results,
+        connections = self.glue_backend.get_connections(
+            catalog_id=catalog_id, filter=filter
         )
         connection_list = [
             connection.as_dict(hide_password) for connection in connections
         ]
-        return ActionResult(
-            {"ConnectionList": connection_list, "NextToken": next_token}
-        )
+        return PaginatedResult({"ConnectionList": connection_list})
 
     def put_data_catalog_encryption_settings(self) -> ActionResult:
         catalog_id = self._get_param("CatalogId", None)
@@ -1043,18 +963,8 @@ class GlueResponse(BaseResponse):
         return ActionResult({"Workflow": workflow})
 
     def list_workflows(self) -> ActionResult:
-        next_token = self._get_param("NextToken")
-        max_results = self._get_int_param("MaxResults")
-
-        workflows, next_token = self.glue_backend.list_workflows(
-            next_token=next_token, max_results=max_results
-        )
-        return ActionResult(
-            {
-                "NextToken": next_token,
-                "Workflows": workflows,
-            }
-        )
+        workflows = self.glue_backend.list_workflows()
+        return PaginatedResult({"Workflows": workflows})
 
     def batch_get_workflows(self) -> ActionResult:
         names = self._get_param("Names")
@@ -1102,20 +1012,8 @@ class GlueResponse(BaseResponse):
 
     def get_workflow_runs(self) -> ActionResult:
         workflow_name = self._get_param("Name")
-        next_token = self._get_param("NextToken")
-        max_results = self._get_int_param("MaxResults")
-
-        workflow_runs, next_token = self.glue_backend.get_workflow_runs(
-            workflow_name,
-            next_token=next_token,
-            max_results=max_results,
-        )
-        return ActionResult(
-            {
-                "Runs": workflow_runs,
-                "NextToken": next_token,
-            }
-        )
+        workflow_runs = self.glue_backend.get_workflow_runs(workflow_name)
+        return PaginatedResult({"Runs": workflow_runs})
 
     def start_workflow_run(self) -> ActionResult:
         workflow_name = self._get_param("Name")
@@ -1169,12 +1067,6 @@ class GlueResponse(BaseResponse):
 
     def get_security_configurations(self) -> ActionResult:
         security_configurations = self.glue_backend.get_security_configurations()
-
-        return ActionResult(
-            {
-                "SecurityConfigurations": [
-                    sc.as_dict() for sc in security_configurations
-                ],
-                "NextToken": None,
-            }
+        return PaginatedResult(
+            {"SecurityConfigurations": [sc.as_dict() for sc in security_configurations]}
         )
