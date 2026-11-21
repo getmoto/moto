@@ -1921,6 +1921,46 @@ def test_get_security_configurations():
 
 
 @mock_aws
+def test_get_security_configurations_pagination():
+    client = create_glue_client()
+    encryption_configuration = {
+        "CloudWatchEncryption": {"CloudWatchEncryptionMode": "DISABLED"},
+        "JobBookmarksEncryption": {"JobBookmarksEncryptionMode": "DISABLED"},
+        "S3Encryption": [{"S3EncryptionMode": "DISABLED"}],
+    }
+    names = [f"security-configuration-{i}" for i in range(5)]
+    for name in names:
+        client.create_security_configuration(
+            Name=name, EncryptionConfiguration=encryption_configuration
+        )
+
+    page1 = client.get_security_configurations(MaxResults=2)
+    assert [sc["Name"] for sc in page1["SecurityConfigurations"]] == names[:2]
+    assert "NextToken" in page1
+
+    page2 = client.get_security_configurations(
+        MaxResults=2, NextToken=page1["NextToken"]
+    )
+    assert [sc["Name"] for sc in page2["SecurityConfigurations"]] == names[2:4]
+
+    page3 = client.get_security_configurations(
+        MaxResults=2, NextToken=page2["NextToken"]
+    )
+    assert [sc["Name"] for sc in page3["SecurityConfigurations"]] == names[4:]
+    assert "NextToken" not in page3
+
+    # Without MaxResults everything still comes back in one page
+    response = client.get_security_configurations()
+    assert [sc["Name"] for sc in response["SecurityConfigurations"]] == names
+    assert "NextToken" not in response
+
+    paginator = client.get_paginator("get_security_configurations")
+    pages = paginator.paginate(PaginationConfig={"PageSize": 2})
+    paged = [sc["Name"] for page in pages for sc in page["SecurityConfigurations"]]
+    assert paged == names
+
+
+@mock_aws
 def test_create_ml_transform():
     client = create_glue_client()
 

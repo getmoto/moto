@@ -200,8 +200,6 @@ Expression caveats:
 - [ ] get_schema_versions_diff
 - [X] get_security_configuration
 - [X] get_security_configurations
-  Pagination is not yet implemented
-
 - [X] get_session
 - [ ] get_session_endpoint
 - [ ] get_statement
