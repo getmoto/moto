@@ -1,0 +1,59 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "GetConnections": {
+        "unique_attribute": "Name"
+      },
+      "GetDevEndpoints": {
+        "unique_attribute": "EndpointName"
+      },
+      "GetJobRuns": {
+        "unique_attribute": "Id"
+      },
+      "GetJobs": {
+        "unique_attribute": "Name"
+      },
+      "GetMLTransforms": {
+        "input_token": "NextToken",
+        "output_token": "NextToken",
+        "limit_key": "MaxResults",
+        "result_key": "Transforms",
+        "unique_attribute": "TransformId"
+      },
+      "GetSecurityConfigurations": {
+        "unique_attribute": "Name"
+      },
+      "GetTriggers": {
+        "unique_attribute": "Name"
+      },
+      "GetWorkflowRuns": {
+        "unique_attribute": "WorkflowRunId"
+      },
+      "ListCrawlers": {
+        "input_token": "NextToken",
+        "output_token": "NextToken",
+        "limit_key": "MaxResults",
+        "result_key": "CrawlerNames"
+      },
+      "ListCrawls": {
+        "input_token": "NextToken",
+        "output_token": "NextToken",
+        "limit_key": "MaxResults",
+        "result_key": "Crawls",
+        "limit_default": 20,
+        "unique_attribute": "CrawlId"
+      },
+      "ListSessions": {
+        "input_token": "NextToken",
+        "output_token": "NextToken",
+        "limit_key": "MaxResults",
+        "result_key": ["Ids", "Sessions"],
+        "unique_attribute": "Id"
+      },
+      "ListWorkflows": {
+        "limit_default": 20
+      }
+    }
+  }
+}
