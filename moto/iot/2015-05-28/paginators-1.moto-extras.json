@@ -1,0 +1,37 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "ListBillingGroups": {
+        "unique_attribute": "groupName"
+      },
+      "ListCertificates": {
+        "unique_attribute": "certificateId"
+      },
+      "ListJobExecutionsForJob": {
+        "unique_attribute": ["jobId", "thingArn"]
+      },
+      "ListJobExecutionsForThing": {
+        "unique_attribute": ["jobId", "thingArn"]
+      },
+      "ListJobTemplates": {
+        "unique_attribute": "jobTemplateId"
+      },
+      "ListJobs": {
+        "unique_attribute": "jobId"
+      },
+      "ListThingGroups": {
+        "unique_attribute": "groupName"
+      },
+      "ListThingGroupsForThing": {
+        "unique_attribute": "groupName"
+      },
+      "ListThingTypes": {
+        "unique_attribute": "thingTypeName"
+      },
+      "ListThings": {
+        "unique_attribute": "thingArn"
+      }
+    }
+  }
+}

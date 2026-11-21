@@ -34,13 +34,15 @@ def test_list_thing_types():
     for i in range(0, 100):
         client.create_thing_type(thingTypeName=str(i + 1))
 
-    thing_types = client.list_thing_types()
+    thing_types = client.list_thing_types(maxResults=50)
     assert "nextToken" in thing_types
     assert len(thing_types["thingTypes"]) == 50
     assert thing_types["thingTypes"][0]["thingTypeName"] == "1"
     assert thing_types["thingTypes"][-1]["thingTypeName"] == "50"
 
-    thing_types = client.list_thing_types(nextToken=thing_types["nextToken"])
+    thing_types = client.list_thing_types(
+        maxResults=50, nextToken=thing_types["nextToken"]
+    )
     assert len(thing_types["thingTypes"]) == 50
     assert "nextToken" not in thing_types
     assert thing_types["thingTypes"][0]["thingTypeName"] == "51"
