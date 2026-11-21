@@ -1876,11 +1876,12 @@ class IoTBackend(BaseBackend):
     def get_registration_code(self) -> str:
         return str(random.uuid4())
 
-    def list_certificates(self) -> Iterable[FakeCertificate]:
+    @paginate(PAGINATION_MODEL)
+    def list_certificates(self) -> list[FakeCertificate]:
         """
-        Pagination is not yet implemented
+        The ascendingOrder-parameter is not yet implemented
         """
-        return self.certificates.values()
+        return list(self.certificates.values())
 
     def list_certificates_by_ca(self, ca_certificate_id: str) -> list[FakeCertificate]:
         """

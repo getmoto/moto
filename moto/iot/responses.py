@@ -358,11 +358,18 @@ class IoTResponse(BaseResponse):
         return ActionResult({"registrationCode": code})
 
     def list_certificates(self) -> ActionResult:
-        # page_size = self._get_int_param("pageSize")
-        # marker = self._get_param("marker")
+        page_size = self._get_int_param("pageSize")
+        marker = self._get_param("marker")
         # ascending_order = self._get_param("ascendingOrder")
-        certificates = self.iot_backend.list_certificates()
-        return ActionResult({"certificates": [_.to_dict() for _ in certificates]})
+        certificates, next_marker = self.iot_backend.list_certificates(
+            marker=marker, page_size=page_size
+        )
+        return ActionResult(
+            {
+                "certificates": [_.to_dict() for _ in certificates],
+                "nextMarker": next_marker,
+            }
+        )
 
     def list_certificates_by_ca(self) -> ActionResult:
         ca_certificate_id = self._get_param("caCertificateId")

@@ -43,6 +43,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "thing_name",
     },
+    "list_certificates": {
+        "input_token": "marker",
+        "limit_key": "page_size",
+        "limit_default": 250,
+        "unique_attribute": "certificate_id",
+    },
 }
 
 

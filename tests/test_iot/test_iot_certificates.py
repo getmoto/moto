@@ -65,6 +65,36 @@ def test_describe_certificate_by_id():
 
 
 @mock_aws
+def test_list_certificates_pagination():
+    client = boto3.client("iot", region_name="us-east-1")
+    cert_ids = [
+        client.create_keys_and_certificate(setAsActive=True)["certificateId"]
+        for _ in range(5)
+    ]
+
+    page1 = client.list_certificates(pageSize=2)
+    assert [c["certificateId"] for c in page1["certificates"]] == cert_ids[:2]
+    assert "nextMarker" in page1
+
+    page2 = client.list_certificates(pageSize=2, marker=page1["nextMarker"])
+    assert [c["certificateId"] for c in page2["certificates"]] == cert_ids[2:4]
+
+    page3 = client.list_certificates(pageSize=2, marker=page2["nextMarker"])
+    assert [c["certificateId"] for c in page3["certificates"]] == cert_ids[4:]
+    assert "nextMarker" not in page3
+
+    # Without pageSize everything still comes back in one page
+    response = client.list_certificates()
+    assert [c["certificateId"] for c in response["certificates"]] == cert_ids
+    assert "nextMarker" not in response
+
+    paginator = client.get_paginator("list_certificates")
+    pages = paginator.paginate(PaginationConfig={"PageSize": 2})
+    paged = [c["certificateId"] for page in pages for c in page["certificates"]]
+    assert paged == cert_ids
+
+
+@mock_aws
 def test_list_certificates():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
