@@ -316,3 +316,35 @@ class TestDecorator(unittest.TestCase):
             # This should fail, as our 'resources' argument is inconsistent
             # with the original resources that were provided
             self.method_with_list_as_kwarg(resources=results, next_token=token)
+
+
+def test_paginator__unique_attribute_containing_pipe():
+    result_list = [{"name": f"name|{i}"} for i in range(0, 10)]
+    p = Paginator(max_results=5, unique_attribute="name")
+    page, token = p.paginate(result_list)
+    assert page == result_list[:5]
+    assert token is not None
+
+    p = Paginator(max_results=5, starting_token=token, unique_attribute="name")
+    page, token = p.paginate(result_list)
+    assert page == result_list[5:]
+    assert token is None
+
+
+def test_paginator__multiple_unique_attributes_containing_pipe():
+    # Joining ["x", "y|z"] with "|" gives "x|y|z", which splits back to
+    # ["x", "y", "z"] and would wrongly match the item {"a": "x", "b": "y"}.
+    result_list = [
+        {"a": "x", "b": "q"},
+        {"a": "x", "b": "y"},
+        {"a": "x", "b": "y|z"},
+        {"a": "x", "b": "w"},
+    ]
+    p = Paginator(max_results=2, unique_attribute=["a", "b"])
+    page, token = p.paginate(result_list)
+    assert page == result_list[:2]
+
+    p = Paginator(max_results=2, starting_token=token, unique_attribute=["a", "b"])
+    page, token = p.paginate(result_list)
+    assert page == result_list[2:]
+    assert token is None

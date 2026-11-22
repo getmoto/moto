@@ -668,6 +668,32 @@ def test_get_partitions_segments_fetched_in_parallel():
 
 
 @mock_aws
+def test_get_partitions_pagination_with_pipe_in_partition_values():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+    # Partition Values are the paginator's unique attribute, and "|" was
+    # previously used as the delimiter in the pagination token, which broke
+    # resuming from a NextToken when values contained a pipe.
+    all_values = [[f"value|{i}"] for i in range(5)]
+    for values in all_values:
+        helpers.create_partition(client, database_name, table_name, values=values)
+
+    paginator = client.get_paginator("get_partitions")
+    pages = list(
+        paginator.paginate(
+            DatabaseName=database_name,
+            TableName=table_name,
+            PaginationConfig={"PageSize": 2},
+        )
+    )
+    assert len(pages) == 3
+    assert [p["Values"] for page in pages for p in page["Partitions"]] == all_values
+
+
+@mock_aws
 def test_get_partitions_with_invalid_segment_number():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
