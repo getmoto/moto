@@ -126,6 +126,11 @@ class PaginatedResult(ActionResult):
             paginated_results, next_token = paginator(**kwargs)
             set_value(self._result, result_key, paginated_results)
         set_value(self._result, paging_config["output_token"], next_token)
+        # Some paginators declare a boolean flag indicating whether more
+        # results are available (e.g. Kinesis ListStreams `HasMoreStreams`).
+        more_results = paging_config.get("more_results")
+        if more_results:
+            set_value(self._result, more_results, next_token is not None)
         return super().execute_result(context)
 
 
