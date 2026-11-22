@@ -16,6 +16,7 @@ s3tables
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] complete_table_migration
 - [X] create_namespace
 - [X] create_table
 - [X] create_table_bucket
@@ -28,10 +29,12 @@ s3tables
 - [ ] delete_table_bucket_replication
 - [ ] delete_table_policy
 - [ ] delete_table_replication
+- [ ] disassociate_table_replication
 - [X] get_namespace
 - [X] get_table
 - [X] get_table_bucket
 - [ ] get_table_bucket_encryption
+- [ ] get_table_bucket_logging
 - [ ] get_table_bucket_maintenance_configuration
 - [ ] get_table_bucket_metrics_configuration
 - [ ] get_table_bucket_policy
@@ -41,6 +44,7 @@ s3tables
 - [ ] get_table_maintenance_configuration
 - [ ] get_table_maintenance_job_status
 - [ ] get_table_metadata_location
+- [ ] get_table_migration
 - [ ] get_table_policy
 - [ ] get_table_record_expiration_configuration
 - [ ] get_table_record_expiration_job_status
@@ -49,9 +53,11 @@ s3tables
 - [ ] get_table_storage_class
 - [X] list_namespaces
 - [X] list_table_buckets
+- [ ] list_table_migrations
 - [X] list_tables
 - [ ] list_tags_for_resource
 - [ ] put_table_bucket_encryption
+- [ ] put_table_bucket_logging
 - [ ] put_table_bucket_maintenance_configuration
 - [ ] put_table_bucket_metrics_configuration
 - [ ] put_table_bucket_policy
@@ -62,7 +68,10 @@ s3tables
 - [ ] put_table_record_expiration_configuration
 - [ ] put_table_replication
 - [X] rename_table
+- [ ] start_table_migration
+- [ ] sync_table_migration
 - [ ] tag_resource
 - [ ] untag_resource
 - [X] update_table_metadata_location
+- [ ] update_table_migration
 

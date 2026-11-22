@@ -89,6 +89,7 @@ The MaxResults and NextToken-parameter have not yet been implemented.
 
 - [ ] list_filters
 - [ ] list_findings
+- [ ] list_investigation_records
 - [ ] list_investigations
 - [ ] list_invitations
 - [X] list_ip_sets

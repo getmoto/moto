@@ -197,7 +197,7 @@ Pagination is not yet implemented
 - [ ] list_certificate_providers
 - [X] list_certificates
   
-Pagination is not yet implemented
+The ascendingOrder-parameter is not yet implemented
 
 
 - [X] list_certificates_by_ca
@@ -265,10 +265,6 @@ Pagination is not yet implemented
 - [ ] list_targets_for_security_profile
 - [X] list_thing_groups
 - [X] list_thing_groups_for_thing
-  
-Pagination is not yet implemented
-
-
 - [X] list_thing_principals
 - [X] list_thing_principals_v2
 - [ ] list_thing_registration_task_reports
@@ -278,7 +274,7 @@ Pagination is not yet implemented
 - [X] list_things_in_billing_group
 - [X] list_things_in_thing_group
   
-Pagination and the recursive-parameter is not yet implemented
+The recursive-parameter is not yet implemented
 
 
 - [ ] list_topic_rule_destinations

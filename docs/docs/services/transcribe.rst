@@ -52,6 +52,7 @@ transcribe
 - [X] start_medical_transcription_job
 - [X] start_transcription_job
 - [ ] tag_resource
+- [ ] transcribe_audio
 - [ ] untag_resource
 - [ ] update_call_analytics_category
 - [ ] update_language_model

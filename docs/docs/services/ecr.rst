@@ -91,6 +91,7 @@ Note that the repository-name and imageTag/imageDigest should be an exact match.
 - [X] describe_images
 - [ ] describe_pull_through_cache_rules
 - [X] describe_registry
+- [ ] describe_replication_backfill_results
 - [X] describe_repositories
   
 maxResults and nextToken not implemented
@@ -115,6 +116,7 @@ imageStatus filter are not implemented.
 
 
 - [ ] list_pull_time_update_exclusions
+- [ ] list_replication_backfills
 - [X] list_tags_for_resource
 - [ ] put_account_setting
 - [X] put_image
@@ -129,6 +131,8 @@ imageStatus filter are not implemented.
 - [X] set_repository_policy
 - [X] start_image_scan
 - [ ] start_lifecycle_policy_preview
+- [ ] start_replication_backfill
+- [ ] stop_replication_backfill
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_image_storage_class

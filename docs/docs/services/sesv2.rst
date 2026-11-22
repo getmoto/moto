@@ -94,6 +94,7 @@ sesv2
 - [ ] list_tenant_resources
 - [ ] list_tenants
 - [ ] put_account_dedicated_ip_warmup_attributes
+- [ ] put_account_delivery_attributes
 - [ ] put_account_details
 - [ ] put_account_pricing_attributes
 - [ ] put_account_sending_attributes

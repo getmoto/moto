@@ -36,9 +36,11 @@ cognito-idp
 - [ ] admin_list_devices
 - [X] admin_list_groups_for_user
 - [ ] admin_list_user_auth_events
+- [ ] admin_list_user_sessions
 - [X] admin_remove_user_from_group
 - [X] admin_reset_user_password
 - [X] admin_respond_to_auth_challenge
+- [ ] admin_revoke_user_session
 - [X] admin_set_user_mfa_preference
 - [X] admin_set_user_password
 - [ ] admin_set_user_settings
@@ -47,11 +49,13 @@ cognito-idp
 - [X] admin_update_user_attributes
 - [X] admin_user_global_sign_out
 - [X] associate_software_token
+- [ ] cancel_point_in_time_recovery
 - [X] change_password
 - [ ] complete_web_authn_registration
 - [ ] confirm_device
 - [X] confirm_forgot_password
 - [X] confirm_sign_up
+- [ ] create_cimd_policy
 - [X] create_group
 - [X] create_identity_provider
 - [ ] create_managed_login_branding
@@ -62,6 +66,7 @@ cognito-idp
 - [X] create_user_pool_client
 - [X] create_user_pool_domain
 - [ ] create_user_pool_replica
+- [ ] delete_cimd_policy
 - [X] delete_group
 - [X] delete_identity_provider
 - [ ] delete_managed_login_branding
@@ -75,9 +80,11 @@ cognito-idp
 - [X] delete_user_pool_domain
 - [ ] delete_user_pool_replica
 - [ ] delete_web_authn_credential
+- [ ] describe_cimd_policy
 - [X] describe_identity_provider
 - [ ] describe_managed_login_branding
 - [ ] describe_managed_login_branding_by_client
+- [ ] describe_point_in_time_recovery
 - [X] describe_resource_server
 - [ ] describe_risk_configuration
 - [ ] describe_terms
@@ -100,6 +107,7 @@ Otherwise you get semi-random garbage and HTTP 200 OK, for example:
 
 - [ ] get_client_token
 - [ ] get_csv_header
+- [ ] get_derived_token
 - [ ] get_device
 - [X] get_group
 - [ ] get_identity_provider_by_identifier
@@ -111,12 +119,18 @@ Otherwise you get semi-random garbage and HTTP 200 OK, for example:
 - [X] get_user
 - [ ] get_user_attribute_verification_code
 - [ ] get_user_auth_factors
+- [ ] get_user_pool_client_session_configuration
 - [X] get_user_pool_mfa_config
+- [ ] get_user_pool_session_configuration
 - [X] global_sign_out
 - [X] initiate_auth
+- [ ] initiate_point_in_time_recovery
+- [ ] list_cimd_policies
+- [ ] list_client_metadata_urls
 - [ ] list_devices
 - [X] list_groups
 - [X] list_identity_providers
+- [ ] list_point_in_time_recoveries
 - [X] list_resource_servers
 - [ ] list_tags_for_resource
 - [ ] list_terms
@@ -125,25 +139,32 @@ Otherwise you get semi-random garbage and HTTP 200 OK, for example:
 - [X] list_user_pool_clients
 - [ ] list_user_pool_replicas
 - [X] list_user_pools
+- [ ] list_user_sessions
 - [X] list_users
 - [X] list_users_in_group
 - [ ] list_web_authn_credentials
 - [ ] resend_confirmation_code
 - [X] respond_to_auth_challenge
 - [ ] revoke_token
+- [ ] revoke_user_session
 - [ ] set_log_delivery_configuration
 - [ ] set_risk_configuration
 - [ ] set_ui_customization
 - [X] set_user_mfa_preference
+- [ ] set_user_pool_client_session_configuration
 - [X] set_user_pool_mfa_config
+- [ ] set_user_pool_session_configuration
 - [ ] set_user_settings
 - [X] sign_up
+- [ ] start_point_in_time_recovery
 - [ ] start_user_import_job
 - [ ] start_web_authn_registration
 - [ ] stop_user_import_job
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_auth_event_feedback
+- [ ] update_cimd_policy
+- [ ] update_client_metadata_url_state
 - [ ] update_device_status
 - [X] update_group
 - [X] update_identity_provider

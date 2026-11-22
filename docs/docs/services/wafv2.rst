@@ -37,6 +37,8 @@ wafv2
 - [X] disassociate_web_acl
 - [ ] generate_mobile_sdk_release_url
 - [ ] get_decrypted_api_key
+- [ ] get_event
+- [ ] get_event_actor
 - [X] get_ip_set
 - [X] get_logging_configuration
 - [ ] get_managed_rule_set
@@ -55,6 +57,9 @@ wafv2
 - [ ] list_api_keys
 - [ ] list_available_managed_rule_group_versions
 - [ ] list_available_managed_rule_groups
+- [ ] list_event_actors
+- [ ] list_events
+- [ ] list_events_by_web_acl
 - [X] list_ip_sets
 - [X] list_logging_configurations
 - [ ] list_managed_rule_sets

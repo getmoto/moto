@@ -18,6 +18,7 @@ kafka
 
 - [ ] batch_associate_scram_secret
 - [ ] batch_disassociate_scram_secret
+- [ ] create_assessment
 - [ ] create_channel
 - [X] create_cluster
 - [X] create_cluster_v2
@@ -25,6 +26,7 @@ kafka
 - [ ] create_replicator
 - [ ] create_topic
 - [ ] create_vpc_connection
+- [ ] delete_assessment
 - [ ] delete_channel
 - [X] delete_cluster
 - [X] delete_cluster_policy
@@ -32,6 +34,7 @@ kafka
 - [ ] delete_replicator
 - [ ] delete_topic
 - [ ] delete_vpc_connection
+- [ ] describe_assessment
 - [ ] describe_channel
 - [X] describe_cluster
 - [ ] describe_cluster_operation
@@ -42,10 +45,13 @@ kafka
 - [ ] describe_replicator
 - [ ] describe_topic
 - [ ] describe_topic_partitions
+- [ ] describe_topic_reassignment
 - [ ] describe_vpc_connection
 - [ ] get_bootstrap_brokers
 - [X] get_cluster_policy
 - [ ] get_compatible_kafka_versions
+- [ ] list_assessment_findings
+- [ ] list_assessments
 - [ ] list_channels
 - [ ] list_client_vpc_connections
 - [ ] list_cluster_operations
@@ -59,11 +65,14 @@ kafka
 - [ ] list_replicators
 - [ ] list_scram_secrets
 - [X] list_tags_for_resource
+- [ ] list_topic_reassignments
 - [ ] list_topics
 - [ ] list_vpc_connections
 - [X] put_cluster_policy
 - [ ] reboot_broker
 - [ ] reject_client_vpc_connection
+- [ ] start_topic_reassignment
+- [ ] stop_topic_reassignment
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_broker_count

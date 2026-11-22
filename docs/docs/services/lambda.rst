@@ -37,6 +37,7 @@ Function URLs are not yet mocked, so invoking them will fail
 - [X] delete_alias
 - [ ] delete_capacity_provider
 - [ ] delete_code_signing_config
+- [ ] delete_durable_execution
 - [X] delete_event_source_mapping
 - [X] delete_function
 - [ ] delete_function_code_signing_config
@@ -119,6 +120,7 @@ Configure this queue by making an HTTP request to `/moto-api/static/lambda-simpl
 - [ ] list_provisioned_concurrency_configs
 - [X] list_tags
 - [X] list_versions_by_function
+- [ ] pause_durable_execution
 - [X] publish_layer_version
 - [X] publish_version
 - [ ] put_function_code_signing_config
@@ -144,6 +146,7 @@ variable prior to testing.
 - [ ] put_runtime_management_config
 - [X] remove_layer_version_permission
 - [X] remove_permission
+- [ ] resume_durable_execution
 - [ ] send_durable_execution_callback_failure
 - [ ] send_durable_execution_callback_heartbeat
 - [ ] send_durable_execution_callback_success

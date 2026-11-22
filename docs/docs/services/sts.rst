@@ -34,6 +34,7 @@ we return the current account.
 - [X] get_caller_identity
 - [ ] get_delegated_access_token
 - [X] get_federation_token
+- [ ] get_scoped_credentials
 - [X] get_session_token
 - [ ] get_web_identity_token
 

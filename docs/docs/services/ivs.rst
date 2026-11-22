@@ -21,17 +21,20 @@ ivs
 - [ ] batch_start_viewer_session_revocation
 - [ ] create_ad_configuration
 - [X] create_channel
+- [ ] create_failover_slate_configuration
 - [ ] create_playback_restriction_policy
 - [ ] create_recording_configuration
 - [ ] create_stream_key
 - [ ] delete_ad_configuration
 - [X] delete_channel
+- [ ] delete_failover_slate_configuration
 - [ ] delete_playback_key_pair
 - [ ] delete_playback_restriction_policy
 - [ ] delete_recording_configuration
 - [ ] delete_stream_key
 - [ ] get_ad_configuration
 - [X] get_channel
+- [ ] get_failover_slate_configuration
 - [ ] get_playback_key_pair
 - [ ] get_playback_restriction_policy
 - [ ] get_recording_configuration
@@ -42,6 +45,7 @@ ivs
 - [ ] insert_ad_break
 - [ ] list_ad_configurations
 - [X] list_channels
+- [ ] list_failover_slate_configurations
 - [ ] list_playback_key_pairs
 - [ ] list_playback_restriction_policies
 - [ ] list_recording_configurations
@@ -56,5 +60,6 @@ ivs
 - [ ] untag_resource
 - [ ] update_ad_configuration
 - [X] update_channel
+- [ ] update_failover_slate_configuration
 - [ ] update_playback_restriction_policy
 
