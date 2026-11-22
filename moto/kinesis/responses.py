@@ -6,6 +6,7 @@ from .models import KinesisBackend, kinesis_backends
 class KinesisResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="kinesis")
+        self.automated_parameter_parsing = True
 
     @property
     def kinesis_backend(self) -> KinesisBackend:

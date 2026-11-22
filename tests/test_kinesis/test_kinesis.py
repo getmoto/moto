@@ -948,3 +948,29 @@ def get_stream_arn(client, stream_name):
     return client.describe_stream(StreamName=stream_name)["StreamDescription"][
         "StreamARN"
     ]
+
+
+@mock_aws
+def test_put_and_get_binary_record_data():
+    client = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "my_stream"
+    client.create_stream(StreamName=stream_name, ShardCount=1)
+
+    # Data that isn't valid UTF-8 must round-trip unchanged
+    single = bytes(range(256))
+    batch = [b"\x00\xff\xfe", b"\x80abc\x81"]
+    client.put_record(StreamName=stream_name, Data=single, PartitionKey="pk")
+    client.put_records(
+        StreamName=stream_name,
+        Records=[{"Data": data, "PartitionKey": "pk"} for data in batch],
+    )
+
+    shard_id = client.describe_stream(StreamName=stream_name)["StreamDescription"][
+        "Shards"
+    ][0]["ShardId"]
+    shard_iterator = client.get_shard_iterator(
+        StreamName=stream_name, ShardId=shard_id, ShardIteratorType="TRIM_HORIZON"
+    )["ShardIterator"]
+    records = client.get_records(ShardIterator=shard_iterator)["Records"]
+
+    assert [r["Data"] for r in records] == [single] + batch
