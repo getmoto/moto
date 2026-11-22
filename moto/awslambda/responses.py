@@ -4,7 +4,7 @@ import sys
 from typing import Any
 from urllib.parse import unquote
 
-from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse
+from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse, EmptyResult
 from moto.utilities.aws_headers import amz_crc32
 from moto.utilities.utils import ARN_PARTITION_REGEX
 
@@ -319,6 +319,68 @@ class LambdaResponse(BaseResponse):
         function_name = unquote(self.path.rsplit("/", 2)[-2])
         resp = self.backend.get_function_code_signing_config(function_name)
         return json.dumps(resp)
+
+    def put_function_code_signing_config(self) -> ActionResult:
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
+        resp = self.backend.put_function_code_signing_config(
+            function_name, self.json_body["CodeSigningConfigArn"]
+        )
+        return ActionResult(resp)
+
+    def delete_function_code_signing_config(self) -> ActionResult:
+        function_name = unquote(self.path.rsplit("/", 2)[-2])
+        self.backend.delete_function_code_signing_config(function_name)
+        return EmptyResult()
+
+    def create_code_signing_config(self) -> ActionResult:
+        config = self.backend.create_code_signing_config(
+            description=self.json_body.get("Description"),
+            allowed_publishers=self.json_body["AllowedPublishers"],
+            code_signing_policies=self.json_body.get("CodeSigningPolicies"),
+            tags=self.json_body.get("Tags"),
+        )
+        return ActionResult({"CodeSigningConfig": config})
+
+    def get_code_signing_config(self) -> ActionResult:
+        arn = unquote(self.path.rsplit("/", 1)[-1])
+        config = self.backend.get_code_signing_config(arn)
+        return ActionResult({"CodeSigningConfig": config})
+
+    def update_code_signing_config(self) -> ActionResult:
+        arn = unquote(self.path.rsplit("/", 1)[-1])
+        config = self.backend.update_code_signing_config(
+            arn,
+            description=self.json_body.get("Description"),
+            allowed_publishers=self.json_body.get("AllowedPublishers"),
+            code_signing_policies=self.json_body.get("CodeSigningPolicies"),
+        )
+        return ActionResult({"CodeSigningConfig": config})
+
+    def delete_code_signing_config(self) -> ActionResult:
+        arn = unquote(self.path.rsplit("/", 1)[-1])
+        self.backend.delete_code_signing_config(arn)
+        return EmptyResult()
+
+    def list_code_signing_configs(self) -> ActionResult:
+        configs, next_marker = self.backend.list_code_signing_configs(
+            marker=self._get_param("Marker"),
+            max_items=self._get_int_param("MaxItems"),
+        )
+        return ActionResult({"CodeSigningConfigs": configs, "NextMarker": next_marker})
+
+    def list_functions_by_code_signing_config(self) -> ActionResult:
+        arn = unquote(self.path.rsplit("/", 2)[-2])
+        functions, next_marker = self.backend.list_functions_by_code_signing_config(
+            arn,
+            marker=self._get_param("Marker"),
+            max_items=self._get_int_param("MaxItems"),
+        )
+        return ActionResult(
+            {
+                "FunctionArns": [fn.function_arn for fn in functions],
+                "NextMarker": next_marker,
+            }
+        )
 
     def get_function_concurrency(self) -> TYPE_RESPONSE:
         path_function_name = unquote(self.path.rsplit("/", 2)[-2])
