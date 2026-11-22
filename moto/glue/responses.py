@@ -145,13 +145,23 @@ class GlueResponse(BaseResponse):
         database_name = self._get_param("DatabaseName")
         table_name = self._get_param("TableName")
         expression = self._get_param("Expression")
+        segment = self._get_param("Segment")
+        exclude_column_schema = self._get_bool_param("ExcludeColumnSchema", False)
         partitions = self.glue_backend.get_partitions(
             database_name,
             table_name,
             expression,
+            segment=segment,
         )
 
-        return ActionResult({"Partitions": [p.as_dict() for p in partitions]})
+        return ActionResult(
+            {
+                "Partitions": [
+                    p.as_dict(exclude_column_schema=exclude_column_schema)
+                    for p in partitions
+                ]
+            }
+        )
 
     def get_partition(self) -> ActionResult:
         database_name = self._get_param("DatabaseName")

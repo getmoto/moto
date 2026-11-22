@@ -25,6 +25,7 @@ from .exceptions import (
     DatabaseNotFoundException,
     EntityNotFoundException,
     IllegalSessionStateException,
+    InvalidInputException,
     JobNotFoundException,
     JobRunNotFoundException,
     JsonRESTError,
@@ -384,7 +385,11 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         return table.get_partition(values)
 
     def get_partitions(
-        self, database_name: str, table_name: str, expression: str
+        self,
+        database_name: str,
+        table_name: str,
+        expression: str,
+        segment: dict[str, int] | None = None,
     ) -> list["FakePartition"]:
         """
         See https://docs.aws.amazon.com/glue/latest/webapi/API_GetPartitions.html
@@ -396,9 +401,23 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         - Literal dates and timestamps must be valid, i.e. no support for February 31st.
         - LIKE expressions are converted to Python regexes, escaping special characters.
           Only % and _ wildcards are supported, and SQL escaping using [] does not work.
+
+        When a Segment is provided, the (filtered) partitions are then divided into
+        `TotalSegments` number of non-overlapping segments, and only the partitions
+        in the requested `SegmentNumber` are returned.
         """
         table = self.get_table(database_name, table_name)
-        return table.get_partitions(expression)
+        partitions = table.get_partitions(expression)
+        if segment:
+            segment_number = segment["SegmentNumber"]
+            total_segments = segment["TotalSegments"]
+            if segment_number >= total_segments:
+                raise InvalidInputException(
+                    "GetPartitions",
+                    f"Invalid segment number {segment_number}: must be less than the total number of segments ({total_segments}).",
+                )
+            partitions = partitions[segment_number::total_segments]
+        return partitions
 
     def update_partition(
         self,
@@ -1872,13 +1891,17 @@ class FakePartition(BaseModel):
         self.partition_input = partiton_input
         self.values = self.partition_input.get("Values", [])
 
-    def as_dict(self) -> dict[str, Any]:
-        obj = {
+    def as_dict(self, exclude_column_schema: bool = False) -> dict[str, Any]:
+        obj: dict[str, Any] = {
             "DatabaseName": self.database_name,
             "TableName": self.table_name,
             "CreationTime": self.creation_time,
         }
         obj.update(self.partition_input)
+        if exclude_column_schema and "StorageDescriptor" in obj:
+            obj["StorageDescriptor"] = {
+                k: v for k, v in obj["StorageDescriptor"].items() if k != "Columns"
+            }
         return obj
 
 
