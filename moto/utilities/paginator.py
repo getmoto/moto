@@ -146,11 +146,16 @@ class Paginator:
     def _check_predicate(self, item: Any) -> bool:
         if self._parsed_token is None:
             return False
-        unique_attributes = self._parsed_token["uniqueAttributes"]
-        predicate_values = unique_attributes.split("|")
-        for index, attr in enumerate(self._unique_attributes):
+        predicate_values = self._parsed_token["uniqueAttributes"]
+        if not isinstance(predicate_values, list) or len(predicate_values) != len(
+            self._unique_attributes
+        ):
+            return False
+        for attr, predicate_value in zip(
+            self._unique_attributes, predicate_values, strict=True
+        ):
             curr_val = self._get_unique_value(item, attr, None)
-            if not str(curr_val) == predicate_values[index]:
+            if not str(curr_val) == predicate_value:
                 return False
 
         return True
@@ -171,7 +176,9 @@ class Paginator:
         range_keys = []
         for attr in self._unique_attributes:
             range_keys.append(str(self._get_unique_value(next_item, attr)))
-        token_dict["uniqueAttributes"] = "|".join(range_keys)
+        # Encode as a list (not a delimited string) so attribute values containing
+        # any character, including the old "|" delimiter, successfully round-trip.
+        token_dict["uniqueAttributes"] = range_keys
         return self._token_encoder.encode(token_dict)
 
     def paginate(self, results: list[Any]) -> tuple[list[Any], str | None]:
