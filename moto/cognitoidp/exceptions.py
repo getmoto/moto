@@ -62,3 +62,18 @@ class InvalidPasswordException(JsonRESTError):
 class CodeMismatchException(JsonRESTError):
     def __init__(self, message: str):
         super().__init__(error_type="CodeMismatchException", message=message)
+
+
+class UserLambdaValidationException(JsonRESTError):
+    def __init__(self, message: str):
+        super().__init__(error_type="UserLambdaValidationException", message=message)
+
+
+class UnexpectedLambdaException(JsonRESTError):
+    def __init__(self, message: str):
+        super().__init__(error_type="UnexpectedLambdaException", message=message)
+
+
+class InvalidLambdaResponseException(JsonRESTError):
+    def __init__(self, message: str):
+        super().__init__(error_type="InvalidLambdaResponseException", message=message)
