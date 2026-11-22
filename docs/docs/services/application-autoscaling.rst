@@ -26,10 +26,10 @@ Pagination is not yet implemented
 
 
 - [ ] get_predictive_scaling_forecast
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] put_scaling_policy
 - [X] put_scheduled_action
 - [X] register_scalable_target
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 
