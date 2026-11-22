@@ -3,7 +3,7 @@ import io
 import itertools
 import json
 import re
-from base64 import b64decode, b64encode
+from base64 import b64encode
 from collections import OrderedDict
 from gzip import GzipFile
 from operator import attrgetter
@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 from moto.cloudwatch.models import cloudwatch_backends
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.utils import unix_time, utcnow
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition, md5_hash
@@ -70,7 +70,7 @@ class Record(BaseModel):
     def __init__(
         self,
         partition_key: str,
-        data: str,
+        data: bytes,
         sequence_number: int,
         explicit_hash_key: str,
     ):
@@ -78,15 +78,14 @@ class Record(BaseModel):
         self.data = data
         self.sequence_number = sequence_number
         self.explicit_hash_key = explicit_hash_key
-        self.created_at_datetime = utcnow()
-        self.created_at = unix_time(self.created_at_datetime)
+        self.created_at = utcnow()
 
     def to_json(self) -> dict[str, Any]:
         return {
-            "Data": b64decode(self.data),
+            "Data": self.data,
             "PartitionKey": self.partition_key,
             "SequenceNumber": str(self.sequence_number),
-            "ApproximateArrivalTimestamp": self.created_at_datetime,
+            "ApproximateArrivalTimestamp": self.created_at,
         }
 
 
@@ -124,7 +123,9 @@ class Shard(BaseModel):
                 last_sequence_int = sequence_number
 
                 very_last_record = self.records[next(reversed(self.records))]
-                secs_behind_latest = very_last_record.created_at - record.created_at
+                secs_behind_latest = (
+                    very_last_record.created_at - record.created_at
+                ).total_seconds()
 
             if len(results) == limit:
                 break
@@ -132,7 +133,9 @@ class Shard(BaseModel):
         millis_behind_latest = int(secs_behind_latest * 1000)
         return results, last_sequence_int, millis_behind_latest
 
-    def put_record(self, partition_key: str, data: str, explicit_hash_key: str) -> str:
+    def put_record(
+        self, partition_key: str, data: bytes, explicit_hash_key: str
+    ) -> str:
         # Note: this function is not safe for concurrency
         if self.records:
             last_sequence_number = self.get_max_sequence_number()
@@ -154,7 +157,7 @@ class Shard(BaseModel):
             return list(self.records.keys())[-1]
         return 0
 
-    def get_sequence_number_at(self, at_timestamp: float) -> int:
+    def get_sequence_number_at(self, at_timestamp: datetime.datetime) -> int:
         if (
             not self.records
             or at_timestamp <= list(self.records.values())[0].created_at
@@ -410,7 +413,7 @@ class Stream(CloudFormationModel):
         return None
 
     def put_record(
-        self, partition_key: str, explicit_hash_key: str, data: str
+        self, partition_key: str, explicit_hash_key: str, data: bytes
     ) -> tuple[str, str]:
         shard: Shard = self.get_shard_for_key(partition_key, explicit_hash_key)  # type: ignore
 
@@ -424,7 +427,7 @@ class Stream(CloudFormationModel):
             get_backend(self.account_id, region).send_kinesis_message(
                 function_name=esm.function_arn,
                 kinesis_stream=self.arn,
-                kinesis_data=data,
+                kinesis_data=b64encode(data).decode("utf-8"),
                 kinesis_shard_id=shard.shard_id,
                 kinesis_partition_key=partition_key,
                 kinesis_sequence_number=sequence_number,
@@ -725,7 +728,7 @@ class KinesisBackend(BaseBackend):
         stream_name: str,
         partition_key: str,
         explicit_hash_key: str,
-        data: str,
+        data: bytes,
     ) -> tuple[str, str]:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
 
@@ -735,7 +738,7 @@ class KinesisBackend(BaseBackend):
 
         self._send_stream_metrics(
             stream.stream_name,
-            incoming_bytes=len(b64decode(data)) + len(partition_key),
+            incoming_bytes=len(data) + len(partition_key),
             incoming_records=1,
         )
 
@@ -752,8 +755,7 @@ class KinesisBackend(BaseBackend):
             raise TooManyRecords
 
         data_sizes = [
-            len(b64decode(r.get("Data", ""))) + len(r.get("PartitionKey", ""))
-            for r in records
+            len(r.get("Data", b"")) + len(r.get("PartitionKey", "")) for r in records
         ]
         if sum(data_sizes) > 5242880:
             raise TotalRecordsSizeExceedsLimit
@@ -1053,7 +1055,7 @@ class KinesisBackend(BaseBackend):
         output = io.BytesIO()
         with GzipFile(fileobj=output, mode="w") as fhandle:
             fhandle.write(json.dumps(data, separators=(",", ":")).encode("utf-8"))
-        gzipped_payload = b64encode(output.getvalue()).decode("UTF-8")
+        gzipped_payload = output.getvalue()
 
         stream = self.describe_stream(stream_arn=delivery_stream_arn, stream_name=None)
         random_partition_key = random.get_random_string(length=32, lower_case=True)
