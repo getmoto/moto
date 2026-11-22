@@ -1,4 +1,9 @@
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import (
+    ActionResult,
+    BaseResponse,
+    EmptyResult,
+    PaginatedResult,
+)
 
 from .models import KinesisBackend, kinesis_backends
 
@@ -35,15 +40,11 @@ class KinesisResponse(BaseResponse):
         return ActionResult(stream.to_json_summary())
 
     def list_streams(self) -> ActionResult:
-        streams, next_token = self.kinesis_backend.list_streams(
+        streams = self.kinesis_backend.list_streams(
             exclusive_start_stream_name=self._get_param("ExclusiveStartStreamName"),
-            limit=self._get_param("Limit"),
-            next_token=self._get_param("NextToken"),
         )
-        return ActionResult(
+        return PaginatedResult(
             {
-                "HasMoreStreams": next_token is not None,
-                "NextToken": next_token,
                 "StreamNames": [stream.stream_name for stream in streams],
                 "StreamSummaries": [
                     stream.to_json_summary()["StreamDescriptionSummary"]
@@ -145,17 +146,10 @@ class KinesisResponse(BaseResponse):
     def list_shards(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
-        next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults", 10000)
-        shards, token = self.kinesis_backend.list_shards(
-            stream_arn=stream_arn,
-            stream_name=stream_name,
-            limit=max_results,
-            next_token=next_token,
+        shards = self.kinesis_backend.list_shards(
+            stream_arn=stream_arn, stream_name=stream_name
         )
-        return ActionResult(
-            {"Shards": [s.to_json() for s in shards], "NextToken": token}
-        )
+        return PaginatedResult({"Shards": [s.to_json() for s in shards]})
 
     def update_shard_count(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
@@ -254,16 +248,8 @@ class KinesisResponse(BaseResponse):
 
     def list_stream_consumers(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
-        next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults", 10000)
-        consumers, token = self.kinesis_backend.list_stream_consumers(
-            stream_arn=stream_arn,
-            limit=max_results,
-            next_token=next_token,
-        )
-        return ActionResult(
-            {"Consumers": [c.to_json() for c in consumers], "NextToken": token}
-        )
+        consumers = self.kinesis_backend.list_stream_consumers(stream_arn=stream_arn)
+        return PaginatedResult({"Consumers": [c.to_json() for c in consumers]})
 
     def register_stream_consumer(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")

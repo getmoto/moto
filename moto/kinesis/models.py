@@ -14,7 +14,6 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
-from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition, md5_hash
 
 from .exceptions import (
@@ -34,7 +33,6 @@ from .exceptions import (
     ValidationException,
 )
 from .utils import (
-    PAGINATION_MODEL,
     compose_new_shard_iterator,
     compose_shard_iterator,
     decompose_shard_iterator,
@@ -637,7 +635,6 @@ class KinesisBackend(BaseBackend):
     ) -> Stream:
         return self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def list_streams(
         self, exclusive_start_stream_name: str | None = None
     ) -> list[Stream]:
@@ -850,7 +847,6 @@ class KinesisBackend(BaseBackend):
 
         return current_shard_count
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def list_shards(
         self, stream_arn: str | None, stream_name: str | None
     ) -> list[Shard]:
@@ -973,7 +969,6 @@ class KinesisBackend(BaseBackend):
             if stream.arn == stream_arn:
                 return stream
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def list_stream_consumers(self, stream_arn: str) -> list[Consumer]:
         stream = self._find_stream_by_arn(stream_arn)
         return stream.consumers
