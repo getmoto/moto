@@ -29,9 +29,8 @@ class KinesisResponse(BaseResponse):
     def describe_stream(self) -> ActionResult:
         stream_name = self._get_param("StreamName")
         stream_arn = self._get_param("StreamARN")
-        limit = self._get_param("Limit")
         stream = self.kinesis_backend.describe_stream(stream_arn, stream_name)
-        return ActionResult(stream.to_json(shard_limit=limit))
+        return PaginatedResult(stream.to_json())
 
     def describe_stream_summary(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
