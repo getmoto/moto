@@ -244,7 +244,7 @@ class RDSResponse(BaseResponse):
             ec2_backends[self.current_account][self.region].get_subnet(subnet_id)
             for subnet_id in subnet_ids
         ]
-        subnet_group = self.backend.create_subnet_group(
+        subnet_group = self.backend.create_db_subnet_group(
             subnet_name, description, subnets, tags
         )
         result = {"DBSubnetGroup": subnet_group}
@@ -272,7 +272,7 @@ class RDSResponse(BaseResponse):
 
     def delete_db_subnet_group(self) -> ActionResult:
         subnet_name = self.params.get("DBSubnetGroupName")
-        subnet_group = self.backend.delete_subnet_group(subnet_name)
+        subnet_group = self.backend.delete_db_subnet_group(subnet_name)
         result = {"DBSubnetGroup": subnet_group}
         return ActionResult(result)
 
@@ -366,6 +366,25 @@ class RDSResponse(BaseResponse):
         name = self.params["DBParameterGroupName"]
         db_parameter_group = self.backend.delete_db_parameter_group(name)
         return ActionResult(db_parameter_group)
+
+    def reset_db_cluster_parameter_group(self) -> ActionResult:
+        db_parameter_group_name = self.params.get("DBClusterParameterGroupName")
+        reset_all_parameters = self.params.get("ResetAllParameters", False)
+        param_list = self.params.get("Parameters", [])
+        parameters = [param.original_dict() for param in param_list]
+        db_parameter_group = self.backend.reset_db_cluster_parameter_group(
+            db_parameter_group_name, reset_all_parameters, parameters
+        )
+        result = {"DBClusterParameterGroupName": db_parameter_group.name}
+        return ActionResult(result)
+
+    def describe_engine_default_cluster_parameters(self) -> ActionResult:
+        db_parameter_group_family = self.params.get("DBParameterGroupFamily")
+        engine_defaults = self.backend.describe_engine_default_cluster_parameters(
+            db_parameter_group_family
+        )
+        result = {"EngineDefaults": engine_defaults}
+        return ActionResult(result)
 
     def describe_db_cluster_parameters(self) -> ActionResult:
         db_parameter_group_name = self.params.get("DBClusterParameterGroupName")
@@ -498,6 +517,16 @@ class RDSResponse(BaseResponse):
             engine, engine_version
         )
         result = {"OrderableDBInstanceOptions": options}
+        return PaginatedResult(result)
+
+    def describe_db_engine_versions(self) -> ActionResult:
+        versions = self.backend.describe_db_engine_versions(
+            engine=self.params.get("Engine"),
+            engine_version=self.params.get("EngineVersion"),
+            db_parameter_group_family=self.params.get("DBParameterGroupFamily"),
+            default_only=self.params.get("DefaultOnly", False),
+        )
+        result = {"DBEngineVersions": versions}
         return PaginatedResult(result)
 
     def describe_global_clusters(self) -> ActionResult:
