@@ -535,6 +535,89 @@ def test_get_partitions_empty():
 
 
 @mock_aws
+def test_get_partitions_with_segment():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+    all_values = [[f"2018-10-{day:02d}"] for day in range(1, 8)]
+    for values in all_values:
+        helpers.create_partition(client, database_name, table_name, values=values)
+
+    total_segments = 3
+    segmented_values = []
+    for segment_number in range(total_segments):
+        response = client.get_partitions(
+            DatabaseName=database_name,
+            TableName=table_name,
+            Segment={"SegmentNumber": segment_number, "TotalSegments": total_segments},
+        )
+        assert len(response["Partitions"]) > 0
+        segmented_values.extend(p["Values"] for p in response["Partitions"])
+
+    # Segments are non-overlapping and together cover every partition
+    assert len(segmented_values) == len(all_values)
+    assert sorted(segmented_values) == sorted(all_values)
+
+    # A single segment returns everything
+    response = client.get_partitions(
+        DatabaseName=database_name,
+        TableName=table_name,
+        Segment={"SegmentNumber": 0, "TotalSegments": 1},
+    )
+    assert len(response["Partitions"]) == len(all_values)
+
+
+@mock_aws
+def test_get_partitions_with_invalid_segment_number():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(
+            DatabaseName=database_name,
+            TableName=table_name,
+            Segment={"SegmentNumber": 2, "TotalSegments": 2},
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+
+
+@mock_aws
+def test_get_partitions_exclude_column_schema():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+    columns = [helpers.create_column("col1", "string")]
+    part_input = helpers.create_partition_input(
+        database_name, table_name, values=["2018-10-01"], columns=columns
+    )
+    helpers.create_partition(client, database_name, table_name, part_input)
+
+    response = client.get_partitions(
+        DatabaseName=database_name, TableName=table_name, ExcludeColumnSchema=True
+    )
+    storage_descriptor = response["Partitions"][0]["StorageDescriptor"]
+    expected = {
+        k: v for k, v in part_input["StorageDescriptor"].items() if k != "Columns"
+    }
+    assert storage_descriptor == expected
+
+    # Columns are still stored and returned by default
+    response = client.get_partitions(DatabaseName=database_name, TableName=table_name)
+    assert response["Partitions"][0]["StorageDescriptor"]["Columns"] == columns
+    response = client.get_partitions(
+        DatabaseName=database_name, TableName=table_name, ExcludeColumnSchema=False
+    )
+    assert response["Partitions"][0]["StorageDescriptor"]["Columns"] == columns
+
+
+@mock_aws
 @freeze_time(FROZEN_CREATE_TIME)
 def test_create_partition():
     client = boto3.client("glue", region_name="us-east-1")
