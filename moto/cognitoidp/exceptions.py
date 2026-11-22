@@ -62,3 +62,34 @@ class InvalidPasswordException(JsonRESTError):
 class CodeMismatchException(JsonRESTError):
     def __init__(self, message: str):
         super().__init__(error_type="CodeMismatchException", message=message)
+
+
+class UserLambdaValidationException(JsonRESTError):
+    def __init__(self, message: str):
+        super().__init__(error_type="UserLambdaValidationException", message=message)
+
+
+class UnexpectedLambdaException(JsonRESTError):
+    def __init__(self, message: str):
+        super().__init__(error_type="UnexpectedLambdaException", message=message)
+
+
+class InvalidLambdaResponseException(JsonRESTError):
+    def __init__(self, message: str):
+        super().__init__(error_type="InvalidLambdaResponseException", message=message)
+
+
+class OAuthError(Exception):
+    """
+    An error of the OAuth 2.0 endpoints of a user pool domain, which use the format of RFC 6749 instead of the AWS JSON protocol
+    """
+
+    def __init__(self, error: str, description: str | None = None):
+        super().__init__(error)
+        self.error = error
+        self.description = description
+
+    def to_json(self) -> dict[str, str]:
+        if self.description:
+            return {"error": self.error, "error_description": self.description}
+        return {"error": self.error}

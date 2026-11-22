@@ -3,9 +3,16 @@ from typing import Any
 from urllib.parse import urlparse
 
 from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse, EmptyResult
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import load_resource
 
-from .exceptions import InvalidParameterException
+from .exceptions import (
+    InvalidLambdaResponseException,
+    InvalidParameterException,
+    OAuthError,
+    UnexpectedLambdaException,
+    UserLambdaValidationException,
+)
 from .models import (
     CognitoIdpBackend,
     RegionAgnosticBackend,
@@ -416,9 +423,10 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         challenge_name = self._get_param("ChallengeName")
         challenge_responses = self._get_param("ChallengeResponses")
+        client_metadata = self._get_param("ClientMetadata")
         backend = self._get_region_agnostic_backend()
         auth_result = backend.admin_respond_to_auth_challenge(
-            session, client_id, challenge_name, challenge_responses
+            session, client_id, challenge_name, challenge_responses, client_metadata
         )
 
         return ActionResult(auth_result)
@@ -428,8 +436,9 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         challenge_name = self._get_param("ChallengeName")
         challenge_responses = self._get_param("ChallengeResponses")
+        client_metadata = self._get_param("ClientMetadata")
         auth_result = self._get_region_agnostic_backend().respond_to_auth_challenge(
-            session, client_id, challenge_name, challenge_responses
+            session, client_id, challenge_name, challenge_responses, client_metadata
         )
 
         return ActionResult(auth_result)
@@ -575,6 +584,18 @@ class CognitoIdpResponse(BaseResponse):
 
         return ActionResult(auth_result)
 
+    def get_tokens_from_refresh_token(self) -> ActionResult:
+        client_id = self._get_param("ClientId")
+        refresh_token = self._get_param("RefreshToken")
+        client_secret = self._get_param("ClientSecret")
+        client_metadata = self._get_param("ClientMetadata")
+
+        auth_result = self._get_region_agnostic_backend().get_tokens_from_refresh_token(
+            client_id, refresh_token, client_secret, client_metadata
+        )
+
+        return ActionResult(auth_result)
+
     def associate_software_token(self) -> ActionResult:
         access_token = self._get_param("AccessToken")
         session = self._get_param("Session")
@@ -682,3 +703,63 @@ class CognitoIdpOpenIdConfigurationResponse(BaseResponse):
             {"Content-Type": "application/json"},
             json.dumps(document).encode("utf-8"),
         )
+
+
+class CognitoIdpOAuth2Response(BaseResponse):
+    def __init__(self) -> None:
+        super().__init__(service_name="cognito-idp")
+
+    @classmethod
+    def token(cls, *args: Any) -> TYPE_RESPONSE:
+        # Called with (request, full_url, headers), like serve_json_web_key
+        response = cls()
+        response.setup_class(*args)
+        return response._token()
+
+    def _token(self) -> TYPE_RESPONSE:
+        headers = {"Cache-Control": "no-cache, no-store, max-age=0, must-revalidate"}
+        if self.method != "POST":
+            # AWS responds with the HTML error page of the hosted UI
+            return 400, headers, ""
+        if self.normalized_request.mimetype != "application/x-www-form-urlencoded":
+            return 415, headers, ""
+        headers["Content-Type"] = "application/json;charset=UTF-8"
+
+        form = self.normalized_request.form
+        grant_type = form.get("grant_type")
+        if not grant_type:
+            return 400, headers, json.dumps(OAuthError("invalid_request").to_json())
+        if grant_type != "client_credentials":
+            unsupported = OAuthError("unsupported_grant_type")
+            return 400, headers, json.dumps(unsupported.to_json())
+
+        client_id = form.get("client_id")
+        client_secret = form.get("client_secret")
+        # AWS ignores the credentials in the body when the Authorization header is present
+        authorization = self.normalized_request.authorization
+        if authorization and authorization.type == "basic":
+            client_id = authorization.username
+            client_secret = authorization.password
+        client_metadata = form.get("aws_client_metadata")
+        try:
+            result = RegionAgnosticBackend(
+                self.current_account, self.region
+            ).get_client_credentials_token(
+                client_id,
+                client_secret,
+                form.get("scope"),
+                json.loads(client_metadata) if client_metadata else None,
+            )
+        except OAuthError as e:
+            return 400, headers, json.dumps(e.to_json())
+        except (
+            InvalidLambdaResponseException,
+            UnexpectedLambdaException,
+            UserLambdaValidationException,
+        ) as e:
+            error = (
+                f"{e.message} (Service: AWSCognitoIdentityProviderInternalService; Status Code: 400; "
+                f"Error Code: {e.error_type}; Request ID: {random.uuid4()}; Proxy: null)"
+            )
+            return 400, headers, json.dumps({"error": error})
+        return 200, {**headers, "Pragma": "no-cache"}, json.dumps(result)
