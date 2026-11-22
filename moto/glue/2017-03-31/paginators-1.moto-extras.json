@@ -8,6 +8,9 @@
       "GetDevEndpoints": {
         "unique_attribute": "EndpointName"
       },
+      "GetPartitions": {
+        "unique_attribute": "Values"
+      },
       "GetJobRuns": {
         "unique_attribute": "Id"
       },

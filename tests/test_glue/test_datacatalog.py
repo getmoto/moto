@@ -1,4 +1,5 @@
 import json
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 import boto3
@@ -567,6 +568,103 @@ def test_get_partitions_with_segment():
         Segment={"SegmentNumber": 0, "TotalSegments": 1},
     )
     assert len(response["Partitions"]) == len(all_values)
+
+
+@mock_aws
+def test_get_partitions_pagination():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+    all_values = [[f"2018-10-{day:02d}"] for day in range(1, 8)]
+    for values in all_values:
+        helpers.create_partition(client, database_name, table_name, values=values)
+
+    response = client.get_partitions(
+        DatabaseName=database_name, TableName=table_name, MaxResults=3
+    )
+    assert [p["Values"] for p in response["Partitions"]] == all_values[:3]
+    assert "NextToken" in response
+
+    response = client.get_partitions(
+        DatabaseName=database_name,
+        TableName=table_name,
+        MaxResults=3,
+        NextToken=response["NextToken"],
+    )
+    assert [p["Values"] for p in response["Partitions"]] == all_values[3:6]
+
+    paginator = client.get_paginator("get_partitions")
+    pages = list(
+        paginator.paginate(
+            DatabaseName=database_name,
+            TableName=table_name,
+            PaginationConfig={"PageSize": 2},
+        )
+    )
+    assert len(pages) == 4
+    assert [p["Values"] for page in pages for p in page["Partitions"]] == all_values
+    assert "NextToken" not in pages[-1]
+
+    # Pagination applies within a segment
+    pages = list(
+        paginator.paginate(
+            DatabaseName=database_name,
+            TableName=table_name,
+            Segment={"SegmentNumber": 0, "TotalSegments": 2},
+            PaginationConfig={"PageSize": 1},
+        )
+    )
+    segment_values = [p["Values"] for page in pages for p in page["Partitions"]]
+    assert segment_values == all_values[0::2]
+
+
+@mock_aws
+def test_get_partitions_segments_fetched_in_parallel():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+    columns = [helpers.create_column("col1", "string")]
+    all_values = [[f"2018-10-{day:02d}"] for day in range(1, 31)]
+    for values in all_values:
+        helpers.create_partition(
+            client, database_name, table_name, values=values, columns=columns
+        )
+
+    total_segments = 4
+
+    def fetch_segment(segment_number):
+        partitions = []
+        paginator = client.get_paginator("get_partitions")
+        page_iterator = paginator.paginate(
+            DatabaseName=database_name,
+            TableName=table_name,
+            ExcludeColumnSchema=True,
+            Segment={
+                "SegmentNumber": segment_number,
+                "TotalSegments": total_segments,
+            },
+            # Small page size so each segment spans multiple pages
+            PaginationConfig={"PageSize": 3},
+        )
+        for page in page_iterator:
+            partitions.extend(page["Partitions"])
+        return partitions
+
+    with ThreadPoolExecutor(max_workers=total_segments) as executor:
+        results = list(executor.map(fetch_segment, range(total_segments)))
+
+    for segment_partitions in results:
+        assert len(segment_partitions) > 3
+    all_partitions = [p for segment in results for p in segment]
+    fetched_values = [p["Values"] for p in all_partitions]
+    assert len(fetched_values) == len(all_values)
+    assert sorted(fetched_values) == sorted(all_values)
+    for partition in all_partitions:
+        assert "Columns" not in partition["StorageDescriptor"]
 
 
 @mock_aws

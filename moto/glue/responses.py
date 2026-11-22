@@ -154,7 +154,7 @@ class GlueResponse(BaseResponse):
             segment=segment,
         )
 
-        return ActionResult(
+        return PaginatedResult(
             {
                 "Partitions": [
                     p.as_dict(exclude_column_schema=exclude_column_schema)
