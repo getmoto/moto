@@ -95,13 +95,54 @@ class ActionResult:
         return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
 
 
+# A botocore output_token is a JMESPath expression.  These are the forms the
+# server needs to handle (see PaginatedResult._parse_output_token).
+_PLAIN_TOKEN_PATH = re.compile(r"^[A-Za-z0-9_.]+$")
+_LAST_ITEM_TOKEN_PATH = re.compile(r"^[A-Za-z0-9_.]+\[-1\]\.(?P<attr>[A-Za-z0-9_]+)$")
+
+
 class PaginatedResult(ActionResult):
+    @staticmethod
+    def _parse_output_token(expression: Any) -> tuple[str | None, str | None]:
+        """Split a botocore output_token into (write_path, marker_attribute).
+
+        - ``NextToken``: the server writes the token to this field.
+        - ``Shards[-1].ShardId``: the client reads the token from the last
+          item of the page, so the server writes nothing and the token is a
+          marker taken from the item's ``ShardId`` attribute.
+        - ``NextMarker || Contents[-1].Key``: both of the above.
+        """
+        if not isinstance(expression, str):
+            raise NotImplementedError(
+                f"Multiple output tokens are not supported: {expression}"
+            )
+        write_path = None
+        marker_attribute = None
+        for part in (p.strip() for p in expression.split("||")):
+            last_item = _LAST_ITEM_TOKEN_PATH.match(part)
+            if last_item:
+                marker_attribute = last_item.group("attr")
+            elif _PLAIN_TOKEN_PATH.match(part) and write_path is None:
+                write_path = part
+            else:
+                raise NotImplementedError(
+                    f"Unsupported output_token expression: {expression}"
+                )
+        return write_path, marker_attribute
+
     def execute_result(self, context: ActionContext) -> TYPE_RESPONSE:
         service_name = str(context.service_model.service_name)
         operation_name = str(context.operation_model.name)
-        pagination_model = get_pagination_model(service_name)
-        paging_config = pagination_model[operation_name]
+        # Copy so the derived defaults below don't modify the cached model
+        paging_config = dict(get_pagination_model(service_name)[operation_name])
         paging_config.setdefault("limit_default", 100)
+        token_write_path, marker_attribute = self._parse_output_token(
+            paging_config["output_token"]
+        )
+        if marker_attribute:
+            paging_config.setdefault("token_strategy", "marker")
+            paging_config.setdefault("unique_attribute", marker_attribute)
+        pagination_model = {operation_name: paging_config}
 
         kwargs = context.response.params
         if isinstance(kwargs, XFormedDict):
@@ -125,7 +166,8 @@ class PaginatedResult(ActionResult):
             paginator = paginate(pagination_model)(get_result_to_paginate)
             paginated_results, next_token = paginator(**kwargs)
             set_value(self._result, result_key, paginated_results)
-        set_value(self._result, paging_config["output_token"], next_token)
+        if token_write_path:
+            set_value(self._result, token_write_path, next_token)
         # Some paginators declare a boolean flag indicating whether more
         # results are available (e.g. Kinesis ListStreams `HasMoreStreams`).
         more_results = paging_config.get("more_results")
