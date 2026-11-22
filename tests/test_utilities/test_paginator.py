@@ -348,3 +348,101 @@ def test_paginator__multiple_unique_attributes_containing_pipe():
     page, token = p.paginate(result_list)
     assert page == result_list[2:]
     assert token is None
+
+
+marker_results = [{"id": f"id{i}"} for i in range(0, 5)]
+
+
+def test_paginator__marker_after_last():
+    p = Paginator(max_results=2, unique_attribute="id", token_strategy="marker")
+    page, token = p.paginate(marker_results)
+    assert page == marker_results[:2]
+    # The marker is the last item returned
+    assert token == "id1"
+
+    p = Paginator(
+        max_results=2,
+        starting_token=token,
+        unique_attribute="id",
+        token_strategy="marker",
+    )
+    page, token = p.paginate(marker_results)
+    assert page == marker_results[2:4]
+    assert token == "id3"
+
+    p = Paginator(
+        max_results=2,
+        starting_token=token,
+        unique_attribute="id",
+        token_strategy="marker",
+    )
+    page, token = p.paginate(marker_results)
+    assert page == marker_results[4:]
+    assert token is None
+
+
+def test_paginator__marker_at_next():
+    p = Paginator(
+        max_results=2,
+        unique_attribute="id",
+        token_strategy="marker",
+        token_position="at_next",
+    )
+    page, token = p.paginate(marker_results)
+    assert page == marker_results[:2]
+    # The marker is the first item of the next page
+    assert token == "id2"
+
+    p = Paginator(
+        max_results=2,
+        starting_token=token,
+        unique_attribute="id",
+        token_strategy="marker",
+        token_position="at_next",
+    )
+    page, token = p.paginate(marker_results)
+    assert page == marker_results[2:4]
+    assert token == "id4"
+
+
+def test_paginator__marker_is_not_encoded_or_bound_to_params():
+    # A marker is a plain item value, so it is accepted whatever the other
+    # request parameters are, unlike an opaque token.
+    p = Paginator(
+        max_results=2,
+        starting_token="id1",
+        unique_attribute="id",
+        token_strategy="marker",
+        param_values_to_check={"filter": "anything"},
+    )
+    page, _ = p.paginate(marker_results)
+    assert page == marker_results[2:4]
+
+
+def test_paginator__unknown_marker():
+    p = Paginator(
+        max_results=2,
+        starting_token="unknown",
+        unique_attribute="id",
+        token_strategy="marker",
+    )
+    with pytest.raises(InvalidToken):
+        p.paginate(marker_results)
+
+    p = Paginator(
+        max_results=2,
+        starting_token="unknown",
+        unique_attribute="id",
+        token_strategy="marker",
+        fail_on_invalid_token=False,
+    )
+    assert p.paginate(marker_results) == ([], None)
+
+
+def test_paginator__invalid_marker_config():
+    with pytest.raises(ValueError):
+        Paginator(max_results=2, unique_attribute="id", token_strategy="unknown")
+    with pytest.raises(ValueError):
+        Paginator(max_results=2, unique_attribute="id", token_position="unknown")
+    with pytest.raises(ValueError):
+        Paginator(max_results=2, unique_attribute=["a", "b"], token_strategy="marker")
