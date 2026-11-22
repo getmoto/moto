@@ -2,6 +2,10 @@
   "version": 1.0,
   "merge": {
     "pagination": {
+      "DescribeStream": {
+        "limit_default": 10000,
+        "fail_on_invalid_token": false
+      },
       "ListShards": {
         "limit_default": 10000,
         "unique_attribute": "ShardId",

@@ -39,6 +39,69 @@ def test_describe_stream_limit_parameter():
 
 
 @mock_aws
+def test_describe_stream_exclusive_start_shard_id():
+    client = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "my_stream"
+    client.create_stream(StreamName=stream_name, ShardCount=5)
+    shard_ids = [f"shardId-{i:012d}" for i in range(5)]
+
+    desc = client.describe_stream(
+        StreamName=stream_name, Limit=2, ExclusiveStartShardId=shard_ids[1]
+    )["StreamDescription"]
+    assert [s["ShardId"] for s in desc["Shards"]] == shard_ids[2:4]
+    assert desc["HasMoreShards"] is True
+
+    desc = client.describe_stream(
+        StreamName=stream_name, ExclusiveStartShardId=shard_ids[3]
+    )["StreamDescription"]
+    assert [s["ShardId"] for s in desc["Shards"]] == shard_ids[4:]
+    assert desc["HasMoreShards"] is False
+
+    # Starting after the last shard returns no shards
+    desc = client.describe_stream(
+        StreamName=stream_name, ExclusiveStartShardId=shard_ids[4]
+    )["StreamDescription"]
+    assert desc["Shards"] == []
+    assert desc["HasMoreShards"] is False
+
+
+@mock_aws
+def test_describe_stream_paginator():
+    client = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "my_stream"
+    client.create_stream(StreamName=stream_name, ShardCount=5)
+    shard_ids = [f"shardId-{i:012d}" for i in range(5)]
+
+    pages = list(
+        client.get_paginator("describe_stream").paginate(
+            StreamName=stream_name, PaginationConfig={"PageSize": 2}
+        )
+    )
+    assert [
+        [s["ShardId"] for s in p["StreamDescription"]["Shards"]] for p in pages
+    ] == [
+        shard_ids[0:2],
+        shard_ids[2:4],
+        shard_ids[4:],
+    ]
+    assert [p["StreamDescription"]["HasMoreShards"] for p in pages] == [
+        True,
+        True,
+        False,
+    ]
+
+    full = (
+        client.get_paginator("describe_stream")
+        .paginate(
+            StreamName=stream_name, PaginationConfig={"PageSize": 2, "MaxItems": 3}
+        )
+        .build_full_result()
+    )
+    assert [s["ShardId"] for s in full["StreamDescription"]["Shards"]] == shard_ids[:3]
+    assert full["StreamDescription"]["StreamName"] == stream_name
+
+
+@mock_aws
 def test_list_shards():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"

@@ -433,21 +433,18 @@ class Stream(CloudFormationModel):
 
         return sequence_number, shard.shard_id
 
-    def to_json(self, shard_limit: int | None = None) -> dict[str, Any]:
-        all_shards = list(self.shards.values())
-        requested_shards = all_shards[0 : shard_limit or len(all_shards)]
+    def to_json(self) -> dict[str, Any]:
         return {
             "StreamDescription": {
                 "StreamARN": self.arn,
                 "StreamName": self.stream_name,
                 "StreamCreationTimestamp": self.creation_datetime,
                 "StreamStatus": self.status,
-                "HasMoreShards": len(requested_shards) != len(all_shards),
                 "RetentionPeriodHours": self.retention_period_hours,
                 "EnhancedMonitoring": [{"ShardLevelMetrics": self.shard_level_metrics}],
                 "EncryptionType": self.encryption_type,
                 "KeyId": self.key_id,
-                "Shards": [shard.to_json() for shard in requested_shards],
+                "Shards": [shard.to_json() for shard in self.shards.values()],
             }
         }
 
