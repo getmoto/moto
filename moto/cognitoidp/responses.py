@@ -503,6 +503,15 @@ class CognitoIdpResponse(BaseResponse):
         self.backend.global_sign_out(access_token)
         return EmptyResult()
 
+    def revoke_token(self) -> ActionResult:
+        token = self._get_param("Token")
+        client_id = self._get_param("ClientId")
+        client_secret = self._get_param("ClientSecret")
+        self._get_region_agnostic_backend().revoke_token(
+            token, client_id, client_secret
+        )
+        return EmptyResult()
+
     # Resource Server
     def create_resource_server(self) -> ActionResult:
         user_pool_id = self._get_param("UserPoolId")
