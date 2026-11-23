@@ -97,7 +97,10 @@ class IoTResponse(BaseResponse):
 
     def delete_thing(self) -> ActionResult:
         thing_name = self._get_param("thingName")
-        self.iot_backend.delete_thing(thing_name=thing_name)
+        expected_version = self._get_param("expectedVersion")
+        self.iot_backend.delete_thing(
+            thing_name=thing_name, expected_version=expected_version
+        )
         return EmptyResult()
 
     def delete_thing_type(self) -> ActionResult:
@@ -118,11 +121,13 @@ class IoTResponse(BaseResponse):
         thing_type_name = self._get_param("thingTypeName")
         attribute_payload = self._get_param("attributePayload")
         remove_thing_type = self._get_param("removeThingType")
+        expected_version = self._get_param("expectedVersion")
         self.iot_backend.update_thing(
             thing_name=thing_name,
             thing_type_name=thing_type_name,
             attribute_payload=attribute_payload,
             remove_thing_type=remove_thing_type,
+            expected_version=expected_version,
         )
         return EmptyResult()
 
@@ -573,7 +578,10 @@ class IoTResponse(BaseResponse):
 
     def delete_thing_group(self) -> ActionResult:
         thing_group_name = self._get_param("thingGroupName")
-        self.iot_backend.delete_thing_group(thing_group_name=thing_group_name)
+        expected_version = self._get_param("expectedVersion")
+        self.iot_backend.delete_thing_group(
+            thing_group_name=thing_group_name, expected_version=expected_version
+        )
         return EmptyResult()
 
     def list_thing_groups(self) -> ActionResult:

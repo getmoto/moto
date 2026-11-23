@@ -197,6 +197,30 @@ def test_delete_thing_group():
 
 
 @mock_aws
+def test_delete_thing_group_with_expected_version():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    group_name = "my-group"
+    client.create_thing_group(thingGroupName=group_name)
+    version = client.update_thing_group(
+        thingGroupName=group_name,
+        thingGroupProperties={"thingGroupDescription": "updated"},
+    )["version"]
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_thing_group(
+            thingGroupName=group_name, expectedVersion=version - 1
+        )
+    assert exc.value.response["Error"]["Code"] == "VersionConflictException"
+    assert len(client.list_thing_groups()["thingGroups"]) == 1
+
+    client.delete_thing_group(thingGroupName=group_name, expectedVersion=version)
+    assert client.list_thing_groups()["thingGroups"] == []
+
+    # Deleting a group that does not exist still succeeds
+    client.delete_thing_group(thingGroupName=group_name, expectedVersion=version)
+
+
+@mock_aws
 def test_describe_thing_group_metadata_hierarchy():
     client = boto3.client("iot", region_name="ap-northeast-1")
     group_name_1a = "my-group:name-1a"
