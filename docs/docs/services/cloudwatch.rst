@@ -21,6 +21,7 @@ cloudwatch
 - [ ] delete_anomaly_detector
 - [X] delete_dashboards
 - [X] delete_insight_rules
+- [ ] delete_metric_data_query_definition
 - [ ] delete_metric_stream
 - [ ] delete_resource_metrics_configuration
 - [ ] describe_alarm_contributors
@@ -39,6 +40,7 @@ cloudwatch
 - [ ] get_dataset
 - [ ] get_insight_rule_report
 - [X] get_metric_data
+- [ ] get_metric_data_query_definition
 - [X] get_metric_statistics
 - [ ] get_metric_stream
 - [ ] get_metric_widget_image
@@ -47,6 +49,7 @@ cloudwatch
 - [ ] list_alarm_mute_rules
 - [X] list_dashboards
 - [ ] list_managed_insight_rules
+- [ ] list_metric_data_query_definitions
 - [ ] list_metric_streams
 - [X] list_metrics
 - [X] list_tags_for_resource
@@ -59,6 +62,7 @@ cloudwatch
 - [ ] put_managed_insight_rules
 - [X] put_metric_alarm
 - [X] put_metric_data
+- [ ] put_metric_data_query_definition
 - [ ] put_metric_stream
 - [X] set_alarm_state
 - [ ] start_metric_streams

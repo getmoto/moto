@@ -39,6 +39,7 @@ devops-agent
 - [ ] get_asset_file
 - [ ] get_association
 - [ ] get_backlog_task
+- [ ] get_chat
 - [ ] get_operator_app
 - [ ] get_recommendation
 - [ ] get_service
@@ -71,6 +72,7 @@ devops-agent
 - [ ] update_asset_file
 - [ ] update_association
 - [ ] update_backlog_task
+- [ ] update_chat
 - [ ] update_goal
 - [ ] update_operator_app_idp_config
 - [ ] update_private_connection_certificate

@@ -48,5 +48,6 @@ ram
 - [ ] set_default_permission_version
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_permission
 - [X] update_resource_share
 

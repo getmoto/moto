@@ -55,6 +55,7 @@ inspector2
 - [ ] get_encryption_key
 - [ ] get_findings_report_status
 - [X] get_member
+- [ ] get_on_demand_scan_status
 - [ ] get_sbom_export
 - [ ] list_account_permissions
 - [ ] list_cis_scan_configurations
@@ -109,6 +110,7 @@ Configure this queue by making an HTTP request to `/moto-api/static/inspector2/f
 
 
 - [X] list_members
+- [ ] list_on_demand_scans
 - [X] list_tags_for_resource
 - [ ] list_usage_totals
 - [ ] reset_encryption_key
@@ -117,6 +119,7 @@ Configure this queue by making an HTTP request to `/moto-api/static/inspector2/f
 - [ ] send_cis_session_telemetry
 - [ ] start_cis_session
 - [ ] start_code_security_scan
+- [ ] start_on_demand_scan
 - [ ] stop_cis_session
 - [X] tag_resource
 - [X] untag_resource

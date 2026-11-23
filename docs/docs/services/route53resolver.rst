@@ -79,6 +79,7 @@ calculating the create_resolver_endpoint() IpAddresses.
 - [ ] list_firewall_configs
 - [ ] list_firewall_domain_lists
 - [ ] list_firewall_domains
+- [ ] list_firewall_rule_domains
 - [ ] list_firewall_rule_group_associations
 - [ ] list_firewall_rule_groups
 - [ ] list_firewall_rule_types

@@ -2,6 +2,56 @@ Moto Changelog
 ==============
 
 
+5.2.6
+-----
+Docker Digest for 5.2.6: <autopopulateddigest>
+
+    General:
+        * Support for Python 3.15
+
+    New Methods:
+
+        * AMP:
+            * create_alert_manager_definition()
+            * delete_alert_manager_definition()
+            * describe_alert_manager_definition()
+            * put_alert_manager_definition()
+
+        * EC2:
+            * delete_launch_template_versions()
+
+        * GuardDuty:
+            * create_ip_set()
+            * delete_ip_set()
+            * get_ip_set()
+            * list_ip_sets()
+            * update_ip_set()
+
+        * Shield:
+            * create_protection_group()
+            * delete_protection_group()
+            * describe_protection_group()
+            * list_protection_groups()
+            * update_protection_group()
+
+    Miscellaneous:
+        * AppConfig: list_configuration_profiles() now supports the type-parameter
+        * CloudFormation: create_stack() now validates the supplied template if MOTO_CFN_VALIDATE_TEMPLATE_ON_CREATE=true is set
+        * CloudFormation: list_stack_sets() now supports the Status-parameter
+        * CloudFront: create_distribution() now supports the OriginAccessControlId and S3OriginConfig-parameters
+        * CodeBuild: list_builds_for_project() now supports the projectName and sortOrder-parameters
+        * CognitoIDP: Increased TOTP secret length to 80
+        * DynamoDB: Correct the item size calculation for Number-attributes
+        * DynamoDB: list_backups() now supports the BackupType, TimeRangeLowerBound and TimeRangeUpperBound parameters
+        * DynamoDBStreams: Support botocore >= 1.44.4
+        * Glue: get_partitions() now supports the ExcludeColumnSchema and Segment parameters
+        * Kinesis: list_streams() now correctly handles pagination
+        * RDS: create_database()/create_db_instance() now supports the EnablePerformanceInsights and PerformanceInsightsRetentionPeriod parameters
+        * S3: delete_objects() now validates the provided ETag-parameter
+        * S3: head_object()/get_object() now support the PartNumber-parameter
+        * StepFunctions: Tasks that invoke `arn:aws:states:::apigateway:invoke` now correctly propagates the supplied parameters
+
+
 5.2.5
 -----
 Docker Digest for 5.2.5: _sha256:59a1965d845249b04def37a0e2565f9cc6c44543cb89b68e90f28f344b3b0d1a_

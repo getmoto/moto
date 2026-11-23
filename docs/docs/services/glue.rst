@@ -48,6 +48,7 @@ glue
 - [X] create_connection
 - [X] create_crawler
 - [ ] create_custom_entity_type
+- [ ] create_data_quality_evaluation_config
 - [ ] create_data_quality_ruleset
 - [X] create_database
 - [X] create_dev_endpoint
@@ -77,7 +78,6 @@ The following parameters/features are not yet implemented: Glue Schema Registry:
 - [ ] create_user_defined_function
 - [X] create_workflow
 - [ ] delete_asset
-- [ ] delete_asset_type
 - [ ] delete_attachment
 - [ ] delete_blueprint
 - [ ] delete_catalog
@@ -89,6 +89,7 @@ The following parameters/features are not yet implemented: Glue Schema Registry:
 - [ ] delete_connection_type
 - [X] delete_crawler
 - [ ] delete_custom_entity_type
+- [ ] delete_data_quality_evaluation_config
 - [ ] delete_data_quality_ruleset
 - [X] delete_database
 - [X] delete_dev_endpoint
@@ -145,6 +146,7 @@ The following parameters/features are not yet implemented: Glue Schema Registry:
 - [ ] get_dashboard_url
 - [X] get_data_catalog_encryption_settings
 - [ ] get_data_catalog_export_configuration
+- [ ] get_data_quality_evaluation_config
 - [ ] get_data_quality_model
 - [ ] get_data_quality_model_result
 - [ ] get_data_quality_result
@@ -168,6 +170,7 @@ The following parameters/features are not yet implemented: Glue Schema Registry:
 - [ ] get_job_bookmark
 - [X] get_job_run
 - [X] get_job_runs
+- [ ] get_job_upgrade_analysis
 - [X] get_jobs
 - [ ] get_mapping
 - [ ] get_materialized_view_refresh_task_run
@@ -189,6 +192,10 @@ Expression caveats:
 - LIKE expressions are converted to Python regexes, escaping special characters.
   Only % and _ wildcards are supported, and SQL escaping using [] does not work.
 
+When a Segment is provided, the (filtered) partitions are then divided into
+`TotalSegments` number of non-overlapping segments, and only the partitions
+in the requested `SegmentNumber` are returned.
+
 
 - [ ] get_plan
 - [X] get_registry
@@ -200,8 +207,6 @@ Expression caveats:
 - [ ] get_schema_versions_diff
 - [X] get_security_configuration
 - [X] get_security_configurations
-  Pagination is not yet implemented
-
 - [X] get_session
 - [ ] get_session_endpoint
 - [ ] get_statement
@@ -233,6 +238,7 @@ Expression caveats:
 - [X] list_crawlers
 - [X] list_crawls
 - [ ] list_custom_entity_types
+- [ ] list_data_quality_evaluation_configs
 - [ ] list_data_quality_results
 - [ ] list_data_quality_results_v2
 - [ ] list_data_quality_rule_recommendation_runs
@@ -263,7 +269,6 @@ Expression caveats:
 - [ ] modify_integration
 - [ ] publish_data_quality_result_v2
 - [ ] put_asset
-- [ ] put_asset_type
 - [ ] put_attachment
 - [X] put_data_catalog_encryption_settings
 - [ ] put_data_catalog_export_configuration
@@ -291,6 +296,7 @@ Expression caveats:
 - [ ] start_export_labels_task_run
 - [ ] start_import_labels_task_run
 - [X] start_job_run
+- [ ] start_job_upgrade_analysis
 - [ ] start_materialized_view_refresh_task_run
 - [ ] start_ml_evaluation_task_run
 - [ ] start_ml_labeling_set_generation_task_run
@@ -300,6 +306,7 @@ Expression caveats:
 - [ ] stop_column_statistics_task_run_schedule
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
+- [ ] stop_job_upgrade_analysis
 - [ ] stop_materialized_view_refresh_task_run
 - [X] stop_session
 - [X] stop_trigger
@@ -317,6 +324,7 @@ Expression caveats:
 - [ ] update_connection
 - [ ] update_crawler
 - [ ] update_crawler_schedule
+- [ ] update_data_quality_evaluation_config
 - [ ] update_data_quality_ruleset
 - [X] update_database
 - [ ] update_dev_endpoint

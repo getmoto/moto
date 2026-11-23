@@ -21,11 +21,13 @@ route53
 - [X] change_tags_for_resource
 - [ ] create_cidr_collection
 - [X] create_health_check
+- [ ] create_health_check_source
 - [X] create_hosted_zone
 - [ ] create_key_signing_key
 - [X] create_query_logging_config
   Process the create_query_logging_config request.
 
+- [ ] create_resource_record_set_protections
 - [X] create_reusable_delegation_set
 - [ ] create_traffic_policy
 - [ ] create_traffic_policy_instance
@@ -34,11 +36,13 @@ route53
 - [ ] deactivate_key_signing_key
 - [ ] delete_cidr_collection
 - [X] delete_health_check
+- [ ] delete_health_check_source
 - [X] delete_hosted_zone
 - [ ] delete_key_signing_key
 - [X] delete_query_logging_config
   Delete query logging config, if it exists.
 
+- [ ] delete_resource_record_set_protections
 - [X] delete_reusable_delegation_set
 - [ ] delete_traffic_policy
 - [ ] delete_traffic_policy_instance
@@ -54,8 +58,10 @@ route53
 - [X] get_health_check
 - [ ] get_health_check_count
 - [ ] get_health_check_last_failure_reason
+- [ ] get_health_check_source
 - [X] get_health_check_status
 - [X] get_hosted_zone
+- [ ] get_hosted_zone_change_batch
 - [X] get_hosted_zone_count
 - [ ] get_hosted_zone_limit
 - [X] get_query_logging_config
@@ -70,7 +76,10 @@ route53
 - [ ] list_cidr_collections
 - [ ] list_cidr_locations
 - [ ] list_geo_locations
+- [ ] list_health_check_sources
 - [X] list_health_checks
+- [ ] list_health_checks_by_source
+- [ ] list_hosted_zone_change_batches
 - [X] list_hosted_zones
   
 The parameters DelegationSetId and HostedZoneType are not yet implemented
@@ -85,6 +94,8 @@ Pagination is not yet implemented
 - [X] list_query_logging_configs
   Return a list of query logging configs.
 
+- [ ] list_resource_record_set_changes
+- [ ] list_resource_record_set_protections
 - [X] list_resource_record_sets
   
 The StartRecordIdentifier-parameter is not yet implemented
@@ -107,6 +118,7 @@ Pagination is not yet implemented
 - [X] update_health_check
 - [X] update_hosted_zone_comment
 - [ ] update_hosted_zone_features
+- [ ] update_hosted_zone_tier
 - [ ] update_traffic_policy_comment
 - [ ] update_traffic_policy_instance
 

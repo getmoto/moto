@@ -24,12 +24,14 @@ athena
 - [ ] create_notebook
 - [X] create_prepared_statement
 - [ ] create_presigned_notebook_url
+- [ ] create_system_table_configuration
 - [X] create_work_group
 - [ ] delete_capacity_reservation
 - [ ] delete_data_catalog
 - [ ] delete_named_query
 - [ ] delete_notebook
 - [ ] delete_prepared_statement
+- [ ] delete_system_table_configuration
 - [X] delete_work_group
 - [ ] export_notebook
 - [ ] get_calculation_execution
@@ -97,6 +99,7 @@ Query results will also be stored in the S3 output location (in CSV format).
 - [ ] get_session
 - [ ] get_session_endpoint
 - [ ] get_session_status
+- [ ] get_system_table_configuration
 - [ ] get_table_metadata
 - [X] get_work_group
 - [ ] import_notebook
@@ -113,6 +116,7 @@ Query results will also be stored in the S3 output location (in CSV format).
 - [ ] list_prepared_statements
 - [X] list_query_executions
 - [ ] list_sessions
+- [ ] list_system_table_statuses
 - [ ] list_table_metadata
 - [X] list_tags_for_resource
 - [X] list_work_groups
@@ -131,5 +135,6 @@ Query results will also be stored in the S3 output location (in CSV format).
 - [ ] update_notebook
 - [ ] update_notebook_metadata
 - [ ] update_prepared_statement
+- [ ] update_system_table_configuration
 - [ ] update_work_group
 

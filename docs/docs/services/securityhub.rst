@@ -105,6 +105,9 @@ Filters and SortCriteria is not yet implemented
 - [ ] get_resources_trends_v2
 - [ ] get_resources_v2
 - [ ] get_security_control_definition
+- [ ] get_software_resources_v2
+- [ ] get_software_statistics_v2
+- [ ] get_software_v2
 - [ ] invite_members
 - [ ] list_aggregators_v2
 - [ ] list_automation_rules

@@ -18,12 +18,14 @@ networkmanager
 
 - [ ] accept_attachment
 - [ ] associate_connect_peer
+- [ ] associate_context_store
 - [ ] associate_customer_gateway
 - [ ] associate_link
 - [ ] associate_transit_gateway_connect_peer
 - [ ] create_connect_attachment
 - [ ] create_connect_peer
 - [ ] create_connection
+- [ ] create_context_store
 - [X] create_core_network
 - [ ] create_core_network_prefix_list_association
 - [X] create_device
@@ -38,6 +40,7 @@ networkmanager
 - [ ] delete_attachment
 - [ ] delete_connect_peer
 - [ ] delete_connection
+- [ ] delete_context_store
 - [X] delete_core_network
 - [ ] delete_core_network_policy_version
 - [ ] delete_core_network_prefix_list_association
@@ -50,6 +53,7 @@ networkmanager
 - [ ] deregister_transit_gateway
 - [X] describe_global_networks
 - [ ] disassociate_connect_peer
+- [ ] disassociate_context_store
 - [ ] disassociate_customer_gateway
 - [ ] disassociate_link
 - [ ] disassociate_transit_gateway_connect_peer
@@ -58,6 +62,9 @@ networkmanager
 - [ ] get_connect_peer
 - [ ] get_connect_peer_associations
 - [ ] get_connections
+- [ ] get_context_store
+- [ ] get_context_store_association
+- [ ] get_context_version
 - [X] get_core_network
 - [ ] get_core_network_change_events
 - [ ] get_core_network_change_set
@@ -85,6 +92,10 @@ networkmanager
 - [ ] list_attachment_routing_policy_associations
 - [ ] list_attachments
 - [ ] list_connect_peers
+- [ ] list_context_changes
+- [ ] list_context_store_associations
+- [ ] list_context_stores
+- [ ] list_contexts
 - [ ] list_core_network_policy_versions
 - [ ] list_core_network_prefix_list_associations
 - [ ] list_core_network_routing_information
@@ -105,6 +116,7 @@ networkmanager
 - [X] untag_resource
 - [ ] update_attachment_nat_configuration
 - [ ] update_connection
+- [ ] update_context_store
 - [ ] update_core_network
 - [ ] update_device
 - [ ] update_direct_connect_gateway_attachment

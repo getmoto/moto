@@ -14,15 +14,18 @@ secretsmanager
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] associate_cross_account_replica
 - [X] batch_get_secret_value
 - [X] cancel_rotate_secret
 - [X] create_secret
 - [X] delete_resource_policy
 - [X] delete_secret
 - [X] describe_secret
+- [ ] disassociate_cross_account_replica
 - [X] get_random_password
 - [X] get_resource_policy
 - [X] get_secret_value
+- [ ] list_resource_policies
 - [X] list_secret_version_ids
 - [X] list_secrets
 - [X] put_resource_policy

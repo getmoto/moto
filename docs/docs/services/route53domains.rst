@@ -45,6 +45,7 @@ route53domains
 - [ ] renew_domain
 - [ ] resend_contact_reachability_email
 - [ ] resend_operation_authorization
+- [ ] restore_domain
 - [ ] retrieve_domain_auth_code
 - [ ] transfer_domain
 - [ ] transfer_domain_to_another_aws_account

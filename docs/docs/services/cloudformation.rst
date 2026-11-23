@@ -27,6 +27,12 @@ cloudformation
   
 The functionality behind EnableTerminationProtection is not yet implemented.
 
+The TemplateBody can be validated against the cfn-lint ruleset, the same
+way the ValidateTemplate-action does. This is disabled by default, as
+cfn-lint may reject templates that would otherwise deploy successfully.
+Enable this validation by setting the environment variable
+`MOTO_CFN_VALIDATE_TEMPLATE_ON_CREATE=true`
+
 
 - [X] create_stack_instances
   
@@ -113,7 +119,9 @@ The parameters StackInstanceAccount/StackInstanceRegion are not yet implemented.
 - [ ] record_handler_progress
 - [ ] register_publisher
 - [ ] register_type
+- [ ] remove_alias
 - [ ] rollback_stack
+- [ ] set_alias
 - [X] set_stack_policy
   
 Note that Moto does no validation/parsing/enforcement of this policy - we simply persist it.

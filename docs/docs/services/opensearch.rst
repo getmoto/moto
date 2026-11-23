@@ -19,6 +19,7 @@ opensearch
 - [ ] accept_inbound_connection
 - [ ] add_data_source
 - [ ] add_direct_query_data_source
+- [ ] add_replication_peer
 - [X] add_tags
 - [ ] associate_package
 - [ ] associate_packages
@@ -26,6 +27,7 @@ opensearch
 - [ ] authorize_vpc_endpoint_access
 - [ ] cancel_domain_config_change
 - [ ] cancel_service_software_update
+- [ ] compare_domain_configuration
 - [ ] create_application
 - [X] create_domain
 - [ ] create_index
@@ -49,6 +51,7 @@ opensearch
 - [X] describe_domain_config
 - [ ] describe_domain_health
 - [ ] describe_domain_nodes
+- [ ] describe_domain_replication
 - [X] describe_domains
 - [ ] describe_dry_run_progress
 - [ ] describe_inbound_connections
@@ -62,6 +65,7 @@ opensearch
 - [ ] detach_data_source
 - [ ] dissociate_package
 - [ ] dissociate_packages
+- [ ] failover_replication
 - [ ] get_application
 - [ ] get_capability
 - [X] get_compatible_versions
@@ -96,13 +100,16 @@ opensearch
 - [ ] put_default_application_setting
 - [ ] register_capability
 - [ ] reject_inbound_connection
+- [ ] remove_replication_peer
 - [X] remove_tags
 - [ ] revoke_vpc_endpoint_access
 - [ ] rollback_service_software_update
 - [ ] start_domain_maintenance
 - [ ] start_migration
 - [ ] start_service_software_update
+- [ ] switchover_replication
 - [ ] update_application
+- [ ] update_clone
 - [ ] update_data_source
 - [ ] update_direct_query_data_source
 - [X] update_domain_config

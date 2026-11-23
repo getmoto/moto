@@ -17,7 +17,7 @@ amp
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_alert_manager_definition
-
+  
 The ClientToken-parameter is not yet implemented. The provided YAML is not validated.
 
 
@@ -36,7 +36,7 @@ The ClientToken-parameter is not yet implemented
 
 
 - [X] delete_alert_manager_definition
-
+  
 The ClientToken-parameter is not yet implemented
 
 
@@ -73,7 +73,7 @@ The ClientToken-parameter is not yet implemented
 - [X] list_tags_for_resource
 - [X] list_workspaces
 - [X] put_alert_manager_definition
-
+  
 The ClientToken-parameter is not yet implemented. The provided YAML is not validated.
 
 

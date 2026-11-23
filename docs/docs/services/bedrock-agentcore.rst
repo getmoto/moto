@@ -27,6 +27,7 @@ bedrock-agentcore
 - [ ] delete_ab_test
 - [ ] delete_batch_evaluation
 - [ ] delete_capacity_provider_session
+- [ ] delete_dataset_generation
 - [X] delete_event
 - [ ] delete_memory_record
 - [ ] delete_payment_instrument
@@ -35,9 +36,11 @@ bedrock-agentcore
 - [ ] evaluate
 - [ ] get_ab_test
 - [ ] get_agent_card
+- [ ] get_agent_insight
 - [ ] get_batch_evaluation
 - [ ] get_browser_session
 - [ ] get_code_interpreter_session
+- [ ] get_dataset_generation
 - [X] get_event
 - [ ] get_memory_record
 - [ ] get_payment_instrument
@@ -56,11 +59,14 @@ bedrock-agentcore
 - [ ] invoke_browser
 - [ ] invoke_code_interpreter
 - [ ] invoke_harness
+- [ ] invoke_web_search
 - [ ] list_ab_tests
 - [ ] list_actors
+- [ ] list_agent_insights
 - [ ] list_batch_evaluations
 - [ ] list_browser_sessions
 - [ ] list_code_interpreter_sessions
+- [ ] list_dataset_generations
 - [X] list_events
 - [ ] list_memory_extraction_jobs
 - [ ] list_memory_records
@@ -75,6 +81,7 @@ bedrock-agentcore
 - [ ] start_batch_evaluation
 - [ ] start_browser_session
 - [ ] start_code_interpreter_session
+- [ ] start_dataset_generation
 - [ ] start_memory_extraction_job
 - [ ] start_recommendation
 - [ ] stop_batch_evaluation
@@ -82,5 +89,6 @@ bedrock-agentcore
 - [ ] stop_code_interpreter_session
 - [ ] stop_runtime_session
 - [ ] update_ab_test
+- [ ] update_agent_insight
 - [ ] update_browser_stream
 

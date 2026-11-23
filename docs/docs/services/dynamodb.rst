@@ -21,6 +21,7 @@ Please see the documentation for `execute_statement` to see the limitations of w
 
 - [X] batch_get_item
 - [X] batch_write_item
+- [ ] cancel_bulk_operation
 - [X] create_backup
 - [ ] create_global_table
 - [X] create_table
@@ -29,6 +30,7 @@ Please see the documentation for `execute_statement` to see the limitations of w
 - [X] delete_resource_policy
 - [X] delete_table
 - [X] describe_backup
+- [ ] describe_bulk_operation
 - [X] describe_continuous_backups
 - [ ] describe_contributor_insights
 - [X] describe_endpoints
@@ -66,6 +68,7 @@ Other parameters that are not supported: InputFormatOptions, CloudWatchLogGroupA
 
 
 - [X] list_backups
+- [ ] list_bulk_operations
 - [ ] list_contributor_insights
 - [X] list_exports
 - [ ] list_global_tables
@@ -84,6 +87,7 @@ copy all items from the source without respect to other arguments.
 
 - [X] scan
 - [ ] search_vectors
+- [ ] start_bulk_put_items
 - [X] tag_resource
 - [X] transact_get_items
 - [X] transact_write_items

@@ -98,6 +98,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] create_workspace
 - [ ] create_workspace_page
 - [ ] deactivate_evaluation_form
+- [ ] delete_all_entity_sessions
 - [ ] delete_attached_file
 - [ ] delete_contact_data
 - [ ] delete_contact_evaluation
@@ -392,6 +393,7 @@ Enforces one association per (instance_id, data_set_id) pair.
 - [ ] update_metric_content
 - [ ] update_metric_metadata
 - [ ] update_notification_content
+- [ ] update_outbound_email_contact_message
 - [ ] update_participant_authentication
 - [ ] update_participant_role_config
 - [ ] update_phone_number

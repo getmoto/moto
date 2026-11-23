@@ -44,6 +44,7 @@ lakeformation
 - [ ] get_data_lake_principal
 - [X] get_data_lake_settings
 - [ ] get_effective_permissions_for_path
+- [ ] get_glue_function_session_context
 - [X] get_lf_tag
 - [ ] get_lf_tag_expression
 - [ ] get_query_state
@@ -52,6 +53,7 @@ lakeformation
 - [ ] get_rls_policy
 - [ ] get_table_objects
 - [ ] get_temporary_data_location_credentials
+- [ ] get_temporary_glue_function_credentials
 - [ ] get_temporary_glue_partition_credentials
 - [ ] get_temporary_glue_table_credentials
 - [ ] get_work_unit_results

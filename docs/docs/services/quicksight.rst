@@ -18,9 +18,13 @@ quicksight
 
 - [ ] batch_create_topic_reviewed_answer
 - [ ] batch_delete_knowledge_base
+- [ ] batch_delete_policy_assignment_by_policy
 - [ ] batch_delete_topic_reviewed_answer
 - [ ] batch_describe_user_limits
+- [ ] batch_put_policy_assignment_by_policy
 - [ ] cancel_ingestion
+- [ ] create_access_control_application
+- [ ] create_access_control_application_secret
 - [ ] create_account_customization
 - [ ] create_account_subscription
 - [ ] create_action_connector
@@ -39,8 +43,10 @@ quicksight
 - [X] create_group
 - [X] create_group_membership
 - [ ] create_iam_policy_assignment
+- [ ] create_inbound_connector
 - [X] create_ingestion
 - [ ] create_knowledge_base
+- [ ] create_knowledge_base_refresh_schedule
 - [ ] create_limits_profile
 - [ ] create_namespace
 - [ ] create_o_auth_client_application
@@ -55,6 +61,8 @@ quicksight
 - [ ] create_topic_refresh_schedule
 - [ ] create_topic_v2
 - [ ] create_vpc_connection
+- [ ] delete_access_control_application
+- [ ] delete_access_control_application_secret
 - [ ] delete_account_custom_permission
 - [ ] delete_account_customization
 - [ ] delete_account_subscription
@@ -79,10 +87,13 @@ quicksight
 - [ ] delete_group_membership
 - [ ] delete_iam_policy_assignment
 - [ ] delete_identity_propagation_config
+- [ ] delete_inbound_connector
 - [ ] delete_knowledge_base
+- [ ] delete_knowledge_base_refresh_schedule
 - [ ] delete_limits_profile
 - [ ] delete_namespace
 - [ ] delete_o_auth_client_application
+- [ ] delete_policy_assignment
 - [ ] delete_refresh_schedule
 - [ ] delete_role_custom_permission
 - [ ] delete_role_membership
@@ -98,6 +109,7 @@ quicksight
 - [ ] delete_user_by_principal_id
 - [ ] delete_user_custom_permission
 - [ ] delete_vpc_connection
+- [ ] describe_access_control_application
 - [ ] describe_account_custom_permission
 - [ ] describe_account_customization
 - [X] describe_account_settings
@@ -139,17 +151,20 @@ quicksight
 - [X] describe_group
 - [X] describe_group_membership
 - [ ] describe_iam_policy_assignment
+- [ ] describe_inbound_connector
 - [ ] describe_ingestion
 - [ ] describe_ip_restriction
 - [ ] describe_key_registration
 - [ ] describe_knowledge_base
 - [ ] describe_knowledge_base_permissions
+- [ ] describe_knowledge_base_refresh_schedule
 - [ ] describe_limits_profile
 - [ ] describe_namespace
 - [ ] describe_o_auth_client_application
 - [ ] describe_q_personalization_configuration
 - [ ] describe_quick_sight_q_search_configuration
 - [ ] describe_refresh_schedule
+- [ ] describe_resource_permissions
 - [ ] describe_role_custom_permission
 - [ ] describe_self_upgrade_configuration
 - [ ] describe_space
@@ -176,7 +191,9 @@ quicksight
 - [ ] get_flow_metadata
 - [ ] get_flow_permissions
 - [ ] get_identity_context
+- [ ] get_policy_assignment
 - [ ] get_session_embed_url
+- [ ] list_access_control_applications
 - [ ] list_action_connectors
 - [ ] list_agents
 - [ ] list_analyses
@@ -200,11 +217,15 @@ quicksight
 - [ ] list_iam_policy_assignments
 - [ ] list_iam_policy_assignments_for_user
 - [ ] list_identity_propagation_configs
+- [ ] list_inbound_connector_application_associations
+- [ ] list_inbound_connectors
 - [ ] list_ingestions
+- [ ] list_knowledge_base_refresh_schedules
 - [ ] list_knowledge_bases
 - [ ] list_limits_profiles
 - [ ] list_namespaces
 - [ ] list_o_auth_client_applications
+- [ ] list_principals_for_policy
 - [ ] list_refresh_schedules
 - [ ] list_role_memberships
 - [ ] list_self_upgrades
@@ -227,6 +248,7 @@ quicksight
 - [ ] list_vpc_connections
 - [ ] predict_qa_results
 - [ ] put_data_set_refresh_properties
+- [ ] put_policy_assignment
 - [X] register_user
   
 The following parameters are not yet implemented:
@@ -255,6 +277,8 @@ IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType
 - [ ] start_dashboard_snapshot_job_schedule
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_access_control_application
+- [ ] update_access_control_application_secret
 - [ ] update_account_custom_permission
 - [ ] update_account_customization
 - [X] update_account_settings
@@ -289,16 +313,20 @@ IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType
 - [X] update_group
 - [ ] update_iam_policy_assignment
 - [ ] update_identity_propagation_config
+- [ ] update_inbound_connector
+- [ ] update_inbound_connector_application_associations
 - [ ] update_ip_restriction
 - [ ] update_key_registration
 - [ ] update_knowledge_base
 - [ ] update_knowledge_base_permissions
+- [ ] update_knowledge_base_refresh_schedule
 - [ ] update_limits_profile
 - [ ] update_o_auth_client_application
 - [X] update_public_sharing_settings
 - [ ] update_q_personalization_configuration
 - [ ] update_quick_sight_q_search_configuration
 - [ ] update_refresh_schedule
+- [ ] update_resource_permissions
 - [ ] update_role_custom_permission
 - [ ] update_self_upgrade
 - [ ] update_self_upgrade_configuration

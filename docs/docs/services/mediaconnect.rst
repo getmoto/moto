@@ -20,9 +20,12 @@ mediaconnect
 - [X] add_flow_outputs
 - [X] add_flow_sources
 - [X] add_flow_vpc_interfaces
+- [ ] batch_get_destination_endpoint
 - [ ] batch_get_router_input
 - [ ] batch_get_router_network_interface
 - [ ] batch_get_router_output
+- [ ] batch_get_source_endpoint
+- [ ] connect_endpoints
 - [ ] create_bridge
 - [X] create_flow
 - [ ] create_gateway
@@ -35,7 +38,9 @@ mediaconnect
 - [ ] delete_router_input
 - [ ] delete_router_network_interface
 - [ ] delete_router_output
+- [ ] deregister_destination_endpoint
 - [ ] deregister_gateway_instance
+- [ ] deregister_source_endpoint
 - [ ] describe_bridge
 - [X] describe_flow
 - [ ] describe_flow_source_metadata
@@ -44,13 +49,17 @@ mediaconnect
 - [ ] describe_gateway_instance
 - [ ] describe_offering
 - [ ] describe_reservation
+- [ ] disconnect_endpoints
+- [ ] get_destination_endpoint
 - [ ] get_router_input
 - [ ] get_router_input_source_metadata
 - [ ] get_router_input_thumbnail
 - [ ] get_router_network_interface
 - [ ] get_router_output
+- [ ] get_source_endpoint
 - [X] grant_flow_entitlements
 - [ ] list_bridges
+- [ ] list_destination_endpoints
 - [ ] list_entitlements
 - [X] list_flows
   
@@ -64,9 +73,12 @@ Pagination is not yet implemented
 - [ ] list_router_inputs
 - [ ] list_router_network_interfaces
 - [ ] list_router_outputs
+- [ ] list_source_endpoints
 - [ ] list_tags_for_global_resource
 - [X] list_tags_for_resource
 - [ ] purchase_offering
+- [ ] register_destination_endpoint
+- [ ] register_source_endpoint
 - [ ] remove_bridge_output
 - [ ] remove_bridge_source
 - [ ] remove_flow_media_stream
@@ -91,6 +103,7 @@ Pagination is not yet implemented
 - [ ] update_bridge_output
 - [ ] update_bridge_source
 - [ ] update_bridge_state
+- [ ] update_destination_endpoint
 - [ ] update_flow
 - [X] update_flow_entitlement
 - [ ] update_flow_media_stream
@@ -100,4 +113,5 @@ Pagination is not yet implemented
 - [ ] update_router_input
 - [ ] update_router_network_interface
 - [ ] update_router_output
+- [ ] update_source_endpoint
 
