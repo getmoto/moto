@@ -4,7 +4,7 @@ Moto Changelog
 
 5.2.6
 -----
-Docker Digest for 5.2.6: <autopopulateddigest>
+Docker Digest for 5.2.6: _sha256:344e076f31ad1f5ff1ec4492f741e7d42911d1c7a1ef9b1590f56c340b968513_
 
     General:
         * Support for Python 3.15
