@@ -755,11 +755,23 @@ class Route53Backend(BaseBackend):
             the_zone.rr_changes.append(original_change)
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_hosted_zones(self) -> list[FakeZone]:
-        """
-        The parameters DelegationSetId and HostedZoneType are not yet implemented
-        """
-        return list(self.zones.values())
+    def list_hosted_zones(
+        self,
+        delegation_set_id: str | None = None,
+        hosted_zone_type: str | None = None,
+    ) -> list[FakeZone]:
+        zones = list(self.zones.values())
+        if delegation_set_id:
+            # can raise NoSuchDelegationSet
+            self.get_reusable_delegation_set(delegation_set_id)
+            zones = [
+                zone
+                for zone in zones
+                if zone.delegation_set and zone.delegation_set.id == delegation_set_id
+            ]
+        if hosted_zone_type == "PrivateHostedZone":
+            zones = [zone for zone in zones if zone.private_zone]
+        return zones
 
     def list_hosted_zones_by_name(
         self, dnsname: str | None

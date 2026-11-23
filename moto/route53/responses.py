@@ -62,8 +62,13 @@ class Route53(BaseResponse):
     def list_hosted_zones(self) -> ActionResult:
         max_items = self._get_int_param("MaxItems", 100)
         marker = self._get_param("Marker")
+        delegation_set_id = self._get_param("DelegationSetId")
+        hosted_zone_type = self._get_param("HostedZoneType")
         zone_page, next_marker = self.backend.list_hosted_zones(
-            marker=marker, max_size=max_items
+            delegation_set_id=delegation_set_id,
+            hosted_zone_type=hosted_zone_type,
+            marker=marker,
+            max_size=max_items,
         )
         result = {
             "HostedZones": zone_page,

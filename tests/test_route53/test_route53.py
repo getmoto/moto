@@ -69,6 +69,39 @@ def test_list_hosted_zones():
 
 
 @mock_aws
+def test_list_hosted_zones_filtered_by_type_and_delegation_set():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.1.0.0/16")["Vpc"]["VpcId"]
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    public = conn.create_hosted_zone(Name="public.com.", CallerReference="public")
+    private = conn.create_hosted_zone(
+        Name="private.com.",
+        CallerReference="private",
+        HostedZoneConfig={"PrivateZone": True},
+        VPC={"VPCRegion": "us-east-1", "VPCId": vpc_id},
+    )
+    delegated = conn.create_hosted_zone(
+        Name="delegated.com.", CallerReference="delegated", DelegationSetId="ds1"
+    )
+    public_id = public["HostedZone"]["Id"]
+    private_id = private["HostedZone"]["Id"]
+    delegated_id = delegated["HostedZone"]["Id"]
+
+    def zone_ids(**kwargs):
+        return {z["Id"] for z in conn.list_hosted_zones(**kwargs)["HostedZones"]}
+
+    assert zone_ids() == {public_id, private_id, delegated_id}
+    assert zone_ids(HostedZoneType="PrivateHostedZone") == {private_id}
+    assert zone_ids(DelegationSetId="ds1") == {delegated_id}
+    assert zone_ids(DelegationSetId="ds1", HostedZoneType="PrivateHostedZone") == set()
+
+    with pytest.raises(ClientError) as exc:
+        conn.list_hosted_zones(DelegationSetId="unknown")
+    assert exc.value.response["Error"]["Code"] == "NoSuchDelegationSet"
+
+
+@mock_aws
 def test_delete_hosted_zone():
     conn = boto3.client("route53", region_name="us-east-1")
 
