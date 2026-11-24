@@ -2061,7 +2061,25 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
             return None
         else:
             s3_backends.bucket_accounts.pop(bucket_name, None)
-            return self.buckets.pop(bucket_name)
+            deleted_bucket = self.buckets.pop(bucket_name)
+            events_send_notification(
+                source="aws.s3",
+                event_name="DeleteBucket",
+                region=bucket.region_name,
+                resources=[],
+                detail={
+                    "eventSource": "s3.amazonaws.com",
+                    "eventName": "DeleteBucket",
+                    "eventType": "AwsApiCall",
+                    "awsRegion": bucket.region_name,
+                    "recipientAccountId": self.account_id,
+                    "requestParameters": {"bucketName": bucket_name},
+                    "responseElements": None,
+                    "readOnly": False,
+                    "managementEvent": True,
+                },
+            )
+            return deleted_bucket
 
     def delete_table_storage_bucket(self, bucket_name: str) -> FakeBucket | None:
         bucket = self.get_bucket(bucket_name)
