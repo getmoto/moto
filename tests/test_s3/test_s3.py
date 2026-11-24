@@ -2116,6 +2116,14 @@ def test_delete_versioned_bucket_returns_metadata(bucket_name=None):
 
 
 @mock_aws
+def test_options_request_on_service_root():
+    # An OPTIONS request against the service root does not target a bucket,
+    # so there is no CORS configuration to read - S3 just returns 200
+    resp = requests.options("https://s3.amazonaws.com/")
+    assert resp.status_code == 200
+
+
+@mock_aws
 def test_put_bucket_cors():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = str(uuid.uuid4())
