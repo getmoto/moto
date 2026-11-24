@@ -1,11 +1,13 @@
 import json
 import os
+from unittest import SkipTest
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 
 
 @mock_aws
@@ -42,6 +44,31 @@ def test_import_rest_api__api_is_created():
 
     assert len(body["paths"]["/pet/{petId}"]) == 3
     assert set(body["paths"]["/pet/{petId}"].keys()) == {"DELETE", "GET", "POST"}
+
+
+@mock_aws
+def test_export_api__version_is_export_time():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can't freeze time in ServerMode")
+
+    client = boto3.client("apigateway", region_name="us-east-1")
+    api_id = client.create_rest_api(name="my_api")["id"]
+    root_id = client.get_resources(restApiId=api_id)["items"][0]["id"]
+    client.put_method(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="NONE"
+    )
+    client.put_integration(
+        restApiId=api_id, resourceId=root_id, httpMethod="GET", type="MOCK"
+    )
+    client.create_deployment(restApiId=api_id, stageName="stg")
+
+    with freeze_time("2026-02-03T04:56:07Z"):
+        resp = client.get_export(
+            restApiId=api_id, stageName="stg", exportType="swagger"
+        )
+    body = json.loads(resp["body"].read().decode("utf-8"))
+
+    assert body["info"]["version"] == "2026-02-03T04:56:07Z"
 
 
 @mock_aws

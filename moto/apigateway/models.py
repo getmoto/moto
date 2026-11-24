@@ -2,7 +2,6 @@ import re
 import string
 import time
 from collections import defaultdict
-from datetime import datetime
 from typing import Any
 from urllib.parse import urlparse
 
@@ -22,7 +21,7 @@ from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
 from moto.apigateway.exceptions import MethodNotFoundException
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.utils import path_url
+from moto.core.utils import path_url, utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
@@ -1706,7 +1705,7 @@ class APIGatewayBackend(BaseBackend):
             raise StageNotFoundException
         if export_type not in ["swagger", "oas30"]:
             raise BadRequestException(f"No API exporter for type '{export_type}'")
-        now = datetime.now().strftime("%Y-%m-%dT%H:%m:%S")
+        now = utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
         resp: dict[str, Any] = {
             "swagger": "2.0",
             "info": {"version": now, "title": api.name},
