@@ -1,6 +1,8 @@
 import json
 from typing import Any
 
+from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
+from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import get_partition
 
 from .utils import EventMessageType
@@ -33,6 +35,28 @@ def _send_safe_notification(
 ) -> None:
     from .models import events_backends
 
+    if source == "aws.s3" and event_name == "DeleteBucket":
+        account_id = detail["recipientAccountId"]
+        cloudtrail_event: EventMessageType = {
+            "version": "0",
+            "id": str(random.uuid4()),
+            "detail-type": "AWS API Call via CloudTrail",
+            "source": source,
+            "account": account_id,
+            "time": iso_8601_datetime_without_milliseconds(utcnow()),
+            "region": region,
+            "resources": resources,
+            "detail": detail,
+        }
+        backend = events_backends[account_id][region]
+        for rule in backend.event_buses["default"].rules.values():
+            if rule.state in (
+                "ENABLED",
+                "ENABLED_WITH_ALL_CLOUDTRAIL_MANAGEMENT_EVENTS",
+            ) and rule.event_pattern.matches_event(cloudtrail_event):
+                _send_to_targets(account_id, region, rule.targets, cloudtrail_event)
+        return
+
     event = None
     if source == "aws.s3" and event_name == "CreateBucket":
         event = _EVENT_S3_OBJECT_CREATED.copy()
@@ -42,8 +66,6 @@ def _send_safe_notification(
 
     if event is None:
         return
-
-    partition = get_partition(region)
 
     for account_id, account in events_backends.items():
         for backend in account.values():
@@ -57,14 +79,24 @@ def _send_safe_notification(
                         if event_name in pattern.get("detail", {}).get("eventName", []):
                             applicable_targets.extend(rule.targets)
 
-            for target in applicable_targets:
-                target_arn = target.get("Arn", "")
-                if target_arn.startswith(f"arn:{partition}:lambda"):
-                    _invoke_lambda(account_id, fn_arn=target_arn, event=event)  # type: ignore[arg-type]
-                if target_arn.startswith(f"arn:{partition}:states"):
-                    _start_sfn_execution(
-                        account_id, region=region, sfn_arn=target_arn, event=event
-                    )
+            _send_to_targets(account_id, region, applicable_targets, event)
+
+
+def _send_to_targets(
+    account_id: str,
+    region: str,
+    targets: list[dict[str, Any]],
+    event: EventMessageType,
+) -> None:
+    partition = get_partition(region)
+    for target in targets:
+        target_arn = target.get("Arn", "")
+        if target_arn.startswith(f"arn:{partition}:lambda"):
+            _invoke_lambda(account_id, fn_arn=target_arn, event=event)
+        if target_arn.startswith(f"arn:{partition}:states"):
+            _start_sfn_execution(
+                account_id, region=region, sfn_arn=target_arn, event=event
+            )
 
 
 def _invoke_lambda(account_id: str, fn_arn: str, event: Any) -> None:
