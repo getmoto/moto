@@ -427,6 +427,16 @@ class S3Response(BaseResponse):
 
         return status_code, headers, body
 
+    def _get_action(self) -> str:
+        # S3's list-buckets response sets Action=ListBuckets on the querystring,
+        # but the service router cannot resolve an action for method/URL
+        # combinations such as OPTIONS on the service root. Fall back to the
+        # explicitly set Action so all_buckets() serializes as it always has.
+        action = self.querystring.get("Action")
+        if action:
+            return action[0] if isinstance(action, list) else action
+        return super()._get_action()
+
     def _bucket_response(self, request: Any, full_url: str) -> str | TYPE_RESPONSE:
         querystring = self._get_querystring(request, full_url)
         method = request.method

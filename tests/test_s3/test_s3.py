@@ -3700,3 +3700,15 @@ def test_list_buckets_with_prefix_and_bucket_region():
     resp = client.list_buckets(Prefix=prefix, BucketRegion="us-east-2")
 
     assert [b["Name"] for b in resp["Buckets"]] == [us_east_2_prefixed_bucket]
+
+
+@mock_aws
+def test_options_on_service_root_does_not_raise():
+    # Regression: 5.2.6 switched _get_action() to router-only resolution, so an
+    # OPTIONS request to the S3 service root (no bucket) could not be mapped to
+    # an operation and crashed in serialized() with an AssertionError. It must
+    # behave like GET / and return the list of buckets instead.
+    response = requests.options("https://s3.amazonaws.com/")
+
+    assert response.status_code == 200
+    assert "ListAllMyBucketsResult" in response.text
