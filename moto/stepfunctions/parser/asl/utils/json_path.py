@@ -7,8 +7,8 @@ from jsonpath_ng.jsonpath import Index
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 
 _PATTERN_SINGLETON_ARRAY_ACCESS_OUTPUT: Final[str] = r"\[\d+\]$"
-_PATTERN_SLICE_OR_WILDCARD_ACCESS = (
-    r"\$(?:\.[^[]+\[(?:\*|\d*:\d*)\]|\[\*\])(?:\.[^[]+)*$"
+_PATTERN_SLICE_OR_WILDCARD_OR_FILTER_ACCESS = (
+    r"\$(?:\.[^[]+\[(?:\*|\d*:\d*|\?.*)\]|\[(?:\*|\?.*)\])(?:\.[^[]+)*$"
 )
 
 
@@ -18,9 +18,9 @@ def _is_singleton_array_access(path: str) -> bool:
 
 
 def _contains_slice_or_wildcard_array(path: str) -> bool:
-    # Returns true if the json path contains a slice or wildcard in the array.
-    # Slices at the root are discarded, but wildcard at the root is allowed.
-    return bool(re.search(_PATTERN_SLICE_OR_WILDCARD_ACCESS, path))
+    # Returns true if the json path contains a slice, wildcard, or filter in the array.
+    # Slices at the root are discarded, but wildcard/filter at the root is allowed.
+    return bool(re.search(_PATTERN_SLICE_OR_WILDCARD_OR_FILTER_ACCESS, path))
 
 
 class NoSuchJsonPathError(Exception):
