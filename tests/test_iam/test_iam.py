@@ -653,6 +653,50 @@ def test_delete_policy():
 
 
 @mock_aws
+def test_delete_policy_attached():
+    conn = boto3.client("iam", region_name="us-east-1")
+    response = conn.create_policy(
+        PolicyName="TestDeleteAttachedPolicy", PolicyDocument=MOCK_POLICY
+    )
+    policy_arn = response["Policy"]["Arn"]
+    conn.create_role(
+        RoleName="test-role", AssumeRolePolicyDocument=MOCK_POLICY, Path="/"
+    )
+    conn.attach_role_policy(RoleName="test-role", PolicyArn=policy_arn)
+    with pytest.raises(ClientError) as exc:
+        conn.delete_policy(PolicyArn=policy_arn)
+    assert exc.value.response["Error"]["Code"] == "DeleteConflict"
+    # The policy is kept, and still attached to the role
+    assert conn.list_policies(Scope="Local")["Policies"] != []
+    assert (
+        conn.list_attached_role_policies(RoleName="test-role")["AttachedPolicies"] != []
+    )
+    conn.detach_role_policy(RoleName="test-role", PolicyArn=policy_arn)
+    conn.delete_policy(PolicyArn=policy_arn)
+    assert conn.list_policies(Scope="Local")["Policies"] == []
+
+
+@mock_aws
+def test_delete_policy_with_non_default_versions():
+    conn = boto3.client("iam", region_name="us-east-1")
+    response = conn.create_policy(
+        PolicyName="TestDeleteVersionedPolicy", PolicyDocument=MOCK_POLICY
+    )
+    policy_arn = response["Policy"]["Arn"]
+    conn.create_policy_version(
+        PolicyArn=policy_arn, PolicyDocument=MOCK_POLICY, SetAsDefault=True
+    )
+    with pytest.raises(ClientError) as exc:
+        conn.delete_policy(PolicyArn=policy_arn)
+    assert exc.value.response["Error"]["Code"] == "DeleteConflict"
+    # The policy is kept
+    assert conn.list_policies(Scope="Local")["Policies"] != []
+    conn.delete_policy_version(PolicyArn=policy_arn, VersionId="v1")
+    conn.delete_policy(PolicyArn=policy_arn)
+    assert conn.list_policies(Scope="Local")["Policies"] == []
+
+
+@mock_aws
 def test_create_policy_versions():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError):

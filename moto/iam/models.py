@@ -2856,6 +2856,15 @@ class IAMBackend(BaseBackend):
 
     def delete_policy(self, policy_arn: str) -> None:
         policy = self.get_policy(policy_arn)
+        if policy.attachment_count > 0:
+            raise DeleteConflictException(
+                "Cannot delete a policy that is attached to an entity."
+            )
+        if len(policy.versions) > 1:
+            raise DeleteConflictException(
+                "Cannot delete a policy with non-default versions. "
+                "Delete the non-default versions first."
+            )
         del self.managed_policies[policy.arn]
 
     def create_access_key(
