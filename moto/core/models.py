@@ -11,6 +11,7 @@ from types import FunctionType
 from typing import (
     TYPE_CHECKING,
     Any,
+    ClassVar,
     TypeVar,
     cast,
 )
@@ -50,13 +51,15 @@ class MockAWS(AbstractContextManager["MockAWS"]):
     _nested_count = 0
     _mocks_active = False
     _mock_init_lock = Lock()
+    _creds_depth = 0
+    _creds_mocked_at: int | None = None
+    _orig_creds: ClassVar[dict[str, str | None]] = {}
 
     def __init__(self, config: DefaultConfig | None = None) -> None:
         self._fake_creds = {
             "AWS_ACCESS_KEY_ID": "FOOBARKEY",
             "AWS_SECRET_ACCESS_KEY": "FOOBARSECRET",
         }
-        self._orig_creds: dict[str, str | None] = {}
         self._default_session_mock = patch("boto3.DEFAULT_SESSION", None)
         current_user_config = default_user_config.copy()
         current_user_config.update(config or {})
@@ -79,8 +82,10 @@ class MockAWS(AbstractContextManager["MockAWS"]):
     def start(self, reset: bool = True) -> None:
         with MockAWS._mock_init_lock:
             self._user_config_mock.start()
-            if mock_credentials():
+            MockAWS._creds_depth += 1
+            if mock_credentials() and MockAWS._creds_mocked_at is None:
                 self._mock_env_variables()
+                MockAWS._creds_mocked_at = MockAWS._creds_depth
             if not self.__class__._mocks_active:
                 if default_user_config.get("core", {}).get("reset_boto3_session", True):
                     self._default_session_mock.start()
@@ -98,8 +103,13 @@ class MockAWS(AbstractContextManager["MockAWS"]):
             if self.__class__._nested_count < 0:
                 raise RuntimeError("Called stop() before start().")
 
-            if mock_credentials():
+            MockAWS._creds_depth -= 1
+            if (
+                MockAWS._creds_mocked_at is not None
+                and MockAWS._creds_depth < MockAWS._creds_mocked_at
+            ):
                 self._unmock_env_variables()
+                MockAWS._creds_mocked_at = None
 
             if self.__class__._nested_count == 0:
                 if self.__class__._mocks_active:
@@ -193,16 +203,17 @@ class MockAWS(AbstractContextManager["MockAWS"]):
 
     def _mock_env_variables(self) -> None:
         # "Mock" the AWS credentials as they can't be mocked in Botocore currently
+        MockAWS._orig_creds = {k: os.environ.get(k, None) for k in self._fake_creds}
         for k, v in self._fake_creds.items():
-            self._orig_creds[k] = os.environ.get(k, None)
             os.environ[k] = v
 
     def _unmock_env_variables(self) -> None:
-        for k, v in self._orig_creds.items():
-            if v:
+        for k, v in MockAWS._orig_creds.items():
+            if v is not None:
                 os.environ[k] = v
             else:
-                del os.environ[k]
+                os.environ.pop(k, None)
+        MockAWS._orig_creds = {}
 
     def reset(self) -> None:
         BackendDict.reset()
