@@ -2118,9 +2118,11 @@ def test_delete_versioned_bucket_returns_metadata(bucket_name=None):
 @mock_aws
 def test_options_request_on_service_root():
     # An OPTIONS request against the service root does not target a bucket,
-    # so there is no CORS configuration to read - S3 just returns 200
+    # so there is no CORS configuration to read - real S3 answers 400
+    # (verified against s3.amazonaws.com), and moto used to crash here
+    # with an AssertionError instead of answering at all
     resp = requests.options("https://s3.amazonaws.com/")
-    assert resp.status_code == 200
+    assert resp.status_code == 400
 
 
 @mock_aws

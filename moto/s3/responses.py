@@ -434,8 +434,8 @@ class S3Response(BaseResponse):
         if not bucket_name:
             if method == "OPTIONS":
                 # An OPTIONS request against the service root has no bucket
-                # whose CORS configuration could be read - S3 just returns 200
-                return 200, {}, ""
+                # whose CORS configuration could be read - real S3 answers 400
+                return 400, {}, ""
             # If no bucket specified, list all buckets
             return self.all_buckets()
 
