@@ -2,7 +2,7 @@ import json
 from typing import Any
 from urllib.parse import unquote
 
-from moto.core.responses import TYPE_RESPONSE, BaseResponse
+from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse
 from moto.utilities.utils import merge_multiple_dicts
 
 from .exceptions import InvalidRequestInput
@@ -455,7 +455,7 @@ class APIGatewayResponse(BaseResponse):
                 stage.tags.pop(tag, None)  # type: ignore[union-attr]
         return json.dumps({"item": ""})
 
-    def get_export(self) -> TYPE_RESPONSE:
+    def get_export(self) -> ActionResult:
         url_path_parts = self.path.split("/")
         rest_api_id = url_path_parts[-5]
         export_type = url_path_parts[-1]
@@ -463,12 +463,13 @@ class APIGatewayResponse(BaseResponse):
         body = self.backend.export_api(rest_api_id, export_type)
 
         now = body["info"]["version"]
-        filename = f"swagger_{now}Z.json"
-        headers = {
-            "Content-Type": "application/octet-stream",
-            "Content-Disposition": f'attachment; filename="{filename}"',
+        filename = f"swagger_{now}.json"
+        result = {
+            "contentType": "application/octet-stream",
+            "contentDisposition": f'attachment; filename="{filename}"',
+            "body": json.dumps(body),
         }
-        return 200, headers, json.dumps(body).encode("utf-8")
+        return ActionResult(result)
 
     def delete_integration(self) -> TYPE_RESPONSE:
         url_path_parts = self.path.split("/")
