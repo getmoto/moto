@@ -89,7 +89,7 @@ class IAMUserAccessKey:
     ):
         self.account_id = account_id
         self.partition = partition
-        iam_users = self.backend.list_users("/", None, None)
+        iam_users = self.backend.list_users("/")
 
         for iam_user in iam_users:
             for access_key in iam_user.access_keys:
@@ -111,8 +111,8 @@ class IAMUserAccessKey:
     def create_credentials(self) -> Credentials:
         return Credentials(self._access_key_id, self._secret_access_key)
 
-    def collect_policies(self) -> list[dict[str, str]]:
-        user_policies = []
+    def collect_policies(self) -> list[Any]:
+        user_policies: list[Any] = []
 
         inline_policy_names = self.backend.list_user_policies(self._owner_user_name)
         for inline_policy_name in inline_policy_names:
@@ -121,7 +121,7 @@ class IAMUserAccessKey:
             )
             user_policies.append(inline_policy)
 
-        attached_policies, _ = self.backend.list_attached_user_policies(
+        attached_policies = self.backend.list_attached_user_policies(
             self._owner_user_name
         )
         user_policies += attached_policies
@@ -137,7 +137,7 @@ class IAMUserAccessKey:
                 )
                 user_policies.append(inline_user_group_policy)
 
-            attached_group_policies, _ = self.backend.list_attached_group_policies(
+            attached_group_policies = self.backend.list_attached_group_policies(
                 user_group.name
             )
             user_policies += attached_group_policies
@@ -180,8 +180,8 @@ class AssumedRoleAccessKey:
             self._access_key_id, self._secret_access_key, self._session_token
         )
 
-    def collect_policies(self) -> list[str]:
-        role_policies = []
+    def collect_policies(self) -> list[Any]:
+        role_policies: list[Any] = []
 
         inline_policy_names = self.backend.list_role_policies(self._owner_role_name)
         for inline_policy_name in inline_policy_names:
@@ -190,10 +190,10 @@ class AssumedRoleAccessKey:
             )
             role_policies.append(inline_policy)
 
-        attached_policies, _ = self.backend.list_attached_role_policies(
+        attached_policies = self.backend.list_attached_role_policies(
             self._owner_role_name
         )
-        role_policies += attached_policies  # type: ignore[arg-type]
+        role_policies += attached_policies
 
         return role_policies
 

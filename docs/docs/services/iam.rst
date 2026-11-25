@@ -90,8 +90,6 @@ iam
 - [X] get_credential_report
 - [ ] get_delegation_request
 - [X] get_group
-  
-Pagination is not yet implemented
 
 
 - [X] get_group_policy
@@ -120,8 +118,6 @@ This method always succeeds for now - we do not yet keep track of deletions
 - [X] get_user
 - [X] get_user_policy
 - [X] list_access_keys
-  
-Pagination is not yet implemented
 
 
 - [X] list_account_aliases
@@ -131,8 +127,6 @@ Pagination is not yet implemented
 - [ ] list_delegation_requests
 - [ ] list_entities_for_policy
 - [X] list_group_policies
-  
-Pagination is not yet implemented
 
 
 - [X] list_groups
@@ -156,8 +150,6 @@ Pagination is not yet implemented
 - [X] list_saml_providers
 - [ ] list_server_certificate_tags
 - [X] list_server_certificates
-  
-Pagination is not yet implemented
 
 
 - [ ] list_service_specific_credentials
