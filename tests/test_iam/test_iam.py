@@ -1542,6 +1542,45 @@ def test_list_users():
 
 
 @mock_aws()
+def test_list_users_max_item_and_marker_values_adhered():
+    iam = boto3.client("iam", region_name="us-east-1")
+    for i in range(10):
+        iam.create_user(UserName=f"test_user_{i}")
+    response = iam.list_users(MaxItems=2)
+    users = response["Users"]
+
+    assert response["IsTruncated"] is True
+    assert len(users) == 2
+
+    response = iam.list_users(Marker=response["Marker"])
+    users = response["Users"]
+
+    assert response["IsTruncated"] is False
+    assert len(users) == 8
+
+
+@mock_aws()
+def test_list_users_pagination_covers_all_users_exactly_once():
+    iam = boto3.client("iam", region_name="us-east-1")
+    for i in range(10):
+        iam.create_user(UserName=f"test_user_{i}")
+
+    seen = []
+    marker = None
+    while True:
+        kwargs = {"MaxItems": 3}
+        if marker:
+            kwargs["Marker"] = marker
+        response = iam.list_users(**kwargs)
+        seen.extend(user["UserName"] for user in response["Users"])
+        if not response["IsTruncated"]:
+            break
+        marker = response["Marker"]
+
+    assert sorted(seen) == sorted(f"test_user_{i}" for i in range(10))
+
+
+@mock_aws()
 def test_user_policies():
     policy_name = "UserManagedPolicy"
     user_name = "my-user"

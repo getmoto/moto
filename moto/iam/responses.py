@@ -193,7 +193,7 @@ class IamResponse(BaseResponse):
         entity_users = []
 
         if not entity or entity == "User":
-            users = self.backend.list_users(path_prefix, marker, max_items)
+            users, _ = self.backend.list_users(path_prefix, marker, max_items)
             if users:
                 for user in users:
                     for p in user.managed_policies:
@@ -217,7 +217,7 @@ class IamResponse(BaseResponse):
                             entity_groups.append(group)
 
         if entity == "LocalManagedPolicy" or entity == "AWSManagedPolicy":
-            users = self.backend.list_users(path_prefix, marker, max_items)
+            users, _ = self.backend.list_users(path_prefix, marker, max_items)
             if users:
                 for user in users:
                     for p in user.managed_policies:
@@ -621,8 +621,8 @@ class IamResponse(BaseResponse):
         path_prefix = self._get_param("PathPrefix")
         marker = self._get_param("Marker")
         max_items = self._get_param("MaxItems")
-        users = self.backend.list_users(path_prefix, marker, max_items)
-        result = {"Users": users, "IsTruncated": False}
+        users, marker = self.backend.list_users(path_prefix, marker, max_items)
+        result = {"Users": users, "IsTruncated": bool(marker), "Marker": marker}
         return ActionResult(result)
 
     def update_user(self) -> ActionResult:

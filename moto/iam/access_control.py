@@ -89,7 +89,10 @@ class IAMUserAccessKey:
     ):
         self.account_id = account_id
         self.partition = partition
-        iam_users = self.backend.list_users("/", None, None)
+        iam_users, marker = self.backend.list_users("/", None, None)
+        while marker is not None:
+            next_users, marker = self.backend.list_users("/", marker, None)
+            iam_users.extend(next_users)
 
         for iam_user in iam_users:
             for access_key in iam_user.access_keys:

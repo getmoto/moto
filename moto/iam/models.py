@@ -2675,18 +2675,23 @@ class IAMBackend(BaseBackend):
         path_prefix: str | None,
         marker: str | None,
         max_items: int | None,
-    ) -> Iterable[User]:
-        try:
-            users: Iterable[User] = list(self.users.values())
-            if path_prefix:
-                users = filter_items_with_path_prefix(path_prefix, users)
+    ) -> tuple[list[User], str | None]:
+        max_items = int(max_items) if max_items else 100
+        start_index = int(marker) if marker else 0
 
-        except KeyError:
-            raise NotFoundException(
-                f"Users {path_prefix}, {marker}, {max_items} not found"
-            )
+        users: Iterable[User] = list(self.users.values())
+        if path_prefix:
+            users = filter_items_with_path_prefix(path_prefix, users)
 
-        return users
+        all_users = list(users)
+        users_to_return = all_users[start_index : start_index + max_items]
+
+        if len(all_users) <= (start_index + max_items):
+            marker = None
+        else:
+            marker = str(start_index + max_items)
+
+        return users_to_return, marker
 
     def update_user(
         self,
