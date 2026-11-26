@@ -2414,8 +2414,8 @@ class IAMBackend(BaseBackend):
 
         raise NotFoundException(f"Instance profile {profile_arn} not found")
 
-    def get_instance_profiles(self) -> Iterable[InstanceProfile]:
-        return self.instance_profiles.values()
+    def get_instance_profiles(self) -> list[InstanceProfile]:
+        return list(self.instance_profiles.values())
 
     def get_instance_profiles_for_role(self, role_name: str) -> list[InstanceProfile]:
         found_profiles = []
@@ -2444,8 +2444,8 @@ class IAMBackend(BaseBackend):
         role = self.get_role(role_name)
         profile.roles.remove(role)
 
-    def list_server_certificates(self) -> Iterable[Certificate]:
-        return self.certificates.values()
+    def list_server_certificates(self) -> list[Certificate]:
+        return list(self.certificates.values())
 
     def upload_server_certificate(
         self,
@@ -2511,8 +2511,8 @@ class IAMBackend(BaseBackend):
         except KeyError:
             raise NotFoundException(f"Group {group_name} not found")
 
-    def list_groups(self) -> Iterable[Group]:
-        return self.groups.values()
+    def list_groups(self) -> list[Group]:
+        return list(self.groups.values())
 
     def get_groups_for_user(self, user_name: str) -> list[Group]:
         user = self.get_user(user_name)
@@ -2731,9 +2731,9 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         return user.get_policy(policy_name)
 
-    def list_user_policies(self, user_name: str) -> Iterable[str]:
+    def list_user_policies(self, user_name: str) -> list[str]:
         user = self.get_user(user_name)
-        return user.policies.keys()
+        return list(user.policies.keys())
 
     def list_user_tags(self, user_name: str) -> list[dict[str, str]]:
         user = self.get_user(user_name)
@@ -2830,7 +2830,7 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         return user.get_ssh_public_key(ssh_public_key_id)
 
-    def get_all_ssh_public_keys(self, user_name: str) -> Iterable[SshPublicKey]:
+    def get_all_ssh_public_keys(self, user_name: str) -> list[SshPublicKey]:
         user = self.get_user(user_name)
         return user.get_all_ssh_public_keys()
 
@@ -2889,9 +2889,9 @@ class IAMBackend(BaseBackend):
 
         user.deactivate_mfa_device(serial_number)
 
-    def list_mfa_devices(self, user_name: str) -> Iterable[MFADevice]:
+    def list_mfa_devices(self, user_name: str) -> list[MFADevice]:
         user = self.get_user(user_name)
-        return user.mfa_devices.values()
+        return list(user.mfa_devices.values())
 
     def create_virtual_mfa_device(
         self, device_name: str, path: str

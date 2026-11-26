@@ -431,7 +431,7 @@ class IamResponse(BaseResponse):
         return PaginatedResult(result)
 
     def list_instance_profiles(self) -> ActionResult:
-        profiles = list(self.backend.get_instance_profiles())
+        profiles = self.backend.get_instance_profiles()
         result = {"InstanceProfiles": profiles}
         return PaginatedResult(result)
 
@@ -520,7 +520,7 @@ class IamResponse(BaseResponse):
         return PaginatedResult(result)
 
     def list_groups(self) -> ActionResult:
-        groups = list(self.backend.list_groups())
+        groups = self.backend.list_groups()
         result = {"Groups": groups}
         return PaginatedResult(result)
 
@@ -670,7 +670,7 @@ class IamResponse(BaseResponse):
 
     def list_user_policies(self) -> ActionResult:
         user_name = self._get_param("UserName")
-        policies = list(self.backend.list_user_policies(user_name))
+        policies = self.backend.list_user_policies(user_name)
         result = {"PolicyNames": policies}
         return PaginatedResult(result)
 
@@ -775,7 +775,7 @@ class IamResponse(BaseResponse):
     def list_ssh_public_keys(self) -> ActionResult:
         user_name = self._get_param("UserName")
 
-        keys = list(self.backend.get_all_ssh_public_keys(user_name))
+        keys = self.backend.get_all_ssh_public_keys(user_name)
         result = {"SSHPublicKeys": keys}
         return PaginatedResult(result)
 
