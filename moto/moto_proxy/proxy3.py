@@ -198,6 +198,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         if "content-length" not in res_headers and res_body:
             res_headers["Content-Length"] = str(len(res_body))
+        # We close the connection after every request, so clients shouldn't try to reuse it
+        res_headers["Connection"] = "close"
 
         self.wfile.write(
             f"{self.protocol_version} {res_status} {res_reason}\r\n".encode()

@@ -7,3 +7,5 @@ pytest-order
 pytest-xdist
 freezegun
 pyotp
+# AWS SDK for Python v4 (Developer Preview), used by tests/*/test_sdk_v4.py
+aws-sdk-python[acm,api-gateway,bedrock,bedrock-agent,bedrock-agentcore,bedrock-agentcore-control,bedrock-runtime,cloudformation,cloudfront,cloudtrail,cognito-identity,dynamodb,ec2,ecs,guardduty,iam,kinesis,kms,lambda,polly,rds,s3,secrets-manager,sns,sqs,sts]; python_version >= "3.12"

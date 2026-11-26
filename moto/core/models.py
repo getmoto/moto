@@ -35,6 +35,7 @@ from .custom_responses_mock import (
     reset_responses_mock,
 )
 from .model_instances import reset_model_data
+from .smithy_http_stubber import SmithyHTTPStubber
 
 if TYPE_CHECKING:
     from typing_extensions import ParamSpec
@@ -230,9 +231,11 @@ class MockAWS(AbstractContextManager["MockAWS"]):
                     callback=not_implemented_callback,
                 )
             )
+        smithy_http_stubber.start()
 
     def _disable_patching(self, remove_data: bool) -> None:
         botocore_stubber.enabled = False
+        smithy_http_stubber.stop()
         if remove_data:
             self.reset()
             reset_model_data()
@@ -265,6 +268,8 @@ BOTOCORE_HTTP_METHODS = ["GET", "DELETE", "HEAD", "OPTIONS", "PATCH", "POST", "P
 
 botocore_stubber = BotocoreStubber()
 BUILTIN_HANDLERS.append(("before-send", botocore_stubber))
+
+smithy_http_stubber = SmithyHTTPStubber(botocore_stubber.process_request)
 
 
 def patch_client(client: botocore.client.BaseClient) -> None:
@@ -383,6 +388,7 @@ class ServerModeMockAWS(MockAWS):
         self._resource_patcher = patch("boto3.resource", fake_boto3_resource)
         self._client_patcher.start()
         self._resource_patcher.start()
+        smithy_http_stubber.start(endpoint=self._test_server_mode_endpoint)
 
     def _get_region(self, *args: Any, **kwargs: Any) -> str | None:
         if "region_name" in kwargs:
@@ -396,6 +402,7 @@ class ServerModeMockAWS(MockAWS):
         if self._client_patcher:
             self._client_patcher.stop()
             self._resource_patcher.stop()
+        smithy_http_stubber.stop()
         if remove_data:
             self.reset()
 
@@ -456,8 +463,10 @@ class ProxyModeMockAWS(MockAWS):
         self._resource_patcher = patch("boto3.resource", fake_boto3_resource)
         self._client_patcher.start()
         self._resource_patcher.start()
+        smithy_http_stubber.start(endpoint=self._test_proxy_mode_endpoint)
 
     def _disable_patching(self, remove_data: bool) -> None:
         if self._client_patcher:
             self._client_patcher.stop()
             self._resource_patcher.stop()
+        smithy_http_stubber.stop()
