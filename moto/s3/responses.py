@@ -32,6 +32,7 @@ from moto.utilities.utils import PARTITION_NAMES, get_partition
 from ..core.exceptions import SignatureDoesNotMatchError
 from .exceptions import (
     AccessForbidden,
+    BadRequest,
     BucketAccessDeniedError,
     BucketAlreadyExists,
     BucketAlreadyOwnedByYou,
@@ -432,6 +433,16 @@ class S3Response(BaseResponse):
         method = request.method
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
         if not bucket_name:
+            if method == "OPTIONS":
+                if "Origin" not in request.headers:
+                    raise BadRequest(
+                        "Insufficient information. Origin request header needed."
+                    )
+                raise AccessForbidden(
+                    "CORSResponse: Bucket not found",
+                    method="OPTIONS",
+                    resource_type="BUCKET",
+                )
             # If no bucket specified, list all buckets
             return self.all_buckets()
 

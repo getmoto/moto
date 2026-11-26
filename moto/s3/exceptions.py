@@ -26,8 +26,12 @@ class InvalidArgumentError(S3ClientError):
 
 
 class AccessForbidden(S3ClientError):
-    def __init__(self, msg: str):
+    def __init__(
+        self, msg: str, method: str | None = None, resource_type: str | None = None
+    ):
         super().__init__("AccessForbidden", msg)
+        self.method = method
+        self.resource_type = resource_type
 
 
 class BadRequest(S3ClientError):
