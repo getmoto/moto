@@ -125,43 +125,48 @@ def _create_tags(client: Any) -> None:
     client.tag_open_id_connect_provider(OpenIDConnectProviderArn=OIDC_ARN, Tags=TAGS)
 
 
+# (operation, kwargs, result_key, create_resources)
+PAGINATED_OPERATIONS = [
+    ("get_group", {"GroupName": "group"}, "Users", _create_users),
+    ("list_access_keys", {"UserName": "user"}, "AccessKeyMetadata", _create_access_keys),
+    ("list_account_aliases", {}, "AccountAliases", lambda c: None),
+    ("list_attached_group_policies", {"GroupName": "group"}, "AttachedPolicies", _create_managed_policies),
+    ("list_attached_role_policies", {"RoleName": "role"}, "AttachedPolicies", _create_managed_policies),
+    ("list_attached_user_policies", {"UserName": "user"}, "AttachedPolicies", _create_managed_policies),
+    ("list_group_policies", {"GroupName": "group"}, "PolicyNames", _create_inline_policies),
+    ("list_groups", {}, "Groups", _create_groups),
+    ("list_groups_for_user", {"UserName": "user"}, "Groups", _create_groups),
+    ("list_instance_profiles", {}, "InstanceProfiles", _create_instance_profiles),
+    ("list_instance_profiles_for_role", {"RoleName": "role"}, "InstanceProfiles", _create_instance_profiles),
+    ("list_mfa_devices", {"UserName": "user"}, "MFADevices", _create_mfa_devices),
+    ("list_open_id_connect_provider_tags", {"OpenIDConnectProviderArn": OIDC_ARN}, "Tags", _create_tags),
+    ("list_policies", {"Scope": "Local"}, "Policies", _create_managed_policies),
+    ("list_policy_tags", {"PolicyArn": POLICY_ARN}, "Tags", _create_tags),
+    ("list_policy_versions", {"PolicyArn": POLICY_ARN}, "Versions", _create_policy_versions),
+    ("list_role_policies", {"RoleName": "role"}, "PolicyNames", _create_inline_policies),
+    ("list_role_tags", {"RoleName": "role"}, "Tags", _create_tags),
+    ("list_roles", {}, "Roles", _create_roles),
+    ("list_server_certificates", {}, "ServerCertificateMetadataList", _create_server_certificates),
+    ("list_signing_certificates", {"UserName": "user"}, "Certificates", _create_signing_certificates),
+    ("list_ssh_public_keys", {"UserName": "user"}, "SSHPublicKeys", _create_ssh_public_keys),
+    ("list_user_policies", {"UserName": "user"}, "PolicyNames", _create_inline_policies),
+    ("list_user_tags", {"UserName": "user"}, "Tags", _create_tags),
+    ("list_users", {}, "Users", _create_users),
+    ("list_virtual_mfa_devices", {}, "VirtualMFADevices", _create_mfa_devices),
+]  # fmt: skip
+
+
 @pytest.mark.parametrize(
-    "operation,kwargs,result_key,setup",
-    [
-        ("get_group", {"GroupName": "group"}, "Users", _create_users),
-        ("list_access_keys", {"UserName": "user"}, "AccessKeyMetadata", _create_access_keys),
-        ("list_account_aliases", {}, "AccountAliases", lambda c: None),
-        ("list_attached_group_policies", {"GroupName": "group"}, "AttachedPolicies", _create_managed_policies),
-        ("list_attached_role_policies", {"RoleName": "role"}, "AttachedPolicies", _create_managed_policies),
-        ("list_attached_user_policies", {"UserName": "user"}, "AttachedPolicies", _create_managed_policies),
-        ("list_group_policies", {"GroupName": "group"}, "PolicyNames", _create_inline_policies),
-        ("list_groups", {}, "Groups", _create_groups),
-        ("list_groups_for_user", {"UserName": "user"}, "Groups", _create_groups),
-        ("list_instance_profiles", {}, "InstanceProfiles", _create_instance_profiles),
-        ("list_instance_profiles_for_role", {"RoleName": "role"}, "InstanceProfiles", _create_instance_profiles),
-        ("list_mfa_devices", {"UserName": "user"}, "MFADevices", _create_mfa_devices),
-        ("list_open_id_connect_provider_tags", {"OpenIDConnectProviderArn": OIDC_ARN}, "Tags", _create_tags),
-        ("list_policies", {"Scope": "Local"}, "Policies", _create_managed_policies),
-        ("list_policy_tags", {"PolicyArn": POLICY_ARN}, "Tags", _create_tags),
-        ("list_policy_versions", {"PolicyArn": POLICY_ARN}, "Versions", _create_policy_versions),
-        ("list_role_policies", {"RoleName": "role"}, "PolicyNames", _create_inline_policies),
-        ("list_role_tags", {"RoleName": "role"}, "Tags", _create_tags),
-        ("list_roles", {}, "Roles", _create_roles),
-        ("list_server_certificates", {}, "ServerCertificateMetadataList", _create_server_certificates),
-        ("list_signing_certificates", {"UserName": "user"}, "Certificates", _create_signing_certificates),
-        ("list_ssh_public_keys", {"UserName": "user"}, "SSHPublicKeys", _create_ssh_public_keys),
-        ("list_user_policies", {"UserName": "user"}, "PolicyNames", _create_inline_policies),
-        ("list_user_tags", {"UserName": "user"}, "Tags", _create_tags),
-        ("list_users", {}, "Users", _create_users),
-        ("list_virtual_mfa_devices", {}, "VirtualMFADevices", _create_mfa_devices),
-    ],
-)  # fmt: skip
+    "operation,kwargs,result_key,create_resources",
+    PAGINATED_OPERATIONS,
+    ids=[operation for operation, *_ in PAGINATED_OPERATIONS],
+)
 @mock_aws
 def test_pagination(
     operation: str,
     kwargs: dict[str, Any],
     result_key: str,
-    setup: Callable[[Any], None],
+    create_resources: Callable[[Any], None],
 ) -> None:
     client = boto3.client("iam", region_name="us-east-1")
     # Baseline resources that the per-operation setup builds on
@@ -171,19 +176,20 @@ def test_pagination(
     client.create_policy(PolicyName="policy", PolicyDocument=POLICY_DOCUMENT)
     client.create_open_id_connect_provider(Url="https://example.com", ThumbprintList=[])
     client.create_account_alias(AccountAlias="alias")
-    setup(client)
-
-    expected = getattr(client, operation)(**kwargs)[result_key]
-    # Make sure there's actually something to page through
-    assert len(expected) >= 1
-
+    # Spin up the resources to be paged through
+    create_resources(client)
+    # Get the full result
+    all_resources = getattr(client, operation)(**kwargs)[result_key]
+    assert len(all_resources) >= 1
+    # Get the full result via the paginator
     paginator = client.get_paginator(operation)
     pages = list(paginator.paginate(**kwargs, PaginationConfig={"PageSize": 1}))
-
-    assert len(pages) == len(expected)
+    # We're using a page size of one, so we should have a page for each resource
+    assert len(pages) == len(all_resources)
+    # Per page assertions
     for page in pages[:-1]:
         assert page["IsTruncated"] is True
         assert page["Marker"]
     assert pages[-1]["IsTruncated"] is False
     assert "Marker" not in pages[-1]
-    assert [item for page in pages for item in page[result_key]] == expected
+    assert [item for page in pages for item in page[result_key]] == all_resources
