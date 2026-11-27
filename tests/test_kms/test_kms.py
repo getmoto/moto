@@ -574,6 +574,110 @@ def test_disable_key():
     assert result["KeyMetadata"]["KeyState"] == "Disabled"
 
 
+# Each case: (key spec, key usage, operation, kwargs for the operation)
+DISABLED_KEY_OPERATIONS = [
+    ("SYMMETRIC_DEFAULT", "ENCRYPT_DECRYPT", "encrypt", {"Plaintext": b"data"}),
+    (
+        "SYMMETRIC_DEFAULT",
+        "ENCRYPT_DECRYPT",
+        "generate_data_key",
+        {"NumberOfBytes": 32},
+    ),
+    (
+        "SYMMETRIC_DEFAULT",
+        "ENCRYPT_DECRYPT",
+        "generate_data_key_without_plaintext",
+        {"KeySpec": "AES_256"},
+    ),
+    ("SYMMETRIC_DEFAULT", "ENCRYPT_DECRYPT", "enable_key_rotation", {}),
+    ("SYMMETRIC_DEFAULT", "ENCRYPT_DECRYPT", "disable_key_rotation", {}),
+    ("SYMMETRIC_DEFAULT", "ENCRYPT_DECRYPT", "rotate_key_on_demand", {}),
+    (
+        "SYMMETRIC_DEFAULT",
+        "ENCRYPT_DECRYPT",
+        "create_grant",
+        {
+            "GranteePrincipal": f"arn:aws:iam::{ACCOUNT_ID}:role/grantee",
+            "Operations": ["Decrypt"],
+        },
+    ),
+    (
+        "RSA_2048",
+        "SIGN_VERIFY",
+        "sign",
+        {"Message": b"data", "SigningAlgorithm": "RSASSA_PSS_SHA_256"},
+    ),
+    (
+        "RSA_2048",
+        "SIGN_VERIFY",
+        "verify",
+        {
+            "Message": b"data",
+            "Signature": b"signature",
+            "SigningAlgorithm": "RSASSA_PSS_SHA_256",
+        },
+    ),
+    ("RSA_2048", "SIGN_VERIFY", "get_public_key", {}),
+    (
+        "HMAC_256",
+        "GENERATE_VERIFY_MAC",
+        "generate_mac",
+        {"Message": b"data", "MacAlgorithm": "HMAC_SHA_256"},
+    ),
+    (
+        "HMAC_256",
+        "GENERATE_VERIFY_MAC",
+        "verify_mac",
+        {"Message": b"data", "Mac": b"mac", "MacAlgorithm": "HMAC_SHA_256"},
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "key_spec,key_usage,operation,kwargs",
+    DISABLED_KEY_OPERATIONS,
+    ids=[case[2] for case in DISABLED_KEY_OPERATIONS],
+)
+@mock_aws
+def test_disabled_key_cannot_be_used(key_spec, key_usage, operation, kwargs):
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(KeySpec=key_spec, KeyUsage=key_usage)["KeyMetadata"]
+    client.disable_key(KeyId=key["KeyId"])
+
+    with pytest.raises(client.exceptions.DisabledException) as exc:
+        getattr(client, operation)(KeyId=key["KeyId"], **kwargs)
+    assert exc.value.response["Error"]["Message"] == f"{key['Arn']} is disabled."
+
+
+@mock_aws
+def test_disabled_key_cannot_decrypt():
+    client = boto3.client("kms", region_name="us-east-1")
+    key_id = create_simple_key(client)
+    other_key_id = create_simple_key(client)
+    ciphertext = client.encrypt(KeyId=key_id, Plaintext=b"data")["CiphertextBlob"]
+    client.disable_key(KeyId=key_id)
+
+    with pytest.raises(client.exceptions.DisabledException):
+        client.decrypt(CiphertextBlob=ciphertext)
+    with pytest.raises(client.exceptions.DisabledException):
+        client.re_encrypt(CiphertextBlob=ciphertext, DestinationKeyId=other_key_id)
+    # ReEncrypt also checks the destination key
+    ciphertext = client.encrypt(KeyId=other_key_id, Plaintext=b"data")["CiphertextBlob"]
+    with pytest.raises(client.exceptions.DisabledException):
+        client.re_encrypt(CiphertextBlob=ciphertext, DestinationKeyId=key_id)
+
+
+@mock_aws
+def test_reenabled_key_can_be_used():
+    client = boto3.client("kms", region_name="us-east-1")
+    key_id = create_simple_key(client)
+    client.disable_key(KeyId=key_id)
+    client.enable_key(KeyId=key_id)
+
+    ciphertext = client.encrypt(KeyId=key_id, Plaintext=b"data")["CiphertextBlob"]
+    assert client.decrypt(CiphertextBlob=ciphertext)["Plaintext"] == b"data"
+
+
 @mock_aws
 def test_enable_key():
     client = boto3.client("kms", region_name="us-east-1")
@@ -589,18 +693,19 @@ def test_enable_key():
 @mock_aws
 def test_schedule_key_deletion():
     client = boto3.client("kms", region_name="us-east-1")
-    key_id = create_simple_key(client)
+    key = client.create_key()["KeyMetadata"]
+    key_id = key["KeyId"]
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "false":
         with freeze_time("2015-01-01 12:00:00"):
             response = client.schedule_key_deletion(KeyId=key_id)
-            assert response["KeyId"] == key_id
+            assert response["KeyId"] == key["Arn"]
             assert response["DeletionDate"] == datetime(
                 2015, 1, 31, 12, 0, tzinfo=timezone.utc
             )
     else:
         # Can't manipulate time in server mode
         response = client.schedule_key_deletion(KeyId=key_id)
-        assert response["KeyId"] == key_id
+        assert response["KeyId"] == key["Arn"]
 
     result = client.describe_key(KeyId=key_id)
     assert result["KeyMetadata"]["Enabled"] is False
@@ -617,7 +722,7 @@ def test_schedule_key_deletion_custom():
             response = client.schedule_key_deletion(
                 KeyId=key["KeyMetadata"]["KeyId"], PendingWindowInDays=7
             )
-            assert response["KeyId"] == key["KeyMetadata"]["KeyId"]
+            assert response["KeyId"] == key["KeyMetadata"]["Arn"]
             assert response["DeletionDate"] == datetime(
                 2015, 1, 8, 12, 0, tzinfo=timezone.utc
             )
@@ -626,7 +731,7 @@ def test_schedule_key_deletion_custom():
         response = client.schedule_key_deletion(
             KeyId=key["KeyMetadata"]["KeyId"], PendingWindowInDays=7
         )
-        assert response["KeyId"] == key["KeyMetadata"]["KeyId"]
+        assert response["KeyId"] == key["KeyMetadata"]["Arn"]
 
     result = client.describe_key(KeyId=key["KeyMetadata"]["KeyId"])
     assert result["KeyMetadata"]["Enabled"] is False
@@ -640,12 +745,50 @@ def test_cancel_key_deletion():
     key = client.create_key(Description="cancel-key-deletion")
     client.schedule_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
     response = client.cancel_key_deletion(KeyId=key["KeyMetadata"]["KeyId"])
-    assert response["KeyId"] == key["KeyMetadata"]["KeyId"]
+    assert response["KeyId"] == key["KeyMetadata"]["Arn"]
 
     result = client.describe_key(KeyId=key["KeyMetadata"]["KeyId"])
     assert result["KeyMetadata"]["Enabled"] is False
     assert result["KeyMetadata"]["KeyState"] == "Disabled"
     assert "DeletionDate" not in result["KeyMetadata"]
+
+
+@pytest.mark.parametrize("id_or_arn", ["KeyId", "Arn"])
+@mock_aws
+def test_key_state_operations_accept_key_id_or_arn(id_or_arn):
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key()["KeyMetadata"]
+    key_ref = key[id_or_arn]
+
+    client.disable_key(KeyId=key_ref)
+    assert client.describe_key(KeyId=key_ref)["KeyMetadata"]["KeyState"] == "Disabled"
+
+    client.enable_key(KeyId=key_ref)
+    assert client.describe_key(KeyId=key_ref)["KeyMetadata"]["KeyState"] == "Enabled"
+
+    response = client.schedule_key_deletion(KeyId=key_ref, PendingWindowInDays=7)
+    assert response["KeyId"] == key["Arn"]
+    metadata = client.describe_key(KeyId=key_ref)["KeyMetadata"]
+    assert metadata["KeyState"] == "PendingDeletion"
+
+    response = client.cancel_key_deletion(KeyId=key_ref)
+    assert response["KeyId"] == key["Arn"]
+    metadata = client.describe_key(KeyId=key_ref)["KeyMetadata"]
+    assert metadata["KeyState"] == "Disabled"
+    assert "DeletionDate" not in metadata
+
+
+@pytest.mark.parametrize("id_or_arn", ["KeyId", "Arn"])
+@mock_aws
+def test_replicate_key_accepts_key_id_or_arn(id_or_arn):
+    client = boto3.client("kms", region_name="us-east-1")
+    key = client.create_key(MultiRegion=True)["KeyMetadata"]
+
+    response = client.replicate_key(KeyId=key[id_or_arn], ReplicaRegion="eu-west-1")
+
+    replica = response["ReplicaKeyMetadata"]
+    assert replica["KeyId"] == key["KeyId"]
+    assert replica["Arn"] == key["Arn"].replace("us-east-1", "eu-west-1")
 
 
 @mock_aws
