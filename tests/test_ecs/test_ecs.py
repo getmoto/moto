@@ -4356,3 +4356,48 @@ def test_create_service_with_role_arn():
         cluster=cluster_name, services=[service_name]
     )
     assert describe_response["services"][0]["roleArn"] == role_arn
+
+
+@mock_aws
+def test_list_tasks_filter_by_launch_type():
+    ecs = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+
+    cluster = "test_cluster"
+    ecs.create_cluster(clusterName=cluster)
+    test_instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+    ecs.register_container_instance(
+        cluster=cluster,
+        instanceIdentityDocument=json.dumps(
+            ec2_utils.generate_instance_identity_document(test_instance)
+        ),
+    )
+    ecs.register_task_definition(
+        family="test_task_def",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 256,
+                "memory": 400,
+            }
+        ],
+    )
+
+    fargate = ecs.run_task(
+        cluster=cluster, taskDefinition="test_task_def", launchType="FARGATE"
+    )["tasks"][0]["taskArn"]
+    ec2_task = ecs.run_task(
+        cluster=cluster, taskDefinition="test_task_def", launchType="EC2"
+    )["tasks"][0]["taskArn"]
+
+    assert sorted(ecs.list_tasks(cluster=cluster)["taskArns"]) == sorted(
+        [fargate, ec2_task]
+    )
+    assert ecs.list_tasks(cluster=cluster, launchType="FARGATE")["taskArns"] == [
+        fargate
+    ]
+    assert ecs.list_tasks(cluster=cluster, launchType="EC2")["taskArns"] == [ec2_task]
+    assert ecs.list_tasks(cluster=cluster, launchType="EXTERNAL")["taskArns"] == []
