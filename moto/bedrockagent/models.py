@@ -9,7 +9,7 @@ from moto.bedrockagent.exceptions import (
 )
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import unix_time
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
@@ -42,9 +42,9 @@ class Agent(BaseModel):
         self.prompt_override_configuration = prompt_override_configuration
         self.region_name = region_name
         self.account_id = account_id
-        self.created_at = unix_time()
-        self.updated_at = unix_time()
-        self.prepared_at = unix_time()
+        self.created_at = utcnow()
+        self.updated_at = utcnow()
+        self.prepared_at = utcnow()
         self.agent_status = "PREPARED"
         self.agent_id = self.agent_name + str(mock_random.uuid4())[:8]
         self.agent_arn = f"arn:{get_partition(self.region_name)}:bedrock:{self.region_name}:{self.account_id}:agent/{self.agent_id}"
@@ -52,39 +52,9 @@ class Agent(BaseModel):
         self.failure_reasons: list[str] = []
         self.recommended_actions = ["action"]
 
-    def to_dict(self) -> dict[str, Any]:
-        dct = {
-            "agentId": self.agent_id,
-            "agentName": self.agent_name,
-            "agentArn": self.agent_arn,
-            "agentVersion": self.agent_version,
-            "clientToken": self.client_token,
-            "instruction": self.instruction,
-            "agentStatus": self.agent_status,
-            "foundationModel": self.foundation_model,
-            "description": self.description,
-            "idleSessionTTLInSeconds": self.idle_session_ttl_in_seconds,
-            "agentResourceRoleArn": self.agent_resource_role_arn,
-            "customerEncryptionKeyArn": self.customer_encryption_key_arn,
-            "createdAt": self.created_at,
-            "updatedAt": self.updated_at,
-            "preparedAt": self.prepared_at,
-            "failureReasons": self.failure_reasons,
-            "recommendedActions": self.recommended_actions,
-            "promptOverrideConfiguration": self.prompt_override_configuration,
-        }
-        return {k: v for k, v in dct.items() if v}
-
-    def dict_summary(self) -> dict[str, Any]:
-        dct = {
-            "agentId": self.agent_id,
-            "agentName": self.agent_name,
-            "agentStatus": self.agent_status,
-            "description": self.description,
-            "updatedAt": self.updated_at,
-            "latestAgentVersion": self.agent_version,
-        }
-        return {k: v for k, v in dct.items() if v}
+    @property
+    def latest_agent_version(self) -> str:
+        return self.agent_version
 
 
 class KnowledgeBase(BaseModel):
@@ -126,36 +96,10 @@ class KnowledgeBase(BaseModel):
         self.account_id = account_id
         self.knowledge_base_id = self.name + str(mock_random.uuid4())[:8]
         self.knowledge_base_arn = f"arn:{get_partition(self.region_name)}:bedrock:{self.region_name}:{self.account_id}:knowledge-base/{self.knowledge_base_id}"
-        self.created_at = unix_time()
-        self.updated_at = unix_time()
+        self.created_at = utcnow()
+        self.updated_at = utcnow()
         self.status = "Active"
         self.failure_reasons: list[str] = []
-
-    def to_dict(self) -> dict[str, Any]:
-        dct = {
-            "knowledgeBaseId": self.knowledge_base_id,
-            "name": self.name,
-            "knowledgeBaseArn": self.knowledge_base_arn,
-            "description": self.description,
-            "roleArn": self.role_arn,
-            "knowledgeBaseConfiguration": self.knowledge_base_configuration,
-            "storageConfiguration": self.storage_configuration,
-            "status": self.status,
-            "createdAt": self.created_at,
-            "updatedAt": self.updated_at,
-            "failureReasons": self.failure_reasons,
-        }
-        return {k: v for k, v in dct.items() if v}
-
-    def dict_summary(self) -> dict[str, Any]:
-        dct = {
-            "knowledgeBaseId": self.knowledge_base_id,
-            "name": self.name,
-            "description": self.description,
-            "status": self.status,
-            "updatedAt": self.updated_at,
-        }
-        return {k: v for k, v in dct.items() if v}
 
 
 class AgentsforBedrockBackend(BaseBackend):
