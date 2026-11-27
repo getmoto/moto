@@ -190,3 +190,57 @@ def test_get_insight_selectors():
 
     assert "TrailARN" in resp
     assert "InsightSelectors" not in resp
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "selectors",
+    [
+        pytest.param(
+            {
+                "EventSelectors": [
+                    {"ReadWriteType": "All", "IncludeManagementEvents": True}
+                ]
+            },
+            id="event_selectors",
+        ),
+        pytest.param(
+            {
+                "AdvancedEventSelectors": [
+                    {
+                        "Name": "aes1",
+                        "FieldSelectors": [{"Field": "f", "Equals": ["fs1"]}],
+                    }
+                ]
+            },
+            id="advanced_event_selectors",
+        ),
+    ],
+)
+def test_describe_trails_has_custom_event_selectors(selectors):
+    client = boto3.client("cloudtrail", region_name="eu-west-1")
+    _, _, trail_name = create_trail_simple(region_name="eu-west-1")
+
+    trail = client.describe_trails(trailNameList=[trail_name])["trailList"][0]
+    assert trail["HasCustomEventSelectors"] is False
+
+    client.put_event_selectors(TrailName=trail_name, **selectors)
+
+    trail = client.describe_trails(trailNameList=[trail_name])["trailList"][0]
+    assert trail["HasCustomEventSelectors"] is True
+
+
+@mock_aws
+def test_describe_trails_has_insight_selectors():
+    client = boto3.client("cloudtrail", region_name="eu-west-1")
+    _, _, trail_name = create_trail_simple(region_name="eu-west-1")
+
+    trail = client.describe_trails(trailNameList=[trail_name])["trailList"][0]
+    assert trail["HasInsightSelectors"] is False
+
+    client.put_insight_selectors(
+        TrailName=trail_name, InsightSelectors=[{"InsightType": "ApiCallRateInsight"}]
+    )
+
+    trail = client.describe_trails(trailNameList=[trail_name])["trailList"][0]
+    assert trail["HasInsightSelectors"] is True
