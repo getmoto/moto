@@ -3580,6 +3580,30 @@ def test_openid_configuration():
 
 
 @mock_aws
+@mock.patch.dict(
+    os.environ, {"MOTO_COGNITO_IDP_ISSUER_BASE_URL": "http://localhost:5000/"}
+)
+def test_issuer_base_url():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot set environment variables in ServerMode")
+    conn = boto3.client("cognito-idp", "us-west-2")
+    outputs = authentication_flow(conn, "ADMIN_USER_PASSWORD_AUTH")
+    pool_id = outputs["user_pool_id"]
+    issuer = f"http://localhost:5000/{pool_id}"
+
+    # The tokens and the OpenID configuration use the configured issuer, so that an
+    # OpenID client can fetch the document from the issuer and validate the tokens with it
+    public_key = load_resource("cognitoidp/resources/jwks-public.json")
+    json_web_key = jwk.RSAKey.import_key(public_key["keys"][0])
+    for token in (outputs["id_token"], outputs["access_token"]):
+        assert jwt.decode(token, json_web_key, ["RS256"]).claims["iss"] == issuer
+
+    aws_url = f"https://cognito-idp.us-west-2.amazonaws.com/{pool_id}"
+    config = requests.get(f"{aws_url}/.well-known/openid-configuration").json()
+    assert config["issuer"] == issuer
+
+
+@mock_aws
 def test_change_password():
     conn = boto3.client("cognito-idp", "us-west-2")
 

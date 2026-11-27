@@ -200,6 +200,10 @@ def get_cognito_idp_user_pool_client_id_strategy() -> str | None:
     return os.environ.get("MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY")
 
 
+def get_cognito_idp_issuer_base_url() -> str | None:
+    return os.environ.get("MOTO_COGNITO_IDP_ISSUER_BASE_URL")
+
+
 def get_cognito_idp_user_pool_enable_totp() -> bool:
     return (
         os.environ.get("MOTO_COGNITO_IDP_USER_POOL_ENABLE_TOTP", "false").lower()
