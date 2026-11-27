@@ -34,7 +34,7 @@ def test_describe_voices():
     try:
         client.describe_voices(LanguageCode="SOME_LANGUAGE")
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "400"
+        assert err.response["Error"]["Code"] == "ValidationException"
     else:
         raise RuntimeError("Should have raised an exception")
 
