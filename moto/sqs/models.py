@@ -257,6 +257,9 @@ class Queue(CloudFormationModel):
         self._pending_messages: set[Message] = set()
         self.deleted_messages: set[str] = set()
         self._messages_lock = Condition()
+        # Kept apart from the messages: SQS remembers a deduplication ID for the whole interval,
+        # even after the message that carried it is deleted
+        self._deduplication_ids: dict[tuple[str | None, str | None], int] = {}
         self.last_purged_at: float | None = None
 
         now = unix_time()
@@ -553,24 +556,50 @@ class Queue(CloudFormationModel):
             if message.visible and not message.delayed
         ]
 
-    def add_message(self, message: Message) -> None:
-        if self.fifo_queue:
-            # the cases in which we dedupe fifo messages
-            # from https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html
-            # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
-            if (
-                self.attributes.get("ContentBasedDeduplication") == "true"
-                or message.deduplication_id
-            ):
-                for m in self._messages:
-                    if m.deduplication_id == message.deduplication_id:
-                        diff = message.sent_timestamp - m.sent_timestamp  # type: ignore
-                        # if a duplicate message is received within the deduplication time then it should
-                        # not be added to the queue
-                        if diff / 1000 < DEDUPLICATION_TIME_IN_SECONDS:
-                            return
+    def _is_duplicate(self, message: Message) -> bool:
+        """
+        Whether the deduplication ID of this message was already sent within the deduplication interval.
+        Records the ID if it wasn't. Must be called while holding the messages lock.
+        """
+        if self.attributes.get("DeduplicationScope") == "messageGroup":
+            key = (message.group_id, message.deduplication_id)
+        else:
+            key = (None, message.deduplication_id)
+        sent_timestamp: int = message.sent_timestamp  # type: ignore
 
+        # Entries are kept in the order they were recorded, so the expired ones are at the front
+        while self._deduplication_ids:
+            oldest_key, oldest_timestamp = next(iter(self._deduplication_ids.items()))
+            if (
+                sent_timestamp - oldest_timestamp
+            ) / 1000 < DEDUPLICATION_TIME_IN_SECONDS:
+                break
+            del self._deduplication_ids[oldest_key]
+
+        recorded_timestamp = self._deduplication_ids.get(key)
+        if (
+            recorded_timestamp is not None
+            and (sent_timestamp - recorded_timestamp) / 1000
+            < DEDUPLICATION_TIME_IN_SECONDS
+        ):
+            return True
+        # Re-inserting moves the entry to the end, keeping the dict in recording order
+        self._deduplication_ids.pop(key, None)
+        self._deduplication_ids[key] = sent_timestamp
+        return False
+
+    def add_message(self, message: Message) -> None:
         with self._messages_lock:
+            if self.fifo_queue:
+                # the cases in which we dedupe fifo messages
+                # from https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html
+                # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
+                if (
+                    self.attributes.get("ContentBasedDeduplication") == "true"
+                    or message.deduplication_id
+                ) and self._is_duplicate(message):
+                    return
+
             self._messages.append(message)
             self._messages_lock.notify_all()
 
