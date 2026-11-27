@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/CommonErrors.html
 # TODO: Augment the service definitions with shape models for these errors.
 COMMON_ERROR_CODES = [
+    "AccessDeniedException",
     "InvalidParameterCombination",
     "InvalidParameterException",
     "InvalidParameterValue",

@@ -26,7 +26,7 @@ def validate_policy(key: Key, action: str) -> None:
         statement_applies = check_statement(statement, key.arn, action)
         if statement_applies and statement.get("Effect", "").lower() == "deny":
             raise AccessDeniedException(
-                message=f"Action {action} is now allowed by the given key policy"
+                f"Action {action} is now allowed by the given key policy"
             )
 
 

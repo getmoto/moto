@@ -1,74 +1,48 @@
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class NotFoundException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("NotFoundException", message)
+class KMSException(ServiceException):
+    pass
 
 
-class ValidationException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("ValidationException", message)
+class NotFoundException(KMSException):
+    code = "NotFoundException"
 
 
-class AlreadyExistsException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("AlreadyExistsException", message)
+class ValidationException(KMSException):
+    code = "ValidationException"
 
 
-class NotAuthorizedException(JsonRESTError):
-    code = 400
-
-    def __init__(self) -> None:
-        super().__init__("NotAuthorizedException", "")
-
-        self.description = '{"__type":"NotAuthorizedException"}'
+class AlreadyExistsException(KMSException):
+    code = "AlreadyExistsException"
 
 
-class AccessDeniedException(JsonRESTError):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("AccessDeniedException", message)
-
-        self.description = '{"__type":"AccessDeniedException"}'
+class InvalidAliasNameException(KMSException):
+    code = "InvalidAliasNameException"
+    message = "The specified alias name is not valid."
 
 
-class InvalidCiphertextException(JsonRESTError):
-    code = 400
-
-    def __init__(self) -> None:
-        super().__init__("InvalidCiphertextException", "")
-
-        self.description = '{"__type":"InvalidCiphertextException"}'
+class AccessDeniedException(KMSException):
+    code = "AccessDeniedException"
 
 
-class InvalidKeyUsageException(JsonRESTError):
-    code = 400
-
-    def __init__(self) -> None:
-        super().__init__("InvalidKeyUsageException", "")
-
-        self.description = '{"__type":"InvalidKeyUsageException"}'
+class InvalidCiphertextException(KMSException):
+    code = "InvalidCiphertextException"
+    message = ""
 
 
-class KMSInvalidMacException(JsonRESTError):
-    code = 400
-
-    def __init__(self) -> None:
-        super().__init__("KMSInvalidMacException", "")
-
-        self.description = '{"__type":"KMSInvalidMacException"}'
+class InvalidKeyUsageException(KMSException):
+    code = "InvalidKeyUsageException"
+    message = ""
 
 
-class DisabledException(JsonRESTError):
-    code = 400
+class KMSInvalidMacException(KMSException):
+    code = "KMSInvalidMacException"
+    message = ""
+
+
+class DisabledException(KMSException):
+    code = "DisabledException"
 
     def __init__(self, key_arn: str):
-        super().__init__("DisabledException", f"{key_arn} is disabled.")
+        super().__init__(f"{key_arn} is disabled.")

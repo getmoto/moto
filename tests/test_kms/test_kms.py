@@ -1192,8 +1192,8 @@ def test__create_alias__raises_if_reserved_alias(reserved_alias):
     with pytest.raises(ClientError) as ex:
         client.create_alias(AliasName=reserved_alias, TargetKeyId=key_id)
     err = ex.value.response["Error"]
-    assert err["Code"] == "NotAuthorizedException"
-    assert err["Message"] == ""
+    assert err["Code"] == "InvalidAliasNameException"
+    assert err["Message"] == "The specified alias name is not valid."
 
 
 @pytest.mark.parametrize(

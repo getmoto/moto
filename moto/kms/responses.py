@@ -8,7 +8,7 @@ from moto.utilities.utils import get_partition
 
 from .exceptions import (
     AlreadyExistsException,
-    NotAuthorizedException,
+    InvalidAliasNameException,
     NotFoundException,
     ValidationException,
 )
@@ -209,7 +209,7 @@ class KmsResponse(BaseResponse):
             raise ValidationException("Invalid identifier")
 
         if alias_name in RESERVED_ALIASES:
-            raise NotAuthorizedException()
+            raise InvalidAliasNameException()
 
         if ":" in alias_name:
             raise ValidationException(
