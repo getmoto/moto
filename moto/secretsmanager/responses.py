@@ -2,6 +2,7 @@ import json
 from typing import Any
 
 from moto.core.responses import BaseResponse
+from moto.events.notifications import send_notification
 from moto.secretsmanager.exceptions import (
     InvalidParameterException,
     InvalidRequestException,
@@ -158,13 +159,43 @@ class SecretsManagerResponse(BaseResponse):
         if not isinstance(version_stages, list):
             version_stages = [version_stages]
 
-        return self.backend.put_secret_value(
+        request_parameters: dict[str, Any] = {"secretId": secret_id}
+        if client_request_token is not None:
+            request_parameters["clientRequestToken"] = client_request_token
+        if self._get_param("VersionStages") is not None:
+            request_parameters["versionStages"] = version_stages.copy()
+
+        response = self.backend.put_secret_value(
             secret_id=secret_id,
             secret_binary=secret_binary,
             secret_string=secret_string,
             version_stages=version_stages,
             client_request_token=client_request_token,
         )
+        result = json.loads(response)
+        send_notification(
+            source="aws.secretsmanager",
+            event_name="PutSecretValue",
+            region=self.region,
+            resources=[],
+            detail={
+                "eventName": "PutSecretValue",
+                "eventSource": "secretsmanager.amazonaws.com",
+                "awsRegion": self.region,
+                "eventType": "AwsApiCall",
+                "recipientAccountId": self.current_account,
+                "requestParameters": request_parameters,
+                "responseElements": {
+                    "arn": result["ARN"],
+                    "name": result["Name"],
+                    "versionId": result["VersionId"],
+                    "versionStages": result["VersionStages"],
+                },
+                "readOnly": False,
+                "managementEvent": True,
+            },
+        )
+        return response
 
     def list_secret_version_ids(self) -> str:
         secret_id = self._get_param("SecretId", if_none="")
