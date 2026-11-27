@@ -1,4 +1,6 @@
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -123,7 +125,8 @@ def test_describe_thing():
     assert thing["thingName"] == name
     assert "defaultClientId" in thing
     assert thing["attributes"] == {"k1": "v1"}
-    assert thing["version"] == 1
+    # Every successful UpdateThing bumps the registry version
+    assert thing["version"] == 2
 
 
 @mock_aws
@@ -138,6 +141,53 @@ def test_delete_thing():
 
     res = client.list_things()
     assert len(res["things"]) == 0
+
+
+@mock_aws
+def test_update_thing_with_expected_version():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    name = "my-thing"
+    client.create_thing(thingName=name)
+    assert client.describe_thing(thingName=name)["version"] == 1
+
+    client.update_thing(
+        thingName=name, attributePayload={"attributes": {"k1": "v1"}}, expectedVersion=1
+    )
+    assert client.describe_thing(thingName=name)["version"] == 2
+
+    # A stale version is rejected, and the thing is left untouched
+    with pytest.raises(ClientError) as exc:
+        client.update_thing(
+            thingName=name,
+            attributePayload={"attributes": {"k1": "v2"}},
+            expectedVersion=1,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "VersionConflictException"
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
+    thing = client.describe_thing(thingName=name)
+    assert thing["attributes"] == {"k1": "v1"}
+    assert thing["version"] == 2
+
+    # Without expectedVersion the update always goes through
+    client.update_thing(thingName=name, attributePayload={"attributes": {"k1": "v3"}})
+    assert client.describe_thing(thingName=name)["version"] == 3
+
+
+@mock_aws
+def test_delete_thing_with_expected_version():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    name = "my-thing"
+    client.create_thing(thingName=name)
+    client.update_thing(thingName=name, attributePayload={"attributes": {"k1": "v1"}})
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_thing(thingName=name, expectedVersion=1)
+    assert exc.value.response["Error"]["Code"] == "VersionConflictException"
+    assert len(client.list_things()["things"]) == 1
+
+    client.delete_thing(thingName=name, expectedVersion=2)
+    assert client.list_things()["things"] == []
 
 
 @mock_aws

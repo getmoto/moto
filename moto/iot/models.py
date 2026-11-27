@@ -65,7 +65,6 @@ class FakeThing(CloudFormationModel):
         self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:thing/{thing_name}"
         self.version = 1
         self.billing_group_name = billing_group_name
-        # TODO: we need to handle "version"?
 
         # for iot-data
         self.thing_shadows: dict[str | None, FakeShadow] = {}
@@ -1701,13 +1700,13 @@ class IoTBackend(BaseBackend):
         self.endpoint = FakeEndpoint(endpoint_type, self.region_name)
         return self.endpoint
 
-    def delete_thing(self, thing_name: str) -> None:
-        """
-        The ExpectedVersion-parameter is not yet implemented
-        """
-
+    def delete_thing(
+        self, thing_name: str, expected_version: int | None = None
+    ) -> None:
         # can raise ResourceNotFoundError
         thing = self.describe_thing(thing_name)
+        if expected_version is not None and expected_version != thing.version:
+            raise VersionConflictException(thing_name)
 
         for k in list(self.principal_things.keys()):
             if k[1] == thing_name:
@@ -1745,12 +1744,12 @@ class IoTBackend(BaseBackend):
         thing_type_name: str,
         attribute_payload: dict[str, Any] | None,
         remove_thing_type: bool,
+        expected_version: int | None = None,
     ) -> None:
-        """
-        The ExpectedVersion-parameter is not yet implemented
-        """
         # if attributes payload = {}, nothing
         thing = self.describe_thing(thing_name)
+        if expected_version is not None and expected_version != thing.version:
+            raise VersionConflictException(thing_name)
 
         if remove_thing_type and thing_type_name:
             raise InvalidRequestException()
@@ -1784,6 +1783,8 @@ class IoTBackend(BaseBackend):
             else:
                 thing.attributes.update(attributes)
             thing.attributes = {k: v for k, v in thing.attributes.items() if v}
+
+        thing.version += 1
 
     def create_keys_and_certificate(
         self, set_as_active: bool
@@ -2277,10 +2278,9 @@ class IoTBackend(BaseBackend):
             self.thing_groups[thing_group.arn] = thing_group
         return thing_group.thing_group_name, thing_group.arn, thing_group.thing_group_id
 
-    def delete_thing_group(self, thing_group_name: str) -> None:
-        """
-        The ExpectedVersion-parameter is not yet implemented
-        """
+    def delete_thing_group(
+        self, thing_group_name: str, expected_version: int | None = None
+    ) -> None:
         child_groups = [
             thing_group
             for _, thing_group in self.thing_groups.items()
@@ -2294,10 +2294,12 @@ class IoTBackend(BaseBackend):
             )
         try:
             thing_group = self.describe_thing_group(thing_group_name)
-            del self.thing_groups[thing_group.arn]
         except ResourceNotFoundException:
             # AWS returns success even if the thing group does not exist.
-            pass
+            return
+        if expected_version is not None and expected_version != thing_group.version:
+            raise VersionConflictException(thing_group_name)
+        del self.thing_groups[thing_group.arn]
 
     def list_thing_groups(
         self,
