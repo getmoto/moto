@@ -211,7 +211,7 @@ class PreparedStatement(BaseModel):
     def __init__(
         self,
         statement_name: str,
-        workgroup: WorkGroup,
+        workgroup: str,
         query_statement: str,
         description: str,
     ):
@@ -249,7 +249,7 @@ class AthenaBackend(BaseBackend, TaggableResourcesMixin):
         self.data_catalogs: dict[str, DataCatalog] = {}
         self.query_results: dict[str, QueryResults] = {}
         self.query_results_queue: list[QueryResults] = []
-        self.prepared_statements: dict[str, PreparedStatement] = {}
+        self.prepared_statements: dict[tuple[str, str], PreparedStatement] = {}
         self.tagger = TaggingService()
         # databases keyed by (catalog_name, database_name)
         self.databases: dict[tuple[str, str], Database] = {}
@@ -592,7 +592,7 @@ class AthenaBackend(BaseBackend, TaggableResourcesMixin):
     def create_prepared_statement(
         self,
         statement_name: str,
-        workgroup: WorkGroup,
+        workgroup: str,
         query_statement: str,
         description: str,
     ) -> None:
@@ -602,17 +602,13 @@ class AthenaBackend(BaseBackend, TaggableResourcesMixin):
             query_statement=query_statement,
             description=description,
         )
-        self.prepared_statements[ps.statement_name] = ps
+        self.prepared_statements[(workgroup, statement_name)] = ps
         return None
 
     def get_prepared_statement(
-        self, statement_name: str, work_group: WorkGroup
+        self, statement_name: str, work_group: str
     ) -> PreparedStatement | None:
-        if statement_name in self.prepared_statements:
-            ps = self.prepared_statements[statement_name]
-            if ps.workgroup == work_group:
-                return ps
-        return None
+        return self.prepared_statements.get((work_group, statement_name))
 
     def get_query_runtime_statistics(self, query_execution_id: str) -> Execution | None:
         if query_execution_id in self.executions:
