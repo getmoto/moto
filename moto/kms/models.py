@@ -838,7 +838,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         mac_algorithm: str,
         grant_tokens: list[str],
         dry_run: bool,
-    ) -> tuple[str, str, str]:
+    ) -> tuple[bytes, str, str]:
         key_id = self.any_id_to_key_id(key_id)
         key = self.keys[key_id]
 
@@ -859,7 +859,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         message: bytes,
         key_id: str,
         mac_algorithm: str,
-        mac: str,
+        mac: bytes,
         grant_tokens: list[str],
         dry_run: bool,
     ) -> None:

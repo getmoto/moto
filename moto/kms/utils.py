@@ -1,4 +1,3 @@
-import base64
 import hashlib
 import hmac
 import io
@@ -446,9 +445,9 @@ def generate_hmac(
     key: bytes,
     message: bytes,
     mac_algorithm: str,
-) -> str:
+) -> bytes:
     """
-    Returns a base64 encoded HMAC
+    Returns the raw HMAC digest
     """
 
     algos = {
@@ -464,4 +463,4 @@ def generate_hmac(
         digestmod=algos[mac_algorithm],
     )
 
-    return base64.b64encode(hmac_val.digest()).decode("utf-8")
+    return hmac_val.digest()
