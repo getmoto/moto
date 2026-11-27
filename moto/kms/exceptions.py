@@ -65,3 +65,10 @@ class KMSInvalidMacException(JsonRESTError):
         super().__init__("KMSInvalidMacException", "")
 
         self.description = '{"__type":"KMSInvalidMacException"}'
+
+
+class DisabledException(JsonRESTError):
+    code = 400
+
+    def __init__(self, key_arn: str):
+        super().__init__("DisabledException", f"{key_arn} is disabled.")

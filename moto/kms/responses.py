@@ -496,9 +496,9 @@ class KmsResponse(BaseResponse):
 
         self._validate_cmk_id(key_id)
 
-        self.kms_backend.cancel_key_deletion(key_id)
+        key = self.kms_backend.cancel_key_deletion(key_id)
 
-        return ActionResult({"KeyId": key_id})
+        return ActionResult({"KeyId": key.arn})
 
     def schedule_key_deletion(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ScheduleKeyDeletion.html"""
@@ -510,14 +510,8 @@ class KmsResponse(BaseResponse):
 
         self._validate_cmk_id(key_id)
 
-        return ActionResult(
-            {
-                "KeyId": key_id,
-                "DeletionDate": self.kms_backend.schedule_key_deletion(
-                    key_id, pending_window_in_days
-                ),
-            }
-        )
+        key = self.kms_backend.schedule_key_deletion(key_id, pending_window_in_days)
+        return ActionResult({"KeyId": key.arn, "DeletionDate": key.deletion_date})
 
     def generate_data_key(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateDataKey.html"""

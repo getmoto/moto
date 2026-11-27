@@ -17,6 +17,7 @@ from moto.utilities.utils import get_partition
 
 from .exceptions import (
     AccessDeniedException,
+    DisabledException,
     InvalidKeyUsageException,
     KMSInvalidMacException,
     ValidationException,
@@ -429,7 +430,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         # Using copy() instead of deepcopy(), as the latter results in exception:
         #    TypeError: cannot pickle '_cffi_backend.FFI' object
         # Since we only update top level properties, copy() should suffice.
-        replica_key = copy(self.keys[key_id])
+        replica_key = copy(self._get_enabled_key(key_id))
         replica_key.region = replica_region
         replica_key.arn = replica_key.arn.replace(self.region_name, replica_region)
 
@@ -469,6 +470,13 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
             if key.arn != key.multi_region_configuration["PrimaryKey"]["Arn"]:
                 key.multi_region_configuration["MultiRegionKeyType"] = "REPLICA"
 
+        return key
+
+    def _get_enabled_key(self, key_id: str) -> Key:
+        """Return the key for any valid key ID, if it can be used for an operation."""
+        key = self.describe_key(key_id)
+        if key.key_state == "Disabled":
+            raise DisabledException(key.arn)
         return key
 
     def list_keys(self) -> Iterable[Key]:
@@ -555,10 +563,10 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         return None
 
     def enable_key_rotation(self, key_id: str) -> None:
-        self.keys[self.get_key_id(key_id)].key_rotation_status = True
+        self._get_enabled_key(key_id).key_rotation_status = True
 
     def disable_key_rotation(self, key_id: str) -> None:
-        self.keys[self.get_key_id(key_id)].key_rotation_status = False
+        self._get_enabled_key(key_id).key_rotation_status = False
 
     def get_key_rotation_status(self, key_id: str) -> bool:
         return self.keys[self.get_key_id(key_id)].key_rotation_status
@@ -575,31 +583,33 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         pass
 
     def disable_key(self, key_id: str) -> None:
-        self.keys[key_id].enabled = False
-        self.keys[key_id].key_state = "Disabled"
+        key = self.describe_key(key_id)
+        key.enabled = False
+        key.key_state = "Disabled"
 
     def enable_key(self, key_id: str) -> None:
-        self.keys[key_id].enabled = True
-        self.keys[key_id].key_state = "Enabled"
+        key = self.describe_key(key_id)
+        key.enabled = True
+        key.key_state = "Enabled"
 
-    def cancel_key_deletion(self, key_id: str) -> None:
-        self.keys[key_id].key_state = "Disabled"
-        self.keys[key_id].deletion_date = None
+    def cancel_key_deletion(self, key_id: str) -> Key:
+        key = self.describe_key(key_id)
+        key.key_state = "Disabled"
+        key.deletion_date = None
+        return key
 
-    def schedule_key_deletion(  # type: ignore[return]
-        self, key_id: str, pending_window_in_days: int
-    ) -> datetime:
+    def schedule_key_deletion(self, key_id: str, pending_window_in_days: int) -> Key:
+        key = self.describe_key(key_id)
         if 7 <= pending_window_in_days <= 30:
-            self.keys[key_id].enabled = False
-            self.keys[key_id].key_state = "PendingDeletion"
-            deletion_date = utcnow() + timedelta(days=pending_window_in_days)
-            self.keys[key_id].deletion_date = deletion_date
-            return deletion_date
+            key.enabled = False
+            key.key_state = "PendingDeletion"
+            key.deletion_date = utcnow() + timedelta(days=pending_window_in_days)
+        return key
 
     def encrypt(
         self, key_id: str, plaintext: bytes, encryption_context: dict[str, str]
     ) -> tuple[bytes, str]:
-        key_id = self.any_id_to_key_id(key_id)
+        key_id = self._get_enabled_key(key_id).id
 
         ciphertext_blob = encrypt(
             master_keys=self.keys,
@@ -628,7 +638,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
                     "The ciphertext refers to a customer master key that does not exist, "
                     "does not exist in this region, or you are not allowed to access."
                 )
-        arn = self.keys[actual_key_id].arn
+        arn = self._get_enabled_key(actual_key_id).arn
         return plaintext, arn
 
     def re_encrypt(
@@ -705,7 +715,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         constraints: dict[str, Any],
         retiring_principal: str,
     ) -> tuple[str, str]:
-        key = self.describe_key(key_id)
+        key = self._get_enabled_key(key_id)
         grant = key.add_grant(
             name,
             grantee_principal,
@@ -770,7 +780,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
 
         - grant_tokens are not implemented
         """
-        key = self.describe_key(key_id)
+        key = self._get_enabled_key(key_id)
 
         self.__ensure_valid_sign_and_verify_key(key)
         self.__ensure_valid_signing_algorithm(key, signing_algorithm)
@@ -788,7 +798,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         - grant_tokens are not implemented
         - The MessageType-parameter DIGEST is not yet implemented
         """
-        key = self.describe_key(key_id)
+        key = self._get_enabled_key(key_id)
 
         self.__ensure_valid_sign_and_verify_key(key)
         self.__ensure_valid_signing_algorithm(key, signing_algorithm)
@@ -807,11 +817,11 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         )
 
     def get_public_key(self, key_id: str) -> tuple[Key, bytes]:
-        key = self.describe_key(key_id)
+        key = self._get_enabled_key(key_id)
         return key, key.private_key.public_key()
 
     def rotate_key_on_demand(self, key_id: str) -> str:
-        key: Key = self.keys[self.get_key_id(key_id)]
+        key = self._get_enabled_key(key_id)
 
         rotation: dict[str, str | datetime] = {
             "KeyId": key_id,
@@ -840,8 +850,8 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         grant_tokens: list[str],
         dry_run: bool,
     ) -> tuple[bytes, str, str]:
-        key_id = self.any_id_to_key_id(key_id)
-        key = self.keys[key_id]
+        key = self._get_enabled_key(key_id)
+        key_id = key.id
 
         if (
             key.key_usage != "GENERATE_VERIFY_MAC"
