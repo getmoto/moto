@@ -81,10 +81,6 @@ route53
 - [ ] list_health_checks_by_source
 - [ ] list_hosted_zone_change_batches
 - [X] list_hosted_zones
-  
-The parameters DelegationSetId and HostedZoneType are not yet implemented
-
-
 - [X] list_hosted_zones_by_name
 - [X] list_hosted_zones_by_vpc
   
