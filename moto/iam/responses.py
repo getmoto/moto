@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import (
+    ActionResult,
+    BaseResponse,
+    EmptyResult,
+    PaginatedResult,
+)
 from moto.core.serialize import never_return, return_if_not_empty, url_encode
 
 from .exceptions import NotFoundException
@@ -116,67 +121,51 @@ class IamResponse(BaseResponse):
         return ActionResult(result)
 
     def list_attached_role_policies(self) -> ActionResult:
-        marker = self._get_param("Marker")
-        max_items = self._get_int_param("MaxItems", 100)
         path_prefix = self._get_param("PathPrefix", "/")
         role_name = self._get_param("RoleName")
-        policies, marker = self.backend.list_attached_role_policies(
-            role_name, marker=marker, max_items=max_items, path_prefix=path_prefix
+        policies = self.backend.list_attached_role_policies(
+            role_name, path_prefix=path_prefix
         )
         result = {
             "AttachedPolicies": [
                 {"PolicyName": p.name, "PolicyArn": p.arn} for p in policies
-            ],
-            "Marker": marker,
-            "IsTruncated": bool(marker),
+            ]
         }
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def list_attached_group_policies(self) -> ActionResult:
-        marker = self._get_param("Marker")
-        max_items = self._get_int_param("MaxItems", 100)
         path_prefix = self._get_param("PathPrefix", "/")
         group_name = self._get_param("GroupName")
-        policies, marker = self.backend.list_attached_group_policies(
-            group_name, marker=marker, max_items=max_items, path_prefix=path_prefix
+        policies = self.backend.list_attached_group_policies(
+            group_name, path_prefix=path_prefix
         )
         result = {
             "AttachedPolicies": [
                 {"PolicyName": p.name, "PolicyArn": p.arn} for p in policies
-            ],
-            "Marker": marker,
-            "IsTruncated": bool(marker),
+            ]
         }
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def list_attached_user_policies(self) -> ActionResult:
-        marker = self._get_param("Marker")
-        max_items = self._get_int_param("MaxItems", 100)
         path_prefix = self._get_param("PathPrefix", "/")
         user_name = self._get_param("UserName")
-        policies, marker = self.backend.list_attached_user_policies(
-            user_name, marker=marker, max_items=max_items, path_prefix=path_prefix
+        policies = self.backend.list_attached_user_policies(
+            user_name, path_prefix=path_prefix
         )
         result = {
             "AttachedPolicies": [
                 {"PolicyName": p.name, "PolicyArn": p.arn} for p in policies
-            ],
-            "Marker": marker,
-            "IsTruncated": bool(marker),
+            ]
         }
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def list_policies(self) -> ActionResult:
-        marker = self._get_param("Marker")
-        max_items = self._get_int_param("MaxItems", 100)
         only_attached = self._get_bool_param("OnlyAttached", False)
         path_prefix = self._get_param("PathPrefix", "/")
         scope = self._get_param("Scope", "All")
-        policies, marker = self.backend.list_policies(
-            marker, max_items, only_attached, path_prefix, scope
-        )
-        result = {"Policies": policies, "Marker": marker, "IsTruncated": bool(marker)}
-        return ActionResult(result)
+        policies = self.backend.list_policies(only_attached, path_prefix, scope)
+        result = {"Policies": policies}
+        return PaginatedResult(result)
 
     def list_entities_for_policy(self) -> ActionResult:
         policy_arn = self._get_param("PolicyArn")
@@ -185,15 +174,13 @@ class IamResponse(BaseResponse):
         entity = self._get_param("EntityFilter")
         path_prefix = self._get_param("PathPrefix")
         # policy_usage_filter = self._get_param('PolicyUsageFilter')
-        marker = self._get_param("Marker")
-        max_items = self._get_param("MaxItems")
 
         entity_roles = []
         entity_groups = []
         entity_users = []
 
         if not entity or entity == "User":
-            users = self.backend.list_users(path_prefix, marker, max_items)
+            users = self.backend.list_users(path_prefix)
             if users:
                 for user in users:
                     for p in user.managed_policies:
@@ -201,7 +188,7 @@ class IamResponse(BaseResponse):
                             entity_users.append(user)
 
         if not entity or entity == "Role":
-            roles, _ = self.backend.list_roles(path_prefix, marker, max_items)
+            roles = self.backend.list_roles(path_prefix)
             if roles:
                 for role in roles:
                     for p in role.managed_policies:
@@ -217,14 +204,14 @@ class IamResponse(BaseResponse):
                             entity_groups.append(group)
 
         if entity == "LocalManagedPolicy" or entity == "AWSManagedPolicy":
-            users = self.backend.list_users(path_prefix, marker, max_items)
+            users = self.backend.list_users(path_prefix)
             if users:
                 for user in users:
                     for p in user.managed_policies:
                         if p == policy_arn:
                             entity_users.append(user)
 
-            roles, _ = self.backend.list_roles(path_prefix, marker, max_items)
+            roles = self.backend.list_roles(path_prefix)
             if roles:
                 for role in roles:
                     for p in role.managed_policies:
@@ -287,8 +274,8 @@ class IamResponse(BaseResponse):
     def list_role_policies(self) -> ActionResult:
         role_name = self._get_param("RoleName")
         role_policies_names = self.backend.list_role_policies(role_name)
-        result = {"PolicyNames": role_policies_names, "IsTruncated": False}
-        return ActionResult(result)
+        result = {"PolicyNames": role_policies_names}
+        return PaginatedResult(result)
 
     def put_role_policy(self) -> ActionResult:
         role_name = self._get_param("RoleName")
@@ -368,16 +355,13 @@ class IamResponse(BaseResponse):
         policy_arn = self._get_param("PolicyArn")
         policy_versions = self.backend.list_policy_versions(policy_arn)
         result = {"Versions": policy_versions}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def list_policy_tags(self) -> ActionResult:
         policy_arn = self._get_param("PolicyArn")
-        marker = self._get_param("Marker")
-        max_items = self._get_param("MaxItems", 100)
-
-        tags, marker = self.backend.list_policy_tags(policy_arn, marker, max_items)
-        result = {"Tags": tags, "Marker": marker, "IsTruncated": bool(marker)}
-        return ActionResult(result)
+        tags = self.backend.list_policy_tags(policy_arn)
+        result = {"Tags": tags}
+        return PaginatedResult(result)
 
     def tag_policy(self) -> ActionResult:
         policy_arn = self._get_param("PolicyArn")
@@ -442,23 +426,20 @@ class IamResponse(BaseResponse):
 
     def list_roles(self) -> ActionResult:
         path_prefix = self._get_param("PathPrefix", "/")
-        marker = self._get_param("Marker", "0")
-        max_items = self._get_param("MaxItems", 100)
-
-        roles, marker = self.backend.list_roles(path_prefix, marker, max_items)
-        result = {"Roles": roles, "IsTruncated": bool(marker), "Marker": marker}
-        return ActionResult(result)
+        roles = self.backend.list_roles(path_prefix)
+        result = {"Roles": roles}
+        return PaginatedResult(result)
 
     def list_instance_profiles(self) -> ActionResult:
         profiles = self.backend.get_instance_profiles()
         result = {"InstanceProfiles": profiles}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def list_instance_profiles_for_role(self) -> ActionResult:
         role_name = self._get_param("RoleName")
         profiles = self.backend.get_instance_profiles_for_role(role_name=role_name)
         result = {"InstanceProfiles": profiles}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def upload_server_certificate(self) -> ActionResult:
         cert_name = self._get_param("ServerCertificateName")
@@ -495,10 +476,9 @@ class IamResponse(BaseResponse):
                     "Expiration": "2012-05-08T01:02:03.004Z",
                 }
                 for cert in certs
-            ],
-            "IsTruncated": False,
+            ]
         }
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def get_server_certificate(self) -> ActionResult:
         cert_name = self._get_param("ServerCertificateName")
@@ -537,19 +517,19 @@ class IamResponse(BaseResponse):
 
         group = self.backend.get_group(group_name)
         result = {"Group": group, "Users": group.users}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def list_groups(self) -> ActionResult:
         groups = self.backend.list_groups()
         result = {"Groups": groups}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def list_groups_for_user(self) -> ActionResult:
         user_name = self._get_param("UserName")
 
         groups = self.backend.get_groups_for_user(user_name)
-        result = {"Groups": groups, "IsTruncated": False}
-        return ActionResult(result)
+        result = {"Groups": groups}
+        return PaginatedResult(result)
 
     def put_group_policy(self) -> ActionResult:
         group_name = self._get_param("GroupName")
@@ -562,7 +542,7 @@ class IamResponse(BaseResponse):
         group_name = self._get_param("GroupName")
         policies = self.backend.list_group_policies(group_name)
         result = {"PolicyNames": policies}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def get_group_policy(self) -> ActionResult:
         group_name = self._get_param("GroupName")
@@ -619,11 +599,9 @@ class IamResponse(BaseResponse):
 
     def list_users(self) -> ActionResult:
         path_prefix = self._get_param("PathPrefix")
-        marker = self._get_param("Marker")
-        max_items = self._get_param("MaxItems")
-        users = self.backend.list_users(path_prefix, marker, max_items)
-        result = {"Users": users, "IsTruncated": False}
-        return ActionResult(result)
+        users = self.backend.list_users(path_prefix)
+        result = {"Users": users}
+        return PaginatedResult(result)
 
     def update_user(self) -> ActionResult:
         user_name = self._get_param("UserName")
@@ -693,14 +671,14 @@ class IamResponse(BaseResponse):
     def list_user_policies(self) -> ActionResult:
         user_name = self._get_param("UserName")
         policies = self.backend.list_user_policies(user_name)
-        result = {"PolicyNames": policies, "IsTruncated": False}
-        return ActionResult(result)
+        result = {"PolicyNames": policies}
+        return PaginatedResult(result)
 
     def list_user_tags(self) -> ActionResult:
         user_name = self._get_param("UserName")
         tags = self.backend.list_user_tags(user_name)
-        result = {"Tags": tags, "IsTruncated": False}
-        return ActionResult(result)
+        result = {"Tags": tags}
+        return PaginatedResult(result)
 
     def put_user_policy(self) -> ActionResult:
         user_name = self._get_param("UserName")
@@ -766,7 +744,7 @@ class IamResponse(BaseResponse):
             user_name = access_key["user_name"]
         keys = self.backend.list_access_keys(user_name)
         result = {"UserName": user_name, "AccessKeyMetadata": keys}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def delete_access_key(self) -> ActionResult:
         user_name = self._get_param("UserName")
@@ -799,7 +777,7 @@ class IamResponse(BaseResponse):
 
         keys = self.backend.get_all_ssh_public_keys(user_name)
         result = {"SSHPublicKeys": keys}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def update_ssh_public_key(self) -> ActionResult:
         user_name = self._get_param("UserName")
@@ -845,10 +823,9 @@ class IamResponse(BaseResponse):
                     "EnableDate": device.enable_date,
                 }
                 for device in devices
-            ],
-            "IsTruncated": False,
+            ]
         }
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def create_virtual_mfa_device(self) -> ActionResult:
         path = self._get_param("Path")
@@ -870,19 +847,9 @@ class IamResponse(BaseResponse):
 
     def list_virtual_mfa_devices(self) -> ActionResult:
         assignment_status = self._get_param("AssignmentStatus", "Any")
-        marker = self._get_param("Marker")
-        max_items = self._get_param("MaxItems", 100)
-
-        devices, marker = self.backend.list_virtual_mfa_devices(
-            assignment_status, marker, max_items
-        )
-
-        result = {
-            "VirtualMFADevices": devices,
-            "IsTruncated": bool(marker),
-            "Marker": marker,
-        }
-        return ActionResult(result)
+        devices = self.backend.list_virtual_mfa_devices(assignment_status)
+        result = {"VirtualMFADevices": devices}
+        return PaginatedResult(result)
 
     def delete_user(self) -> ActionResult:
         user_name = self._get_param("UserName")
@@ -922,7 +889,7 @@ class IamResponse(BaseResponse):
     def list_account_aliases(self) -> ActionResult:
         aliases = self.backend.list_account_aliases()
         result = {"AccountAliases": aliases}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def create_account_alias(self) -> ActionResult:
         alias = self._get_param("AccountAlias")
@@ -1009,21 +976,13 @@ class IamResponse(BaseResponse):
 
         certs = self.backend.list_signing_certificates(user_name)
         result = {"UserName": user_name, "Certificates": certs}
-        return ActionResult(result)
+        return PaginatedResult(result)
 
     def list_role_tags(self) -> ActionResult:
         role_name = self._get_param("RoleName")
-        marker = self._get_param("Marker")
-        max_items = self._get_param("MaxItems", 100)
-
-        tags, marker = self.backend.list_role_tags(role_name, marker, max_items)
-
-        result = {
-            "Tags": tags,
-            "Marker": marker,
-            "IsTruncated": bool(marker),
-        }
-        return ActionResult(result)
+        tags = self.backend.list_role_tags(role_name)
+        result = {"Tags": tags}
+        return PaginatedResult(result)
 
     def tag_role(self) -> ActionResult:
         role_name = self._get_param("RoleName")
@@ -1082,13 +1041,9 @@ class IamResponse(BaseResponse):
 
     def list_open_id_connect_provider_tags(self) -> ActionResult:
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
-        marker = self._get_param("Marker")
-        max_items = self._get_param("MaxItems", 100)
-        tags, marker = self.backend.list_open_id_connect_provider_tags(
-            open_id_provider_arn, marker, max_items
-        )
-        result = {"Tags": tags, "Marker": marker, "IsTruncated": bool(marker)}
-        return ActionResult(result)
+        tags = self.backend.list_open_id_connect_provider_tags(open_id_provider_arn)
+        result = {"Tags": tags}
+        return PaginatedResult(result)
 
     def delete_open_id_connect_provider(self) -> ActionResult:
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")

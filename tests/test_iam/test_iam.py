@@ -1163,7 +1163,7 @@ def test_list_policy_tags_pagination():
     assert tags["IsTruncated"]
     assert tags["Tags"][0]["Key"] == "somekey"
     assert tags["Tags"][0]["Value"] == "somevalue"
-    assert tags["Marker"] == "1"
+    assert tags["Marker"]
 
     tags = conn.list_policy_tags(
         PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
@@ -1836,7 +1836,7 @@ def test_list_virtual_mfa_devices():
 
     assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number_1
     assert response["IsTruncated"] is True
-    assert response["Marker"] == "1"
+    assert response["Marker"]
 
     response = client.list_virtual_mfa_devices(
         AssignmentStatus="Any", Marker=response["Marker"]
@@ -1854,7 +1854,7 @@ def test_list_virtual_mfa_devices_errors():
     with pytest.raises(ClientError) as exc:
         client.list_virtual_mfa_devices(Marker="100")
     err = exc.value.response["Error"]
-    assert err["Message"] == "Invalid Marker."
+    assert err["Code"] == "InvalidToken"
 
 
 @mock_aws
@@ -2046,13 +2046,10 @@ def test_managed_policy():
         Description="my user managed policy",
     )
 
-    marker = "0"
+    paginator = conn.get_paginator("list_policies")
     aws_policies = []
-    while marker is not None:
-        response = conn.list_policies(Scope="AWS", Marker=marker)
-        for policy in response["Policies"]:
-            aws_policies.append(policy)
-        marker = response.get("Marker")
+    for page in paginator.paginate(Scope="AWS"):
+        aws_policies.extend(page["Policies"])
     aws_managed_policies = iam_backends[ACCOUNT_ID]["global"].aws_managed_policies
     assert {p.name for p in aws_managed_policies} == {
         p["PolicyName"] for p in aws_policies
@@ -2061,13 +2058,9 @@ def test_managed_policy():
     user_policies = conn.list_policies(Scope="Local")["Policies"]
     assert {"UserManagedPolicy"} == {p["PolicyName"] for p in user_policies}
 
-    marker = "0"
     all_policies = []
-    while marker is not None:
-        response = conn.list_policies(Marker=marker)
-        for policy in response["Policies"]:
-            all_policies.append(policy)
-        marker = response.get("Marker")
+    for page in paginator.paginate():
+        all_policies.extend(page["Policies"])
     assert {p["PolicyName"] for p in aws_policies + user_policies} == {
         p["PolicyName"] for p in all_policies
     }
@@ -2880,7 +2873,7 @@ def test_tag_role():
     assert tags["IsTruncated"]
     assert tags["Tags"][0]["Key"] == "somekey"
     assert tags["Tags"][0]["Value"] == "somevalue"
-    assert tags["Marker"] == "1"
+    assert tags["Marker"]
 
     tags = conn.list_role_tags(RoleName="my-role", Marker=tags["Marker"])
     assert len(tags["Tags"]) == 1
@@ -4751,10 +4744,6 @@ def test_list_roles_none_found_returns_empty_list():
     assert len(roles) == 0
 
     response = iam.list_roles(PathPrefix="/TestPath")
-    roles = response["Roles"]
-    assert len(roles) == 0
-
-    response = iam.list_roles(Marker="10")
     roles = response["Roles"]
     assert len(roles) == 0
 

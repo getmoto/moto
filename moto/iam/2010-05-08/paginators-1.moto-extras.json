@@ -1,0 +1,73 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "GetGroup": {
+        "unique_attribute": "name"
+      },
+      "ListAccessKeys": {
+        "unique_attribute": "access_key_id"
+      },
+      "ListAttachedGroupPolicies": {
+        "unique_attribute": "PolicyArn"
+      },
+      "ListAttachedRolePolicies": {
+        "unique_attribute": "PolicyArn"
+      },
+      "ListAttachedUserPolicies": {
+        "unique_attribute": "PolicyArn"
+      },
+      "ListGroups": {
+        "unique_attribute": "name"
+      },
+      "ListGroupsForUser": {
+        "unique_attribute": "name"
+      },
+      "ListInstanceProfiles": {
+        "unique_attribute": "name"
+      },
+      "ListInstanceProfilesForRole": {
+        "unique_attribute": "name"
+      },
+      "ListMFADevices": {
+        "unique_attribute": "SerialNumber"
+      },
+      "ListOpenIDConnectProviderTags": {
+        "unique_attribute": "Key"
+      },
+      "ListPolicies": {
+        "unique_attribute": "arn"
+      },
+      "ListPolicyTags": {
+        "unique_attribute": "Key"
+      },
+      "ListPolicyVersions": {
+        "unique_attribute": "version_id"
+      },
+      "ListRoleTags": {
+        "unique_attribute": "Key"
+      },
+      "ListRoles": {
+        "unique_attribute": "name"
+      },
+      "ListServerCertificates": {
+        "unique_attribute": "Arn"
+      },
+      "ListSigningCertificates": {
+        "unique_attribute": "id"
+      },
+      "ListSSHPublicKeys": {
+        "unique_attribute": "ssh_public_key_id"
+      },
+      "ListUserTags": {
+        "unique_attribute": "Key"
+      },
+      "ListUsers": {
+        "unique_attribute": "name"
+      },
+      "ListVirtualMFADevices": {
+        "unique_attribute": "serial_number"
+      }
+    }
+  }
+}

@@ -2054,43 +2054,26 @@ class IAMBackend(BaseBackend):
         return self.managed_policies[policy_arn]
 
     def list_attached_role_policies(
-        self,
-        role_name: str,
-        marker: str | None = None,
-        max_items: int = 100,
-        path_prefix: str = "/",
-    ) -> tuple[Iterable[ManagedPolicy], str | None]:
+        self, role_name: str, path_prefix: str = "/"
+    ) -> list[ManagedPolicy]:
         policies = self.get_role(role_name).managed_policies.values()
-        return self._filter_attached_policies(policies, marker, max_items, path_prefix)
+        return self._filter_attached_policies(policies, path_prefix)
 
     def list_attached_group_policies(
-        self,
-        group_name: str,
-        marker: str | None = None,
-        max_items: int = 100,
-        path_prefix: str = "/",
-    ) -> tuple[Iterable[Any], str | None]:
+        self, group_name: str, path_prefix: str = "/"
+    ) -> list[ManagedPolicy]:
         policies = self.get_group(group_name).managed_policies.values()
-        return self._filter_attached_policies(policies, marker, max_items, path_prefix)
+        return self._filter_attached_policies(policies, path_prefix)
 
     def list_attached_user_policies(
-        self,
-        user_name: str,
-        marker: str | None = None,
-        max_items: int = 100,
-        path_prefix: str = "/",
-    ) -> tuple[Iterable[Any], str | None]:
+        self, user_name: str, path_prefix: str = "/"
+    ) -> list[ManagedPolicy]:
         policies = self.get_user(user_name).managed_policies.values()
-        return self._filter_attached_policies(policies, marker, max_items, path_prefix)
+        return self._filter_attached_policies(policies, path_prefix)
 
     def list_policies(
-        self,
-        marker: str | None,
-        max_items: int,
-        only_attached: bool,
-        path_prefix: str,
-        scope: str,
-    ) -> tuple[Iterable[ManagedPolicy], str | None]:
+        self, only_attached: bool, path_prefix: str, scope: str
+    ) -> list[ManagedPolicy]:
         policies = list(self.managed_policies.values())
 
         if only_attached:
@@ -2101,7 +2084,7 @@ class IAMBackend(BaseBackend):
         elif scope == "Local":
             policies = [p for p in policies if not isinstance(p, AWSManagedPolicy)]
 
-        return self._filter_attached_policies(policies, marker, max_items, path_prefix)
+        return self._filter_attached_policies(policies, path_prefix)
 
     def set_default_policy_version(self, policy_arn: str, version_id: str) -> bool:
         if re.match(r"v[1-9][0-9]*(\.[A-Za-z0-9-]*)?", version_id) is None:
@@ -2121,26 +2104,11 @@ class IAMBackend(BaseBackend):
         )
 
     def _filter_attached_policies(
-        self,
-        policies: Iterable[Any],
-        marker: str | None,
-        max_items: int,
-        path_prefix: str,
-    ) -> tuple[Iterable[Any], str | None]:
+        self, policies: Iterable[ManagedPolicy], path_prefix: str
+    ) -> list[ManagedPolicy]:
         if path_prefix:
             policies = [p for p in policies if p.path.startswith(path_prefix)]
-
-        policies = sorted(policies, key=lambda policy: policy.name)
-        start_idx = int(marker) if marker else 0
-
-        policies = policies[start_idx : start_idx + max_items]
-
-        if len(policies) < max_items:
-            marker = None
-        else:
-            marker = str(start_idx + max_items)
-
-        return policies, marker
+        return sorted(policies, key=lambda policy: policy.name)
 
     def create_role(
         self,
@@ -2301,23 +2269,9 @@ class IAMBackend(BaseBackend):
         if tag_key in all_tags:
             raise DuplicateTags()
 
-    def list_role_tags(
-        self, role_name: str, marker: str | None, max_items: int = 100
-    ) -> tuple[list[dict[str, str]], str | None]:
+    def list_role_tags(self, role_name: str) -> list[dict[str, str]]:
         role = self.get_role(role_name)
-
-        max_items = int(max_items)
-        tag_index = sorted(role.tags, key=lambda t: t["Key"])
-        start_idx = int(marker) if marker else 0
-
-        tag_index = tag_index[start_idx : start_idx + max_items]
-
-        if len(role.tags) <= (start_idx + max_items):
-            marker = None
-        else:
-            marker = str(start_idx + max_items)
-
-        return tag_index, marker
+        return sorted(role.tags, key=lambda t: t["Key"])
 
     def tag_role(self, role_name: str, tags: list[dict[str, str]]) -> None:
         self._tag_verification(tags)
@@ -2338,26 +2292,9 @@ class IAMBackend(BaseBackend):
 
         role.tags = [tag for tag in role.tags if tag["Key"] not in tag_keys]
 
-    def list_policy_tags(
-        self, policy_arn: str, marker: str | None, max_items: int = 100
-    ) -> tuple[list[dict[str, str]], str | None]:
+    def list_policy_tags(self, policy_arn: str) -> list[dict[str, str]]:
         policy = self.get_policy(policy_arn)
-
-        max_items = int(max_items)
-        tag_index = sorted(policy.tags)
-        start_idx = int(marker) if marker else 0
-
-        tag_index = tag_index[start_idx : start_idx + max_items]
-
-        if len(policy.tags) <= (start_idx + max_items):
-            marker = None
-        else:
-            marker = str(start_idx + max_items)
-
-        # Make the tag list of dict's:
-        tags = [policy.tags[tag] for tag in tag_index]
-
-        return tags, marker
+        return [policy.tags[tag] for tag in sorted(policy.tags)]
 
     def tag_policy(self, policy_arn: str, tags: list[dict[str, str]]) -> None:
         clean_tags = self._tag_verification(tags)
@@ -2477,8 +2414,8 @@ class IAMBackend(BaseBackend):
 
         raise NotFoundException(f"Instance profile {profile_arn} not found")
 
-    def get_instance_profiles(self) -> Iterable[InstanceProfile]:
-        return self.instance_profiles.values()
+    def get_instance_profiles(self) -> list[InstanceProfile]:
+        return list(self.instance_profiles.values())
 
     def get_instance_profiles_for_role(self, role_name: str) -> list[InstanceProfile]:
         found_profiles = []
@@ -2507,11 +2444,8 @@ class IAMBackend(BaseBackend):
         role = self.get_role(role_name)
         profile.roles.remove(role)
 
-    def list_server_certificates(self) -> Iterable[Certificate]:
-        """
-        Pagination is not yet implemented
-        """
-        return self.certificates.values()
+    def list_server_certificates(self) -> list[Certificate]:
+        return list(self.certificates.values())
 
     def upload_server_certificate(
         self,
@@ -2572,16 +2506,13 @@ class IAMBackend(BaseBackend):
         return group
 
     def get_group(self, group_name: str) -> Group:
-        """
-        Pagination is not yet implemented
-        """
         try:
             return self.groups[group_name]
         except KeyError:
             raise NotFoundException(f"Group {group_name} not found")
 
-    def list_groups(self) -> Iterable[Group]:
-        return self.groups.values()
+    def list_groups(self) -> list[Group]:
+        return list(self.groups.values())
 
     def get_groups_for_user(self, user_name: str) -> list[Group]:
         user = self.get_user(user_name)
@@ -2602,9 +2533,6 @@ class IAMBackend(BaseBackend):
         group.put_policy(policy_name, policy_json)
 
     def list_group_policies(self, group_name: str) -> list[str]:
-        """
-        Pagination is not yet implemented
-        """
         group = self.get_group(group_name)
         return group.list_policies()
 
@@ -2670,23 +2598,11 @@ class IAMBackend(BaseBackend):
 
         return user
 
-    def list_users(
-        self,
-        path_prefix: str | None,
-        marker: str | None,
-        max_items: int | None,
-    ) -> Iterable[User]:
-        try:
-            users: Iterable[User] = list(self.users.values())
-            if path_prefix:
-                users = filter_items_with_path_prefix(path_prefix, users)
-
-        except KeyError:
-            raise NotFoundException(
-                f"Users {path_prefix}, {marker}, {max_items} not found"
-            )
-
-        return users
+    def list_users(self, path_prefix: str | None = None) -> list[User]:
+        users: Iterable[User] = self.users.values()
+        if path_prefix:
+            users = filter_items_with_path_prefix(path_prefix, users)
+        return list(users)
 
     def update_user(
         self,
@@ -2705,28 +2621,10 @@ class IAMBackend(BaseBackend):
             user.name = new_user_name
             self.users[new_user_name] = self.users.pop(user_name)
 
-    def list_roles(
-        self,
-        path_prefix: str | None = None,
-        marker: str | None = None,
-        max_items: int | None = None,
-    ) -> tuple[list[Role], str | None]:
+    def list_roles(self, path_prefix: str | None = None) -> list[Role]:
         path_prefix = path_prefix if path_prefix else "/"
-        max_items = int(max_items) if max_items else 100
-        start_index = int(marker) if marker else 0
-
-        roles: Iterable[Role] = list(self.roles.values())
-        roles = filter_items_with_path_prefix(path_prefix, roles)
-        sorted_roles = sorted(roles, key=lambda role: role.id)
-
-        roles_to_return = sorted_roles[start_index : start_index + max_items]
-
-        if len(sorted_roles) <= (start_index + max_items):
-            marker = None
-        else:
-            marker = str(start_index + max_items)
-
-        return roles_to_return, marker
+        roles = filter_items_with_path_prefix(path_prefix, self.roles.values())
+        return sorted(roles, key=lambda role: role.id)
 
     def upload_signing_certificate(
         self, user_name: str, body: str
@@ -2833,9 +2731,9 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         return user.get_policy(policy_name)
 
-    def list_user_policies(self, user_name: str) -> Iterable[str]:
+    def list_user_policies(self, user_name: str) -> list[str]:
         user = self.get_user(user_name)
-        return user.policies.keys()
+        return list(user.policies.keys())
 
     def list_user_tags(self, user_name: str) -> list[dict[str, str]]:
         user = self.get_user(user_name)
@@ -2902,9 +2800,6 @@ class IAMBackend(BaseBackend):
         return access_keys_list
 
     def list_access_keys(self, user_name: str) -> list[AccessKey]:
-        """
-        Pagination is not yet implemented
-        """
         user = self.get_user(user_name)
         return user.get_all_access_keys()
 
@@ -2935,7 +2830,7 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         return user.get_ssh_public_key(ssh_public_key_id)
 
-    def get_all_ssh_public_keys(self, user_name: str) -> Iterable[SshPublicKey]:
+    def get_all_ssh_public_keys(self, user_name: str) -> list[SshPublicKey]:
         user = self.get_user(user_name)
         return user.get_all_ssh_public_keys()
 
@@ -2994,9 +2889,9 @@ class IAMBackend(BaseBackend):
 
         user.deactivate_mfa_device(serial_number)
 
-    def list_mfa_devices(self, user_name: str) -> Iterable[MFADevice]:
+    def list_mfa_devices(self, user_name: str) -> list[MFADevice]:
         user = self.get_user(user_name)
-        return user.mfa_devices.values()
+        return list(user.mfa_devices.values())
 
     def create_virtual_mfa_device(
         self, device_name: str, path: str
@@ -3046,8 +2941,8 @@ class IAMBackend(BaseBackend):
             )
 
     def list_virtual_mfa_devices(
-        self, assignment_status: str, marker: str | None, max_items: int
-    ) -> tuple[list[VirtualMfaDevice], str | None]:
+        self, assignment_status: str
+    ) -> list[VirtualMfaDevice]:
         devices = list(self.virtual_mfa_devices.values())
 
         if assignment_status == "Assigned":
@@ -3056,21 +2951,7 @@ class IAMBackend(BaseBackend):
         if assignment_status == "Unassigned":
             devices = [device for device in devices if not device.enable_date]
 
-        sorted(devices, key=lambda device: device.serial_number)
-        max_items = int(max_items)
-        start_idx = int(marker) if marker else 0
-
-        if start_idx > len(devices):
-            raise ValidationError("Invalid Marker.")
-
-        devices = devices[start_idx : start_idx + max_items]
-
-        if len(devices) < max_items:
-            marker = None
-        else:
-            marker = str(start_idx + max_items)
-
-        return devices, marker
+        return devices
 
     def delete_user(self, user_name: str) -> None:
         user = self.get_user(user_name)
@@ -3226,24 +3107,9 @@ class IAMBackend(BaseBackend):
             self._validate_tag_key(key, exception_param="tagKeys")
             open_id_provider.tags.pop(ref_key, None)
 
-    def list_open_id_connect_provider_tags(
-        self, arn: str, marker: str | None, max_items: int = 100
-    ) -> tuple[list[dict[str, str]], str | None]:
+    def list_open_id_connect_provider_tags(self, arn: str) -> list[dict[str, str]]:
         open_id_provider = self.get_open_id_connect_provider(arn)
-
-        max_items = int(max_items)
-        tag_index = sorted(open_id_provider.tags)
-        start_idx = int(marker) if marker else 0
-
-        tag_index = tag_index[start_idx : start_idx + max_items]
-
-        if len(open_id_provider.tags) <= (start_idx + max_items):
-            marker = None
-        else:
-            marker = str(start_idx + max_items)
-
-        tags = [open_id_provider.tags[tag] for tag in tag_index]
-        return tags, marker
+        return [open_id_provider.tags[tag] for tag in sorted(open_id_provider.tags)]
 
     def delete_open_id_connect_provider(self, arn: str) -> None:
         self.open_id_providers.pop(arn, None)
