@@ -20,4 +20,4 @@ def test_list_keys():
     res = test_client.post("/", headers=headers)
     body = json.loads(res.data.decode("utf-8"))
 
-    assert body == {"Keys": [], "NextMarker": None, "Truncated": False}
+    assert body == {"Keys": [], "Truncated": False}

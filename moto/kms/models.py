@@ -9,7 +9,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
-from moto.core.utils import unix_time, utcnow
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
@@ -139,7 +139,7 @@ class Key(CloudFormationModel):
         origin: str = "AWS_KMS",
     ):
         self.id = generate_key_id(multi_region)
-        self.creation_date = unix_time()
+        self.creation_date = utcnow()
         self.account_id = account_id
         self.region = region
         self.policy = policy or self.generate_default_policy()
@@ -169,7 +169,7 @@ class Key(CloudFormationModel):
         )
         self.grants: dict[str, Grant] = {}
 
-        self.rotations: list[dict[str, Any]] = []
+        self.rotations: list[dict[str, str | datetime]] = []
         self.aliases: dict[str, Alias] = {}
 
     def add_grant(
@@ -301,7 +301,7 @@ class Key(CloudFormationModel):
         if self.mac_algorithms:
             key_dict["KeyMetadata"]["MacAlgorithms"] = self.mac_algorithms
         if self.key_state == "PendingDeletion":
-            key_dict["KeyMetadata"]["DeletionDate"] = unix_time(self.deletion_date)
+            key_dict["KeyMetadata"]["DeletionDate"] = self.deletion_date
         return key_dict
 
     def delete(self, account_id: str, region_name: str) -> None:
@@ -586,14 +586,15 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         self.keys[key_id].key_state = "Disabled"
         self.keys[key_id].deletion_date = None
 
-    def schedule_key_deletion(self, key_id: str, pending_window_in_days: int) -> float:  # type: ignore[return]
+    def schedule_key_deletion(  # type: ignore[return]
+        self, key_id: str, pending_window_in_days: int
+    ) -> datetime:
         if 7 <= pending_window_in_days <= 30:
             self.keys[key_id].enabled = False
             self.keys[key_id].key_state = "PendingDeletion"
-            self.keys[key_id].deletion_date = utcnow() + timedelta(
-                days=pending_window_in_days
-            )
-            return unix_time(self.keys[key_id].deletion_date)
+            deletion_date = utcnow() + timedelta(days=pending_window_in_days)
+            self.keys[key_id].deletion_date = deletion_date
+            return deletion_date
 
     def encrypt(
         self, key_id: str, plaintext: bytes, encryption_context: dict[str, str]
@@ -812,9 +813,9 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
     def rotate_key_on_demand(self, key_id: str) -> str:
         key: Key = self.keys[self.get_key_id(key_id)]
 
-        rotation = {
+        rotation: dict[str, str | datetime] = {
             "KeyId": key_id,
-            "RotationDate": unix_time(),
+            "RotationDate": utcnow(),
             "RotationType": "ON_DEMAND",
         }
 
@@ -826,7 +827,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
     @paginate(PAGINATION_MODEL)
     def list_key_rotations(
         self, key_id: str, limit: int, next_marker: str
-    ) -> list[dict[str, str | float]]:
+    ) -> list[dict[str, str | datetime]]:
         key: Key = self.keys[self.get_key_id(key_id)]
 
         return key.rotations

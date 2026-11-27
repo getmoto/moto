@@ -1,10 +1,8 @@
-import base64
-import json
 import os
 import re
 from typing import Any
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.kms.utils import RESERVED_ALIASE_TARGET_KEY_IDS, RESERVED_ALIASES
 from moto.utilities.utils import get_partition
 
@@ -105,7 +103,7 @@ class KmsResponse(BaseResponse):
         key = self.kms_backend.describe_key(self.kms_backend.get_key_id(key_id))
         validate_policy(key, action)
 
-    def create_key(self) -> str:
+    def create_key(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html"""
         policy = self._get_param("Policy")
         key_usage = self._get_param("KeyUsage")
@@ -120,21 +118,21 @@ class KmsResponse(BaseResponse):
         key = self.kms_backend.create_key(
             policy, key_usage, key_spec, description, tags, multi_region, origin
         )
-        return json.dumps(key.to_dict())
+        return ActionResult(key.to_dict())
 
-    def replicate_key(self) -> str:
+    def replicate_key(self) -> ActionResult:
         key_id = self._get_param("KeyId")
         self._validate_key_id(key_id)
         replica_region = self._get_param("ReplicaRegion")
         replica_key = self.kms_backend.replicate_key(key_id, replica_region)
-        return json.dumps(
+        return ActionResult(
             {
                 "ReplicaKeyMetadata": replica_key.to_dict()["KeyMetadata"],
                 "ReplicaPolicy": replica_key.generate_default_policy(),
             }
         )
 
-    def update_key_description(self) -> str:
+    def update_key_description(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_UpdateKeyDescription.html"""
         key_id = self._get_param("KeyId")
         description = self._get_param("Description")
@@ -142,9 +140,9 @@ class KmsResponse(BaseResponse):
         self._validate_cmk_id(key_id)
 
         self.kms_backend.update_key_description(key_id, description)
-        return json.dumps(None)
+        return EmptyResult()
 
-    def tag_resource(self) -> str:
+    def tag_resource(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_TagResource.html"""
         key_id = self._get_param("KeyId")
         tags = self._get_param("Tags") or []
@@ -153,9 +151,9 @@ class KmsResponse(BaseResponse):
         self._validate_cmk_id(key_id)
 
         self.kms_backend.tag_resource(key_id, tags)
-        return "{}"
+        return EmptyResult()
 
-    def untag_resource(self) -> str:
+    def untag_resource(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_UntagResource.html"""
         key_id = self._get_param("KeyId")
         tag_names = self._get_param("TagKeys") or []
@@ -163,18 +161,17 @@ class KmsResponse(BaseResponse):
         self._validate_cmk_id(key_id)
 
         self.kms_backend.untag_resource(key_id, tag_names)
-        return "{}"
+        return EmptyResult()
 
-    def list_resource_tags(self) -> str:
+    def list_resource_tags(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListResourceTags.html"""
         key_id = self._get_param("KeyId")
         self._validate_cmk_id(key_id)
 
         tags: dict[str, Any] = self.kms_backend.list_resource_tags(key_id)
-        tags.update({"NextMarker": None, "Truncated": False})
-        return json.dumps(tags)
+        return ActionResult({**tags, "Truncated": False})
 
-    def describe_key(self) -> str:
+    def describe_key(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_DescribeKey.html"""
         key_id = self._get_param("KeyId")
 
@@ -183,29 +180,28 @@ class KmsResponse(BaseResponse):
 
         key = self.kms_backend.describe_key(self.kms_backend.get_key_id(key_id))
 
-        return json.dumps(key.to_dict())
+        return ActionResult(key.to_dict())
 
-    def list_keys(self) -> str:
+    def list_keys(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListKeys.html"""
         keys = self.kms_backend.list_keys()
 
-        return json.dumps(
+        return ActionResult(
             {
                 "Keys": [{"KeyArn": key.arn, "KeyId": key.id} for key in keys],
-                "NextMarker": None,
                 "Truncated": False,
             }
         )
 
-    def create_alias(self) -> str:
+    def create_alias(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateAlias.html"""
         return self._set_alias()
 
-    def update_alias(self) -> str:
+    def update_alias(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_UpdateAlias.html"""
         return self._set_alias(update=True)
 
-    def _set_alias(self, update: bool = False) -> str:
+    def _set_alias(self, update: bool = False) -> ActionResult:
         alias_name = self._get_param("AliasName")
         target_key_id = self._get_param("TargetKeyId")
 
@@ -241,9 +237,9 @@ class KmsResponse(BaseResponse):
                 )
             self.kms_backend.create_alias(target_key_id, alias_name)
 
-        return json.dumps(None)
+        return EmptyResult()
 
-    def delete_alias(self) -> str:
+    def delete_alias(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_DeleteAlias.html"""
         alias_name = self._get_param("AliasName")
 
@@ -254,9 +250,9 @@ class KmsResponse(BaseResponse):
 
         self.kms_backend.delete_alias(alias_name)
 
-        return json.dumps(None)
+        return EmptyResult()
 
-    def list_aliases(self) -> str:
+    def list_aliases(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListAliases.html"""
         region = self.region
         key_id = self._get_param("KeyId")
@@ -290,9 +286,9 @@ class KmsResponse(BaseResponse):
                     }
                 )
 
-        return json.dumps({"Truncated": False, "Aliases": response_aliases})
+        return ActionResult({"Truncated": False, "Aliases": response_aliases})
 
-    def create_grant(self) -> str:
+    def create_grant(self) -> ActionResult:
         key_id = self._get_param("KeyId")
         grantee_principal = self._get_param("GranteePrincipal")
         retiring_principal = self._get_param("RetiringPrincipal")
@@ -308,14 +304,14 @@ class KmsResponse(BaseResponse):
             constraints=constraints,
             retiring_principal=retiring_principal,
         )
-        return json.dumps({"GrantId": grant_id, "GrantToken": grant_token})
+        return ActionResult({"GrantId": grant_id, "GrantToken": grant_token})
 
-    def list_grants(self) -> str:
+    def list_grants(self) -> ActionResult:
         key_id = self._get_param("KeyId")
         grant_id = self._get_param("GrantId")
 
         grants = self.kms_backend.list_grants(key_id=key_id, grant_id=grant_id)
-        return json.dumps(
+        return ActionResult(
             {
                 "Grants": [gr.to_json() for gr in grants],
                 "GrantCount": len(grants),
@@ -323,11 +319,11 @@ class KmsResponse(BaseResponse):
             }
         )
 
-    def list_retirable_grants(self) -> str:
+    def list_retirable_grants(self) -> ActionResult:
         retiring_principal = self._get_param("RetiringPrincipal")
 
         grants = self.kms_backend.list_retirable_grants(retiring_principal)
-        return json.dumps(
+        return ActionResult(
             {
                 "Grants": [gr.to_json() for gr in grants],
                 "GrantCount": len(grants),
@@ -335,22 +331,22 @@ class KmsResponse(BaseResponse):
             }
         )
 
-    def revoke_grant(self) -> str:
+    def revoke_grant(self) -> ActionResult:
         key_id = self._get_param("KeyId")
         grant_id = self._get_param("GrantId")
 
         self.kms_backend.revoke_grant(key_id, grant_id)
-        return "{}"
+        return EmptyResult()
 
-    def retire_grant(self) -> str:
+    def retire_grant(self) -> ActionResult:
         key_id = self._get_param("KeyId")
         grant_id = self._get_param("GrantId")
         grant_token = self._get_param("GrantToken")
 
         self.kms_backend.retire_grant(key_id, grant_id, grant_token)
-        return "{}"
+        return EmptyResult()
 
-    def enable_key_rotation(self) -> str:
+    def enable_key_rotation(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_EnableKeyRotation.html"""
         key_id = self._get_param("KeyId")
 
@@ -358,9 +354,9 @@ class KmsResponse(BaseResponse):
 
         self.kms_backend.enable_key_rotation(key_id)
 
-        return json.dumps(None)
+        return EmptyResult()
 
-    def disable_key_rotation(self) -> str:
+    def disable_key_rotation(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_EnableKeyRotation.html"""
         key_id = self._get_param("KeyId")
 
@@ -368,9 +364,9 @@ class KmsResponse(BaseResponse):
 
         self.kms_backend.disable_key_rotation(key_id)
 
-        return json.dumps(None)
+        return EmptyResult()
 
-    def get_key_rotation_status(self) -> str:
+    def get_key_rotation_status(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GetKeyRotationStatus.html"""
         key_id = self._get_param("KeyId")
 
@@ -378,9 +374,9 @@ class KmsResponse(BaseResponse):
 
         rotation_enabled = self.kms_backend.get_key_rotation_status(key_id)
 
-        return json.dumps({"KeyRotationEnabled": rotation_enabled})
+        return ActionResult({"KeyRotationEnabled": rotation_enabled})
 
-    def put_key_policy(self) -> str:
+    def put_key_policy(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_PutKeyPolicy.html"""
         key_id = self._get_param("KeyId")
         policy_name = self._get_param("PolicyName")
@@ -391,9 +387,9 @@ class KmsResponse(BaseResponse):
 
         self.kms_backend.put_key_policy(key_id, policy)
 
-        return json.dumps(None)
+        return EmptyResult()
 
-    def get_key_policy(self) -> str:
+    def get_key_policy(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GetKeyPolicy.html"""
         key_id = self._get_param("KeyId")
         policy_name = self._get_param("PolicyName")
@@ -402,9 +398,9 @@ class KmsResponse(BaseResponse):
         self._validate_cmk_id(key_id)
 
         policy = self.kms_backend.get_key_policy(key_id) or "{}"
-        return json.dumps({"Policy": policy})
+        return ActionResult({"Policy": policy})
 
-    def list_key_policies(self) -> str:
+    def list_key_policies(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListKeyPolicies.html"""
         key_id = self._get_param("KeyId")
 
@@ -412,9 +408,9 @@ class KmsResponse(BaseResponse):
 
         self.kms_backend.describe_key(key_id)
 
-        return json.dumps({"Truncated": False, "PolicyNames": ["default"]})
+        return ActionResult({"Truncated": False, "PolicyNames": ["default"]})
 
-    def encrypt(self) -> str:
+    def encrypt(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_Encrypt.html"""
         key_id = self._get_param("KeyId")
         encryption_context = self._get_param("EncryptionContext", {})
@@ -425,11 +421,9 @@ class KmsResponse(BaseResponse):
         ciphertext_blob, arn = self.kms_backend.encrypt(
             key_id=key_id, plaintext=plaintext, encryption_context=encryption_context
         )
-        ciphertext_blob_response = base64.b64encode(ciphertext_blob).decode("utf-8")
+        return ActionResult({"CiphertextBlob": ciphertext_blob, "KeyId": arn})
 
-        return json.dumps({"CiphertextBlob": ciphertext_blob_response, "KeyId": arn})
-
-    def decrypt(self) -> str:
+    def decrypt(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_Decrypt.html"""
         ciphertext_blob = self._get_param("CiphertextBlob")
         encryption_context = self._get_param("EncryptionContext", {})
@@ -444,11 +438,9 @@ class KmsResponse(BaseResponse):
             key_id=key_id,
         )
 
-        plaintext_response = base64.b64encode(plaintext).decode("utf-8")
+        return ActionResult({"Plaintext": plaintext, "KeyId": arn})
 
-        return json.dumps({"Plaintext": plaintext_response, "KeyId": arn})
-
-    def re_encrypt(self) -> str:
+    def re_encrypt(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ReEncrypt.html"""
         ciphertext_blob = self._get_param("CiphertextBlob")
         source_encryption_context = self._get_param("SourceEncryptionContext", {})
@@ -470,17 +462,15 @@ class KmsResponse(BaseResponse):
             destination_encryption_context=destination_encryption_context,
         )
 
-        response_ciphertext_blob = base64.b64encode(new_ciphertext_blob).decode("utf-8")
-
-        return json.dumps(
+        return ActionResult(
             {
-                "CiphertextBlob": response_ciphertext_blob,
+                "CiphertextBlob": new_ciphertext_blob,
                 "KeyId": encrypting_arn,
                 "SourceKeyId": decrypting_arn,
             }
         )
 
-    def disable_key(self) -> str:
+    def disable_key(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_DisableKey.html"""
         key_id = self._get_param("KeyId")
 
@@ -488,9 +478,9 @@ class KmsResponse(BaseResponse):
 
         self.kms_backend.disable_key(key_id)
 
-        return json.dumps(None)
+        return EmptyResult()
 
-    def enable_key(self) -> str:
+    def enable_key(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_EnableKey.html"""
         key_id = self._get_param("KeyId")
 
@@ -498,9 +488,9 @@ class KmsResponse(BaseResponse):
 
         self.kms_backend.enable_key(key_id)
 
-        return json.dumps(None)
+        return EmptyResult()
 
-    def cancel_key_deletion(self) -> str:
+    def cancel_key_deletion(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_CancelKeyDeletion.html"""
         key_id = self._get_param("KeyId")
 
@@ -508,9 +498,9 @@ class KmsResponse(BaseResponse):
 
         self.kms_backend.cancel_key_deletion(key_id)
 
-        return json.dumps({"KeyId": key_id})
+        return ActionResult({"KeyId": key_id})
 
-    def schedule_key_deletion(self) -> str:
+    def schedule_key_deletion(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ScheduleKeyDeletion.html"""
         key_id = self._get_param("KeyId")
         if self._get_param("PendingWindowInDays") is None:
@@ -520,7 +510,7 @@ class KmsResponse(BaseResponse):
 
         self._validate_cmk_id(key_id)
 
-        return json.dumps(
+        return ActionResult(
             {
                 "KeyId": key_id,
                 "DeletionDate": self.kms_backend.schedule_key_deletion(
@@ -529,8 +519,17 @@ class KmsResponse(BaseResponse):
             }
         )
 
-    def generate_data_key(self) -> str:
+    def generate_data_key(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateDataKey.html"""
+        return ActionResult(self._generate_data_key())
+
+    def generate_data_key_without_plaintext(self) -> ActionResult:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateDataKeyWithoutPlaintext.html"""
+        result = self._generate_data_key()
+        del result["Plaintext"]
+        return ActionResult(result)
+
+    def _generate_data_key(self) -> dict[str, Any]:
         key_id = self._get_param("KeyId")
         encryption_context = self._get_param("EncryptionContext", {})
         number_of_bytes = self._get_param("NumberOfBytes")
@@ -569,25 +568,13 @@ class KmsResponse(BaseResponse):
             key_spec=key_spec,
         )
 
-        plaintext_response = base64.b64encode(plaintext).decode("utf-8")
-        ciphertext_blob_response = base64.b64encode(ciphertext_blob).decode("utf-8")
+        return {
+            "CiphertextBlob": ciphertext_blob,
+            "Plaintext": plaintext,
+            "KeyId": key_arn,  # not alias
+        }
 
-        return json.dumps(
-            {
-                "CiphertextBlob": ciphertext_blob_response,
-                "Plaintext": plaintext_response,
-                "KeyId": key_arn,  # not alias
-            }
-        )
-
-    def generate_data_key_without_plaintext(self) -> str:
-        """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateDataKeyWithoutPlaintext.html"""
-        result = json.loads(self.generate_data_key())
-        del result["Plaintext"]
-
-        return json.dumps(result)
-
-    def generate_mac(self) -> str:
+    def generate_mac(self) -> ActionResult:
         message = self._get_param("Message")
         key_id = self._get_param("KeyId")
         mac_algorithm = self._get_param("MacAlgorithm")
@@ -615,15 +602,11 @@ class KmsResponse(BaseResponse):
             dry_run=dry_run,
         )
 
-        return json.dumps(
-            {
-                "Mac": base64.b64encode(mac).decode("utf-8"),
-                "MacAlgorithm": mac_algorithm,
-                "KeyId": key_id,
-            }
+        return ActionResult(
+            {"Mac": mac, "MacAlgorithm": mac_algorithm, "KeyId": key_id}
         )
 
-    def generate_random(self) -> str:
+    def generate_random(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateRandom.html"""
         number_of_bytes = self._get_param("NumberOfBytes")
 
@@ -636,11 +619,9 @@ class KmsResponse(BaseResponse):
 
         entropy = os.urandom(number_of_bytes)
 
-        response_entropy = base64.b64encode(entropy).decode("utf-8")
+        return ActionResult({"Plaintext": entropy})
 
-        return json.dumps({"Plaintext": response_entropy})
-
-    def sign(self) -> str:
+    def sign(self) -> ActionResult:
         key_id = self._get_param("KeyId")
         message = self._get_param("Message")
         message_type = self._get_param("MessageType")
@@ -662,17 +643,15 @@ class KmsResponse(BaseResponse):
             signing_algorithm=signing_algorithm,
         )
 
-        signature_blob_response = base64.b64encode(signature).decode("utf-8")
-
-        return json.dumps(
+        return ActionResult(
             {
                 "KeyId": key_id,
-                "Signature": signature_blob_response,
+                "Signature": signature,
                 "SigningAlgorithm": signing_algorithm,
             }
         )
 
-    def verify(self) -> str:
+    def verify(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_Verify.html"""
         key_id = self._get_param("KeyId")
         message = self._get_param("Message")
@@ -702,7 +681,7 @@ class KmsResponse(BaseResponse):
             signing_algorithm=signing_algorithm,
         )
 
-        return json.dumps(
+        return ActionResult(
             {
                 "KeyId": key_arn,
                 "SignatureValid": signature_valid,
@@ -710,7 +689,7 @@ class KmsResponse(BaseResponse):
             }
         )
 
-    def verify_mac(self) -> str:
+    def verify_mac(self) -> ActionResult:
         message = self._get_param("Message")
         mac = self._get_param("Mac")
         key_id = self._get_param("KeyId")
@@ -740,27 +719,27 @@ class KmsResponse(BaseResponse):
             dry_run=dry_run,
         )
 
-        return json.dumps(
+        return ActionResult(
             {"KeyId": key_id, "MacValid": True, "MacAlgorithm": mac_algorithm}
         )
 
-    def get_public_key(self) -> str:
+    def get_public_key(self) -> ActionResult:
         key_id = self._get_param("KeyId")
 
         self._validate_key_id(key_id)
         key, public_key = self.kms_backend.get_public_key(key_id)
-        return json.dumps(
+        return ActionResult(
             {
                 "CustomerMasterKeySpec": key.key_spec,
                 "EncryptionAlgorithms": key.encryption_algorithms,
                 "KeyId": key.id,
                 "KeyUsage": key.key_usage,
-                "PublicKey": base64.b64encode(public_key).decode("UTF-8"),
+                "PublicKey": public_key,
                 "SigningAlgorithms": key.signing_algorithms,
             }
         )
 
-    def rotate_key_on_demand(self) -> str:
+    def rotate_key_on_demand(self) -> ActionResult:
         key_id = self._get_param("KeyId")
 
         self._validate_key_id(key_id)
@@ -768,9 +747,9 @@ class KmsResponse(BaseResponse):
         key_id = self.kms_backend.rotate_key_on_demand(
             key_id=key_id,
         )
-        return json.dumps({"KeyId": key_id})
+        return ActionResult({"KeyId": key_id})
 
-    def list_key_rotations(self) -> str:
+    def list_key_rotations(self) -> ActionResult:
         key_id = self._get_param("KeyId")
         limit = self._get_param("Limit", 1000)
         marker = self._get_param("Marker")
@@ -787,7 +766,7 @@ class KmsResponse(BaseResponse):
         if is_truncated:
             response["NextMarker"] = next_marker
 
-        return json.dumps(response)
+        return ActionResult(response)
 
 
 def _assert_default_policy(policy_name: str) -> None:
