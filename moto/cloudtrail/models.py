@@ -232,8 +232,10 @@ class Trail(BaseModel):
             "TrailARN": self.arn,
             "LogFileValidationEnabled": self.log_validation,
             "IsOrganizationTrail": self.is_org_trail,
-            "HasCustomEventSelectors": False,
-            "HasInsightSelectors": False,
+            "HasCustomEventSelectors": bool(
+                self.event_selectors or self.advanced_event_selectors
+            ),
+            "HasInsightSelectors": bool(self.insight_selectors),
             "CloudWatchLogsLogGroupArn": self.cw_log_group_arn,
             "CloudWatchLogsRoleArn": self.cw_role_arn,
             "KmsKeyId": self.kms_key_id,
