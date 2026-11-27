@@ -399,15 +399,17 @@ class JSONRouter(RPCRouter):
 
     def __init__(self, service_model: ServiceModel):
         super().__init__(service_model)
-        target_prefix = service_model.metadata.get("targetPrefix")
-        self._operations_by_target = (
-            {
-                f"{target_prefix}.{name}": service_model.operation_model(name)
-                for name in service_model.operation_names
-            }
-            if target_prefix
-            else {}
-        )
+        self._operations_by_target: dict[str, OperationModel] = {}
+        target_prefix = service_model.metadata["targetPrefix"]
+        # A few services (e.g. CloudTrail) have a fully qualified targetPrefix in
+        # botocore (com.amazonaws.cloudtrail.v20131101.CloudTrail_20131101), but
+        # Smithy-based SDKs send only the service shape name (CloudTrail_20131101):
+        # https://smithy.io/2.0/aws/protocols/aws-json-1_1-protocol.html
+        prefixes = {target_prefix, target_prefix.rsplit(".", 1)[-1]}
+        for name in service_model.operation_names:
+            operation = service_model.operation_model(name)
+            for prefix in prefixes:
+                self._operations_by_target[f"{prefix}.{name}"] = operation
 
     def _match(self, request: Request) -> tuple[OperationModel | None, dict[str, Any]]:
         target = request.headers.get("X-Amz-Target", "")
