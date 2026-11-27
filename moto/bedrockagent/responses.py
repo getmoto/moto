@@ -1,8 +1,6 @@
 """Handles incoming bedrockagent requests, invokes methods, returns responses."""
 
-import json
-
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import AgentsforBedrockBackend, bedrockagent_backends
 
@@ -19,7 +17,7 @@ class AgentsforBedrockResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return bedrockagent_backends[self.current_account][self.region]
 
-    def create_agent(self) -> str:
+    def create_agent(self) -> ActionResult:
         agent_name = self._get_param("agentName")
         client_token = self._get_param("clientToken")
         instruction = self._get_param("instruction")
@@ -42,36 +40,31 @@ class AgentsforBedrockResponse(BaseResponse):
             tags=tags,
             prompt_override_configuration=prompt_override_configuration,
         )
-        return json.dumps({"agent": dict(agent.to_dict())})
+        return ActionResult({"agent": agent})
 
-    def get_agent(self) -> str:
+    def get_agent(self) -> ActionResult:
         agent_id = self._get_param("agentId")
         agent = self.bedrockagent_backend.get_agent(agent_id=agent_id)
-        return json.dumps({"agent": dict(agent.to_dict())})
+        return ActionResult({"agent": agent})
 
-    def list_agents(self) -> str:
+    def list_agents(self) -> ActionResult:
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
         agents, next_token = self.bedrockagent_backend.list_agents(
             max_results=max_results,
             next_token=next_token,
         )
-        return json.dumps(
-            {
-                "agentSummaries": [a.dict_summary() for a in agents],
-                "nextToken": next_token,
-            }
-        )
+        return ActionResult({"agentSummaries": agents, "nextToken": next_token})
 
-    def delete_agent(self) -> str:
+    def delete_agent(self) -> ActionResult:
         skip_resource_in_use_check = self._get_bool_param("skipResourceInUseCheck")
         agent_id = self._get_param("agentId")
         agent_id, agent_status = self.bedrockagent_backend.delete_agent(
             agent_id=agent_id, skip_resource_in_use_check=skip_resource_in_use_check
         )
-        return json.dumps({"agentId": agent_id, "agentStatus": agent_status})
+        return ActionResult({"agentId": agent_id, "agentStatus": agent_status})
 
-    def create_knowledge_base(self) -> str:
+    def create_knowledge_base(self) -> ActionResult:
         client_token = self._get_param("clientToken")
         name = self._get_param("name")
         description = self._get_param("description")
@@ -88,23 +81,20 @@ class AgentsforBedrockResponse(BaseResponse):
             storage_configuration=storage_configuration,
             tags=tags,
         )
-        return json.dumps({"knowledgeBase": dict(knowledge_base.to_dict())})
+        return ActionResult({"knowledgeBase": knowledge_base})
 
-    def list_knowledge_bases(self) -> str:
+    def list_knowledge_bases(self) -> ActionResult:
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
         knowledge_bases, next_token = self.bedrockagent_backend.list_knowledge_bases(
             max_results=max_results,
             next_token=next_token,
         )
-        return json.dumps(
-            {
-                "knowledgeBaseSummaries": [kb.dict_summary() for kb in knowledge_bases],
-                "nextToken": next_token,
-            }
+        return ActionResult(
+            {"knowledgeBaseSummaries": knowledge_bases, "nextToken": next_token}
         )
 
-    def delete_knowledge_base(self) -> str:
+    def delete_knowledge_base(self) -> ActionResult:
         knowledge_base_id = self._get_param("knowledgeBaseId")
         (
             knowledge_base_id,
@@ -112,34 +102,34 @@ class AgentsforBedrockResponse(BaseResponse):
         ) = self.bedrockagent_backend.delete_knowledge_base(
             knowledge_base_id=knowledge_base_id
         )
-        return json.dumps(
+        return ActionResult(
             {"knowledgeBaseId": knowledge_base_id, "status": knowledge_base_status}
         )
 
-    def get_knowledge_base(self) -> str:
+    def get_knowledge_base(self) -> ActionResult:
         knowledge_base_id = self._get_param("knowledgeBaseId")
         knowledge_base = self.bedrockagent_backend.get_knowledge_base(
             knowledge_base_id=knowledge_base_id
         )
-        return json.dumps({"knowledgeBase": knowledge_base.to_dict()})
+        return ActionResult({"knowledgeBase": knowledge_base})
 
-    def tag_resource(self) -> str:
+    def tag_resource(self) -> ActionResult:
         resource_arn = self._get_param("resourceArn")
         tags = self._get_param("tags")
         self.bedrockagent_backend.tag_resource(resource_arn=resource_arn, tags=tags)
-        return json.dumps({})
+        return EmptyResult()
 
-    def untag_resource(self) -> str:
+    def untag_resource(self) -> ActionResult:
         resource_arn = self._get_param("resourceArn")
         tag_keys = self._get_param("tagKeys", [])
         self.bedrockagent_backend.untag_resource(
             resource_arn=resource_arn, tag_keys=tag_keys
         )
-        return json.dumps({})
+        return EmptyResult()
 
-    def list_tags_for_resource(self) -> str:
+    def list_tags_for_resource(self) -> ActionResult:
         resource_arn = self._get_param("resourceArn")
         tags = self.bedrockagent_backend.list_tags_for_resource(
             resource_arn=resource_arn
         )
-        return json.dumps({"tags": tags})
+        return ActionResult({"tags": tags})
