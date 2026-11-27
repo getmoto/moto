@@ -1374,6 +1374,158 @@ def test_head_object_returns_part_count():
     assert "PartsCount" not in resp
 
 
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_get_and_head_object_by_part_number(bucket_name=None):
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    key = "mp"
+
+    part1 = b"1" * S3_UPLOAD_PART_MIN_SIZE
+    part2 = b"2" * 1024
+    total_size = len(part1) + len(part2)
+
+    mp_id = client.create_multipart_upload(Bucket=bucket_name, Key=key)["UploadId"]
+    parts = []
+    for part_number, body in enumerate([part1, part2], start=1):
+        resp = client.upload_part(
+            Bucket=bucket_name,
+            Key=key,
+            PartNumber=part_number,
+            UploadId=mp_id,
+            Body=body,
+        )
+        parts.append({"ETag": resp["ETag"], "PartNumber": part_number})
+    etag = client.complete_multipart_upload(
+        Bucket=bucket_name, Key=key, UploadId=mp_id, MultipartUpload={"Parts": parts}
+    )["ETag"]
+
+    expected = [
+        (1, part1, f"bytes 0-{len(part1) - 1}/{total_size}"),
+        (2, part2, f"bytes {len(part1)}-{total_size - 1}/{total_size}"),
+    ]
+    for part_number, body, content_range in expected:
+        resp = client.get_object(Bucket=bucket_name, Key=key, PartNumber=part_number)
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 206
+        assert resp["ContentRange"] == content_range
+        assert resp["ContentLength"] == len(body)
+        assert resp["PartsCount"] == 2
+        assert resp["ETag"] == etag
+        assert resp["Body"].read() == body
+
+        resp = client.head_object(Bucket=bucket_name, Key=key, PartNumber=part_number)
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 206
+        assert resp["ContentRange"] == content_range
+        assert resp["ContentLength"] == len(body)
+        assert resp["PartsCount"] == 2
+        assert resp["ETag"] == etag
+
+    with pytest.raises(ClientError) as exc:
+        client.get_object(Bucket=bucket_name, Key=key, PartNumber=3)
+    err = exc.value.response["Error"]
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 416
+    assert err["Code"] == "InvalidPartNumber"
+    assert err["Message"] == "The requested partnumber is not satisfiable"
+    assert err["PartNumberRequested"] == "3"
+    assert err["ActualPartCount"] == "2"
+
+    with pytest.raises(ClientError) as exc:
+        client.head_object(Bucket=bucket_name, Key=key, PartNumber=3)
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 416
+
+    # Upload three parts, but only complete with parts 1 and 3
+    key = "mp-sparse"
+    part3 = b"3" * 512
+    mp_id = client.create_multipart_upload(Bucket=bucket_name, Key=key)["UploadId"]
+    etags = {}
+    for part_number, body in enumerate([part1, part2, part3], start=1):
+        etags[part_number] = client.upload_part(
+            Bucket=bucket_name,
+            Key=key,
+            PartNumber=part_number,
+            UploadId=mp_id,
+            Body=body,
+        )["ETag"]
+    client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key=key,
+        UploadId=mp_id,
+        MultipartUpload={
+            "Parts": [
+                {"ETag": etags[1], "PartNumber": 1},
+                {"ETag": etags[3], "PartNumber": 3},
+            ]
+        },
+    )
+    total_size = len(part1) + len(part3)
+
+    resp = client.head_object(Bucket=bucket_name, Key=key, PartNumber=1)
+    assert resp["PartsCount"] == 2
+
+    resp = client.get_object(Bucket=bucket_name, Key=key, PartNumber=2)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 206
+    assert resp["ContentRange"] == f"bytes {len(part1)}-{total_size - 1}/{total_size}"
+    assert resp["PartsCount"] == 2
+    assert resp["Body"].read() == part3
+
+
+@pytest.mark.aws_verified
+@pytest.mark.parametrize("checksum_type", ["COMPOSITE", "FULL_OBJECT"])
+@s3_aws_verified
+def test_get_and_head_object_by_part_number_with_checksum(
+    checksum_type, bucket_name=None
+):
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    key = "mp"
+
+    part_bodies = [b"1" * S3_UPLOAD_PART_MIN_SIZE, b"2" * 1024]
+    mp_id = client.create_multipart_upload(
+        Bucket=bucket_name,
+        Key=key,
+        ChecksumAlgorithm="CRC32",
+        ChecksumType=checksum_type,
+    )["UploadId"]
+    parts = []
+    for part_number, body in enumerate(part_bodies, start=1):
+        resp = client.upload_part(
+            Bucket=bucket_name,
+            Key=key,
+            PartNumber=part_number,
+            UploadId=mp_id,
+            Body=body,
+            ChecksumAlgorithm="CRC32",
+        )
+        parts.append(
+            {
+                "ETag": resp["ETag"],
+                "PartNumber": part_number,
+                "ChecksumCRC32": resp["ChecksumCRC32"],
+            }
+        )
+    client.complete_multipart_upload(
+        Bucket=bucket_name, Key=key, UploadId=mp_id, MultipartUpload={"Parts": parts}
+    )
+
+    for part_number, body in enumerate(part_bodies, start=1):
+        part_checksum = parts[part_number - 1]["ChecksumCRC32"]
+        get_resp = client.get_object(
+            Bucket=bucket_name, Key=key, PartNumber=part_number, ChecksumMode="ENABLED"
+        )
+        # botocore validates the returned checksum against the body
+        assert get_resp["Body"].read() == body
+        head_resp = client.head_object(
+            Bucket=bucket_name, Key=key, PartNumber=part_number, ChecksumMode="ENABLED"
+        )
+        for resp in [get_resp, head_resp]:
+            if checksum_type == "COMPOSITE":
+                # The checksum of the requested part
+                assert resp["ChecksumCRC32"] == part_checksum
+                assert resp["ChecksumType"] == "COMPOSITE"
+            else:
+                # The full-object checksum does not apply to a part, so it is omitted
+                assert "ChecksumCRC32" not in resp
+                assert "ChecksumType" not in resp
+
+
 @mock_aws
 @reduced_min_part_size
 def test_generate_presigned_url_for_multipart_upload():

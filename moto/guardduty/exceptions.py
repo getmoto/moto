@@ -31,3 +31,16 @@ class FilterNotFoundException(GuardDutyException):
 
     def get_headers(self, *args: Any, **kwargs: Any) -> list[tuple[str, str]]:
         return [("X-Amzn-ErrorType", "BadRequestException")]
+
+
+class IPSetNotFoundException(GuardDutyException):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "InvalidInputException",
+            "The request is rejected since no such resource found.",
+        )
+
+    def get_headers(self, *args: Any, **kwargs: Any) -> list[tuple[str, str]]:
+        return [("X-Amzn-ErrorType", "BadRequestException")]

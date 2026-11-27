@@ -1,43 +1,39 @@
 """Exceptions raised by the servicediscovery service."""
 
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class OperationNotFound(JsonRESTError):
-    def __init__(self) -> None:
-        super().__init__("OperationNotFound", "")
+class ServiceDiscoveryException(ServiceException):
+    pass
 
 
-class NamespaceNotFound(JsonRESTError):
-    def __init__(self, ns_id: str):
-        super().__init__("NamespaceNotFound", f"{ns_id}")
+class OperationNotFound(ServiceDiscoveryException):
+    code = "OperationNotFound"
 
 
-class ServiceNotFound(JsonRESTError):
-    def __init__(self, ns_id: str):
-        super().__init__("ServiceNotFound", f"{ns_id}")
+class NamespaceNotFound(ServiceDiscoveryException):
+    code = "NamespaceNotFound"
 
 
-class InstanceNotFound(JsonRESTError):
-    def __init__(self, ns_id: str):
-        super().__init__("InstanceNotFound", f"{ns_id}")
+class ServiceNotFound(ServiceDiscoveryException):
+    code = "ServiceNotFound"
 
 
-class ConflictingDomainExists(JsonRESTError):
-    def __init__(self, vpc_id: str):
-        super().__init__("ConflictingDomainExists", f"{vpc_id}")
+class InstanceNotFound(ServiceDiscoveryException):
+    code = "InstanceNotFound"
 
 
-class CustomHealthNotFound(JsonRESTError):
-    def __init__(self, ns_id: str):
-        super().__init__("CustomHealthNotFound", f"{ns_id}")
+class ConflictingDomainExists(ServiceDiscoveryException):
+    code = "ConflictingDomainExists"
 
 
-class InvalidInput(JsonRESTError):
-    def __init__(self, message: str):
-        super().__init__("InvalidInput", message)
+class CustomHealthNotFound(ServiceDiscoveryException):
+    code = "CustomHealthNotFound"
 
 
-class ServiceAttributesLimitExceededException(JsonRESTError):
-    def __init__(self, message: str):
-        super().__init__("ServiceAttributesLimitExceededException", message)
+class InvalidInput(ServiceDiscoveryException):
+    code = "InvalidInput"
+
+
+class ServiceAttributesLimitExceededException(ServiceDiscoveryException):
+    code = "ServiceAttributesLimitExceededException"

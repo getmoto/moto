@@ -18,6 +18,9 @@ from moto.stepfunctions.parser.asl.component.common.error_name.custom_error_name
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
     FailureEvent,
 )
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
+    StateCredentials,
+)
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceCondition,
     ResourceRuntimePart,
@@ -100,7 +103,17 @@ class SfnGatewayException(Exception):
 
 class StateTaskServiceApiGateway(StateTaskServiceCallback):
     _SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {
-        SupportedApiCalls.invoke: {"ApiEndpoint", "Method"}
+        SupportedApiCalls.invoke: {
+            "ApiEndpoint",
+            "Method",
+            "Headers",
+            "Stage",
+            "Path",
+            "QueryParameters",
+            "RequestBody",
+            "AllowNullValues",
+            "AuthType",
+        }
     }
 
     _FORBIDDEN_HTTP_HEADERS_PREFIX: Final[set[str]] = {"X-Forwarded", "X-Amz", "X-Amzn"}
@@ -147,23 +160,23 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
 
     @staticmethod
     def _query_parameters_of(parameters: TaskParameters) -> str | None:
-        query_str = None
-        query_parameters = parameters.get("QueryParameters")
-        # TODO: add support for AllowNullValues.
-        if query_parameters is not None:
-            for key, value in list(query_parameters.items()):
-                if value:
-                    query_parameters[key] = value[-1]
-                else:
-                    query_parameters[key] = ""
-            query_str = f"?{urlencode(query_parameters)}"
-        return query_str
+        query_parameters = parameters.get("QueryParameters") or {}
+        # AWS omits keys without a value, whatever the value of AllowNullValues
+        present = {
+            key: value
+            for key, value in query_parameters.items()
+            if value not in (None, [])
+        }
+        if not present:
+            return None
+        return f"?{urlencode(present, doseq=True)}"
 
     @staticmethod
     def _headers_of(parameters: TaskParameters) -> dict | None:
-        headers = parameters.get("Headers", {})
-        if headers:
-            for key in headers.keys():
+        given_headers = parameters.get("Headers") or {}
+        headers = {}
+        if given_headers:
+            for key, value in given_headers.items():
                 # TODO: the following check takes place at parse time.
                 if key in StateTaskServiceApiGateway._FORBIDDEN_HTTP_HEADERS:
                     raise ValueError(
@@ -176,7 +189,11 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
                         raise ValueError(
                             f"The 'Headers' field contains unsupported values: {key}"
                         )
-            if "RequestBody" in parameters:
+                if isinstance(value, list):
+                    headers[key] = ", ".join(value)
+                else:
+                    headers[key] = value
+            if parameters.get("RequestBody") is not None:
                 headers[HEADER_CONTENT_TYPE] = APPLICATION_JSON
         headers["Accept"] = APPLICATION_JSON
         return headers
@@ -190,13 +207,13 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
         # http://localhost:4566/restapis/<api-id>/<stage>/_user_request_/<path>(?<query-parameters>)?
         url_tail = "/".join(
             [
-                parameters.get("Stage", ""),
+                parameters.get("Stage") or "",
                 PATH_USER_REQUEST,
-                parameters.get("Path", ""),
-                StateTaskServiceApiGateway._query_parameters_of(parameters) or "",
+                parameters.get("Path") or "",
             ]
         )
-        invoke_url = urljoin(url_base, url_tail)
+        query_str = StateTaskServiceApiGateway._query_parameters_of(parameters) or ""
+        invoke_url = urljoin(url_base, url_tail) + query_str
         return invoke_url
 
     @staticmethod
@@ -217,7 +234,8 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
         if "date" in headers:
             headers["Date"] = [headers.pop("date")]
         headers[HEADER_CONTENT_TYPE] = [APPLICATION_JSON]
-        headers["Content-Length"] = [headers["Content-Length"]]
+        if "Content-Length" in headers:
+            headers["Content-Length"] = [headers["Content-Length"]]
         # TODO: add support for the following generated fields.
         headers["Connection"] = ["keep-alive"]
         headers["x-amz-apigw-id"] = [str(mock_random.uuid4())]
@@ -244,6 +262,7 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
             error_name = f"ApiGateway.{ex_name}"
             cause = str(ex)
         return FailureEvent(
+            env=env,
             error_name=CustomErrorName(error_name),
             event_type=HistoryEventType.TaskFailed,
             event_details=EventDetails(
@@ -261,7 +280,7 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: Any,
+        state_credentials: StateCredentials,
     ):
         task_parameters: TaskParameters = normalised_parameters
 
@@ -271,18 +290,15 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
         json_data = task_parameters.get("RequestBody")
 
         # RequestBody is only supported for PATCH, POST, and PUT
-        if json_data is not None and method not in {
-            Method.PATCH,
-            Method.POST,
-            Method.PUT,
-        }:
-            raise ValueError()  # TODO
+        # AWS drops it for other methods
+        if method not in {Method.PATCH, Method.POST, Method.PUT}:
+            json_data = None
 
         response: Response = getattr(requests, method.lower())(
             invoke_url, headers=headers, json=json_data
         )
 
-        if response.status_code != 200:
+        if not 200 <= response.status_code < 300:
             raise SfnGatewayException(parameters=task_parameters, response=response)
 
         invoke_output = self._invoke_output_of(response)

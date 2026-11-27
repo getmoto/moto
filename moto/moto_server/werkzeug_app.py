@@ -240,10 +240,7 @@ class DomainDispatcherApplication:
             for service_name, response_class in service_to_response.items():
                 resp = response_class()
                 resp.region = region
-                action = resp._get_action_from_method_and_request_uri(
-                    method=environ["REQUEST_METHOD"],
-                    request_uri=environ["PATH_INFO"],
-                )
+                action = resp._get_action_from_request(Request(environ.copy()))
                 if action:
                     service = service_name
                     break
@@ -265,10 +262,7 @@ class DomainDispatcherApplication:
             for service_name, response_class in service_to_response.items():
                 resp = response_class()
                 resp.region = region
-                action = resp._get_action_from_method_and_request_uri(
-                    method=environ["REQUEST_METHOD"],
-                    request_uri=environ["PATH_INFO"],
-                )
+                action = resp._get_action_from_request(Request(environ.copy()))
                 if action:
                     service = service_name
                     break
@@ -374,8 +368,11 @@ class DomainDispatcherApplication:
         # Some unsigned GET requests can be routed based on the URL path alone.
         # For example, Cognito JWKS endpoint:
         #   GET /{user_pool_id}/.well-known/jwks.json
+        #   GET /{user_pool_id}/.well-known/openid-configuration
         # The user_pool_id starts with the region (e.g. us-east-1_abc123).
-        if path_info.rstrip("/").endswith("/.well-known/jwks.json"):
+        if path_info.rstrip("/").endswith(
+            ("/.well-known/jwks.json", "/.well-known/openid-configuration")
+        ):
             # Extract region from user pool ID (format: {region}_{id})
             pool_id = path_info.strip("/").split("/")[0]
             if "_" not in pool_id:

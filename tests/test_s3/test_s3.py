@@ -1690,10 +1690,10 @@ def test_list_objects_v2__more_than_1000():
     assert resp["IsTruncated"] is False
 
 
-@mock_aws
-def test_list_objects_v2_checksum_algo():
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_list_objects_v2_checksum_algo(bucket_name=None):
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = str(uuid.uuid4())
     s3_client.create_bucket(Bucket=bucket_name)
     resp = s3_client.put_object(Bucket=bucket_name, Key="0", Body="a")
     # Default checksum behavior varies by boto3 version and will not be asserted here.
@@ -1702,18 +1702,12 @@ def test_list_objects_v2_checksum_algo():
         Bucket=bucket_name, Key="1", Body="a", ChecksumAlgorithm="CRC32"
     )
     assert "ChecksumCRC32" in resp
-    assert (
-        resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-sdk-checksum-algorithm"]
-        == "CRC32"
-    )
+    assert "x-amz-sdk-checksum-algorithm" not in resp["ResponseMetadata"]["HTTPHeaders"]
     resp = s3_client.put_object(
         Bucket=bucket_name, Key="2", Body="b", ChecksumAlgorithm="SHA256"
     )
     assert "ChecksumSHA256" in resp
-    assert (
-        resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-sdk-checksum-algorithm"]
-        == "SHA256"
-    )
+    assert "x-amz-sdk-checksum-algorithm" not in resp["ResponseMetadata"]["HTTPHeaders"]
 
     resp = s3_client.list_objects_v2(Bucket=bucket_name)["Contents"]
     assert "ChecksumAlgorithm" in resp[0]

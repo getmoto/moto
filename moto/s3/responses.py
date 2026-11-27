@@ -280,7 +280,8 @@ class S3Response(BaseResponse):
             )
         )
 
-    def subdomain_based_buckets(self, request: Any) -> bool:
+    @staticmethod
+    def subdomain_based_buckets(request: Any) -> bool:
         if settings.S3_IGNORE_SUBDOMAIN_BUCKETNAME:
             return False
         host = request.headers.get("host", request.headers.get("Host"))
@@ -1742,7 +1743,16 @@ class S3Response(BaseResponse):
                 if perm == PermissionResult.DENIED:
                     errors.append((obj["Key"], "AccessDenied", "Access Denied"))
                 else:
-                    objects_to_delete.append(obj)
+                    try:
+                        self._verify_etag_match_for_deletion(
+                            obj["Key"],
+                            obj.get("ETag", None),
+                            version_id=obj.get("VersionId", None),
+                            failed_condition="ETag",
+                        )
+                        objects_to_delete.append(obj)
+                    except (PreconditionFailed, MissingKey) as e:
+                        errors.append((obj["Key"], e.code, e.message))
             deleted, errored = self.backend.delete_objects(
                 bucket_name, objects_to_delete, bypass_retention
             )
@@ -1995,6 +2005,38 @@ class S3Response(BaseResponse):
 
         return self.get_object()
 
+    @staticmethod
+    def _set_multipart_part_headers(
+        key: FakeKey,
+        part_number: int,
+        response_headers: dict[str, Any],
+        checksum_mode: bool,
+    ) -> bytes:
+        """
+        Set the headers for a GetObject/HeadObject request for a single part of a multipart object.
+        Returns the value of the requested part.
+        """
+        start, end = key.multipart.get_part_range(part_number)  # type: ignore[union-attr]
+        part_value = key.value[start : end + 1]
+        response_headers["content-range"] = f"bytes {start}-{end}/{key.size}"
+        response_headers["content-length"] = str(end - start + 1)
+        response_headers["x-amz-mp-parts-count"] = str(key.multipart.parts_count)  # type: ignore[union-attr]
+        # The full-object checksum does not apply to a single part.
+        # AWS returns the part checksum for COMPOSITE checksums, and nothing for FULL_OBJECT checksums
+        for header in [h for h in response_headers if h.startswith("x-amz-checksum-")]:
+            del response_headers[header]
+        if (
+            checksum_mode
+            and key.checksum_algorithm
+            and key.checksum_type == "COMPOSITE"
+        ):
+            algorithm = key.checksum_algorithm
+            response_headers[f"x-amz-checksum-{algorithm.lower()}"] = compute_checksum(
+                part_value, algorithm
+            ).decode()
+            response_headers["x-amz-checksum-type"] = key.checksum_type
+        return part_value
+
     def get_object(self) -> TYPE_RESPONSE:
         key, not_modified = self._get_key()
         response_headers = self._get_cors_headers_other()
@@ -2040,8 +2082,13 @@ class S3Response(BaseResponse):
         part_number = self._get_int_param("partNumber")
         if part_number:
             if key.multipart:
-                # TODO
-                pass
+                part_value = self._set_multipart_part_headers(
+                    key,
+                    part_number,
+                    response_headers,
+                    checksum_mode=self.headers.get("x-amz-checksum-mode") == "ENABLED",
+                )
+                return 206, response_headers, part_value
             else:
                 if part_number > 1:
                     raise RangeNotSatisfiable
@@ -2061,10 +2108,10 @@ class S3Response(BaseResponse):
 
         attributes_to_get = self.headers.get("x-amz-object-attributes", "").split(",")
         response_keys = self.backend.get_object_attributes(key, attributes_to_get)
-        response_headers["Last-Modified"] = key.last_modified_ISO8601
 
         checksum = response_keys["checksum"]
         result: dict[str, Any] = {
+            "LastModified": key.last_modified,
             "ETag": response_keys["etag"],
             "Checksum": {f"Checksum{algo}": value for algo, value in checksum.items()}
             if checksum
@@ -2332,6 +2379,8 @@ class S3Response(BaseResponse):
         response_headers.update(new_key.response_dict)
         # Remove content-length - the response body is empty for this request
         response_headers.pop("content-length", None)
+        # x-amz-sdk-checksum-algorithm is a request header and should not be included in the response.
+        response_headers.pop("x-amz-sdk-checksum-algorithm", None)
         return 200, response_headers, ""
 
     def _get_checksum(self, response_headers: dict[str, Any]) -> tuple[str, str | None]:
@@ -2651,9 +2700,7 @@ class S3Response(BaseResponse):
         if_unmodified_since = headers.get("If-Unmodified-Since", None)
 
         try:
-            key = self.backend.head_object(
-                bucket_name, key_name, version_id=version_id, part_number=part_number
-            )
+            key = self.backend.head_object(bucket_name, key_name, version_id=version_id)
         except HeadOnDeleteMarker as exc:
             headers = {
                 "x-amz-delete-marker": "true",
@@ -2691,17 +2738,17 @@ class S3Response(BaseResponse):
                 )
 
             if part_number:
-                full_key = self.backend.head_object(bucket_name, key_name, version_id)
-                if full_key.multipart:  # type: ignore
-                    mp_part_count = str(len(full_key.multipart.partlist))  # type: ignore
-                    response_headers["x-amz-mp-parts-count"] = mp_part_count
+                if key.multipart:
+                    self._set_multipart_part_headers(
+                        key, part_number, response_headers, checksum_mode
+                    )
                 else:
                     if part_number > 1:
                         raise RangeNotSatisfiable
                     response_headers["content-range"] = (
-                        f"bytes 0-{full_key.size - 1}/{full_key.size}"  # type: ignore
+                        f"bytes 0-{key.size - 1}/{key.size}"
                     )
-                    return 206, response_headers, ""
+                return 206, response_headers, ""
 
             return 200, response_headers, ""
         else:
@@ -3075,18 +3122,40 @@ class S3Response(BaseResponse):
             return self.delete_object_tagging()
         return self.delete_object()
 
+    def _verify_etag_match_for_deletion(
+        self,
+        key_name: str,
+        etag: str | None,
+        version_id: str | None = None,
+        failed_condition: str = "If-Match",
+    ) -> None:
+        if etag is None or etag == "*":
+            return
+        if not (
+            obj := self.backend.get_object(
+                self.bucket_name, key_name, version_id=version_id
+            )
+        ):
+            # When attempting to delete an object, S3 should throw a NoSuchKey error
+            # if the object is deleted and ETag matching is specified; this is unlike
+            # deletion where ETag is unspecified, that should be idempotent.
+            raise MissingKey
+        # Check if the ETags are the same. S3 doesn't seem to care about quotes, so we shouldn't either
+        if etag.replace('"', "") != obj.etag.replace('"', ""):
+            raise PreconditionFailed(failed_condition)
+
     def delete_object(self) -> TYPE_RESPONSE:
         bypass = self.headers.get("X-Amz-Bypass-Governance-Retention")
         key_name = self.parse_key_name()
         version_id = self._get_param("versionId")
         if_match = self.headers.get("If-Match")
 
-        if if_match:
-            if not (obj := self.backend.get_object(self.bucket_name, key_name)):
-                raise MissingKey
-            # Check if the ETags are the same. S3 doesn't seem to care about quotes, so we shouldn't either
-            elif if_match.replace('"', "") != obj.etag.replace('"', ""):
-                raise PreconditionFailed("If-Match")
+        self._verify_etag_match_for_deletion(
+            key_name,
+            if_match,
+            version_id=version_id,
+            failed_condition="If-Match",
+        )
 
         _, response_meta = self.backend.delete_object(
             self.bucket_name, key_name, version_id=version_id, bypass=bypass

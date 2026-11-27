@@ -1015,7 +1015,6 @@ def test_describe_images_by_digest():
 @mock_aws
 def test_get_authorization_token_assume_region():
     client = boto3.client("ecr", region_name=ECR_REGION)
-    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
     auth_token_response = client.get_authorization_token()
 
     assert "authorizationData" in auth_token_response
@@ -1024,7 +1023,7 @@ def test_get_authorization_token_assume_region():
         {
             "authorizationToken": "QVdTOjEyMzQ1Njc4OTAxMi1hdXRoLXRva2Vu",
             "proxyEndpoint": f"https://{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com",
-            "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal),
+            "expiresAt": datetime(2015, 1, 1, tzinfo=timezone.utc),
         }
     ]
 
@@ -1032,7 +1031,6 @@ def test_get_authorization_token_assume_region():
 @mock_aws
 def test_get_authorization_token_explicit_regions():
     client = boto3.client("ecr", region_name=ECR_REGION)
-    tzlocal = datetime.now(timezone.utc).astimezone().tzinfo
     auth_token_response = client.get_authorization_token(
         registryIds=["10987654321", "878787878787"]
     )
@@ -1043,12 +1041,12 @@ def test_get_authorization_token_explicit_regions():
         {
             "authorizationToken": "QVdTOjEwOTg3NjU0MzIxLWF1dGgtdG9rZW4=",
             "proxyEndpoint": "https://10987654321.dkr.ecr.us-east-1.amazonaws.com",
-            "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal),
+            "expiresAt": datetime(2015, 1, 1, tzinfo=timezone.utc),
         },
         {
             "authorizationToken": "QVdTOjg3ODc4Nzg3ODc4Ny1hdXRoLXRva2Vu",
             "proxyEndpoint": "https://878787878787.dkr.ecr.us-east-1.amazonaws.com",
-            "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal),
+            "expiresAt": datetime(2015, 1, 1, tzinfo=timezone.utc),
         },
     ]
 

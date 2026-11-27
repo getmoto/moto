@@ -2,7 +2,6 @@
 
 import json
 from typing import Any
-from urllib.parse import unquote
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -15,6 +14,7 @@ class S3TablesResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="s3tables")
+        self.automated_parameter_parsing = True
         self.default_response_headers = {"Content-Type": "application/json"}
 
     @property
@@ -23,21 +23,20 @@ class S3TablesResponse(BaseResponse):
         return s3tables_backends[self.current_account][self.region]
 
     def create_table_bucket(self) -> TYPE_RESPONSE:
-        name = json.loads(self.body)["name"]
+        name = self._get_param("name")
         bucket = self.s3tables_backend.create_table_bucket(
             name=name,
         )
         return 200, self.default_response_headers, json.dumps({"arn": bucket.arn})
 
     def list_table_buckets(self) -> TYPE_RESPONSE:
-        params = self._get_params()
-        prefix = params.get("prefix")
-        continuation_token = params.get("continuationToken")
-        max_buckets = params.get("maxBuckets")
+        prefix = self._get_param("prefix")
+        continuation_token = self._get_param("continuationToken")
+        max_buckets = self._get_int_param("maxBuckets")
         table_buckets, continuation_token = self.s3tables_backend.list_table_buckets(
             prefix=prefix,
             continuation_token=continuation_token,
-            max_buckets=int(max_buckets) if max_buckets else None,
+            max_buckets=max_buckets,
         )
 
         body: dict[str, Any] = {
@@ -57,8 +56,7 @@ class S3TablesResponse(BaseResponse):
         return 200, self.default_response_headers, json.dumps(body)
 
     def get_table_bucket(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn = self._get_param("tableBucketARN")
         bucket = self.s3tables_backend.get_table_bucket(
             table_bucket_arn=table_bucket_arn,
         )
@@ -77,8 +75,7 @@ class S3TablesResponse(BaseResponse):
         )
 
     def delete_table_bucket(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn = self._get_param("tableBucketARN")
         self.s3tables_backend.delete_table_bucket(
             table_bucket_arn=table_bucket_arn,
         )
@@ -86,9 +83,8 @@ class S3TablesResponse(BaseResponse):
         return 204, {}, ""
 
     def create_namespace(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
-        name = json.loads(self.body)["namespace"][0]
+        table_bucket_arn = self._get_param("tableBucketARN")
+        name = self._get_param("namespace")[0]
         namespace = self.s3tables_backend.create_namespace(
             table_bucket_arn=table_bucket_arn,
             namespace=name,
@@ -102,19 +98,17 @@ class S3TablesResponse(BaseResponse):
         )
 
     def list_namespaces(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn = self._get_param("tableBucketARN")
 
-        params = self._get_params()
-        continuation_token = params.get("continuationToken")
-        max_namespaces = params.get("maxNamespaces")
-        prefix = params.get("prefix")
+        continuation_token = self._get_param("continuationToken")
+        max_namespaces = self._get_int_param("maxNamespaces")
+        prefix = self._get_param("prefix")
 
         namespaces, continuation_token = self.s3tables_backend.list_namespaces(
             table_bucket_arn=table_bucket_arn,
             prefix=prefix,
             continuation_token=continuation_token,
-            max_namespaces=int(max_namespaces) if max_namespaces else None,
+            max_namespaces=max_namespaces,
         )
 
         body: dict[str, Any] = {
@@ -134,8 +128,8 @@ class S3TablesResponse(BaseResponse):
         return 200, self.default_response_headers, json.dumps(body)
 
     def get_namespace(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, name = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn = self._get_param("tableBucketARN")
+        name = self._get_param("namespace")
         namespace = self.s3tables_backend.get_namespace(
             table_bucket_arn=table_bucket_arn,
             namespace=name,
@@ -154,8 +148,8 @@ class S3TablesResponse(BaseResponse):
         )
 
     def delete_namespace(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, namespace = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn = self._get_param("tableBucketARN")
+        namespace = self._get_param("namespace")
         self.s3tables_backend.delete_namespace(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,
@@ -163,11 +157,10 @@ class S3TablesResponse(BaseResponse):
         return 204, self.default_response_headers, ""
 
     def create_table(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, namespace = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
-        body = json.loads(self.body)
-        name = body["name"]
-        format = body["format"]
+        table_bucket_arn = self._get_param("tableBucketARN")
+        namespace = self._get_param("namespace")
+        name = self._get_param("name")
+        format = self._get_param("format")
         table = self.s3tables_backend.create_table(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,
@@ -181,7 +174,7 @@ class S3TablesResponse(BaseResponse):
         )
 
     def get_table(self) -> TYPE_RESPONSE:
-        table_bucket_arn = unquote(self._get_param("tableBucketARN"))
+        table_bucket_arn = self._get_param("tableBucketARN")
         namespace = self._get_param("namespace")
         name = self._get_param("name")
         table = self.s3tables_backend.get_table(
@@ -213,19 +206,17 @@ class S3TablesResponse(BaseResponse):
         )
 
     def list_tables(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
-        params = self._get_params()
-        namespace = params.get("namespace")
-        prefix = params.get("prefix")
-        continuation_token = params.get("continuationToken")
-        max_tables = params.get("maxTables")
+        table_bucket_arn = self._get_param("tableBucketARN")
+        namespace = self._get_param("namespace")
+        prefix = self._get_param("prefix")
+        continuation_token = self._get_param("continuationToken")
+        max_tables = self._get_int_param("maxTables")
         tables, continuation_token = self.s3tables_backend.list_tables(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,
             prefix=prefix,
             continuation_token=continuation_token,
-            max_tables=int(max_tables) if max_tables else None,
+            max_tables=max_tables,
         )
         body: dict[str, Any] = {
             "tables": [
@@ -245,10 +236,10 @@ class S3TablesResponse(BaseResponse):
         return 200, self.default_response_headers, json.dumps(body)
 
     def delete_table(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, namespace, name = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
-        params = self._get_params()
-        version_token = params.get("versionToken")
+        table_bucket_arn = self._get_param("tableBucketARN")
+        namespace = self._get_param("namespace")
+        name = self._get_param("name")
+        version_token = self._get_param("versionToken")
         self.s3tables_backend.delete_table(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,
@@ -258,8 +249,9 @@ class S3TablesResponse(BaseResponse):
         return 204, {}, ""
 
     def get_table_metadata_location(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, namespace, name, _ = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn = self._get_param("tableBucketARN")
+        namespace = self._get_param("namespace")
+        name = self._get_param("name")
         table = self.s3tables_backend.get_table(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,
@@ -278,11 +270,11 @@ class S3TablesResponse(BaseResponse):
         )
 
     def update_table_metadata_location(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, namespace, name, _ = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
-        body = json.loads(self.body)
-        metadata_location = body["metadataLocation"]
-        version_token = body["versionToken"]
+        table_bucket_arn = self._get_param("tableBucketARN")
+        namespace = self._get_param("namespace")
+        name = self._get_param("name")
+        metadata_location = self._get_param("metadataLocation")
+        version_token = self._get_param("versionToken")
         table = self.s3tables_backend.update_table_metadata_location(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,
@@ -305,12 +297,12 @@ class S3TablesResponse(BaseResponse):
         )
 
     def rename_table(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, namespace, name, _ = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
-        body = json.loads(self.body)
-        version_token = body.get("versionToken")
-        new_namespace_name = body.get("newNamespaceName")
-        new_name = body.get("newName")
+        table_bucket_arn = self._get_param("tableBucketARN")
+        namespace = self._get_param("namespace")
+        name = self._get_param("name")
+        version_token = self._get_param("versionToken")
+        new_namespace_name = self._get_param("newNamespaceName")
+        new_name = self._get_param("newName")
         self.s3tables_backend.rename_table(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,

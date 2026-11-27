@@ -57,6 +57,8 @@ def paginate(pagination_model: dict[str, Any]) -> GenericFunction:
                 unique_attribute=pagination_config.get("unique_attribute"),
                 param_values_to_check=input_kwargs,
                 fail_on_invalid_token=fail_on_invalid_token,
+                token_strategy=pagination_config.get("token_strategy", "opaque"),
+                token_position=pagination_config.get("token_position", "after_last"),
             )
 
             # Determine which parameters to pass
@@ -78,6 +80,23 @@ def paginate(pagination_model: dict[str, Any]) -> GenericFunction:
 
 
 class Paginator:
+    """Return one page of a list of results.
+
+    Two token strategies are supported:
+
+    - ``opaque`` (default): tokens are encoded by the paginator and identify
+      the first item of the next page.  They include a checksum of the other
+      request parameters, so a token can't be reused with different filters.
+    - ``marker``: tokens are the raw value of the item's unique attribute,
+      e.g. Kinesis ``ExclusiveStartShardId``.  The marker must match an item.
+      ``token_position`` says whether it is the last item returned
+      (``after_last``, an exclusive start) or the first item of the next page
+      (``at_next``, an inclusive start).
+    """
+
+    TOKEN_STRATEGIES = ("opaque", "marker")
+    TOKEN_POSITIONS = ("after_last", "at_next")
+
     def __init__(
         self,
         max_results: Any = None,
@@ -86,7 +105,13 @@ class Paginator:
         unique_attribute: Any = None,
         param_values_to_check: Any = None,
         fail_on_invalid_token: bool = True,
+        token_strategy: str = "opaque",
+        token_position: str = "after_last",
     ):
+        if token_strategy not in self.TOKEN_STRATEGIES:
+            raise ValueError(f"Unknown token_strategy: {token_strategy}")
+        if token_position not in self.TOKEN_POSITIONS:
+            raise ValueError(f"Unknown token_position: {token_position}")
         self._max_results = max_results if max_results else max_results_default
         self._starting_token = starting_token
         self._unique_attributes = (
@@ -94,12 +119,18 @@ class Paginator:
             if isinstance(unique_attribute, list)
             else [unique_attribute]
         )
+        if token_strategy == "marker" and len(self._unique_attributes) != 1:
+            raise ValueError("Marker tokens require exactly one unique_attribute")
         self._param_values_to_check = param_values_to_check
         self._fail_on_invalid_token = fail_on_invalid_token
+        self._token_strategy = token_strategy
+        self._token_position = token_position
         self._token_encoder = TokenEncoder()
         self._token_decoder = TokenDecoder()
         self._param_checksum = self._calculate_parameter_checksum()
-        self._parsed_token = self._parse_starting_token()
+        self._parsed_token = (
+            self._parse_starting_token() if token_strategy == "opaque" else None
+        )
 
     def _parse_starting_token(self) -> dict[str, Any] | None:
         if self._starting_token is None:
@@ -146,11 +177,16 @@ class Paginator:
     def _check_predicate(self, item: Any) -> bool:
         if self._parsed_token is None:
             return False
-        unique_attributes = self._parsed_token["uniqueAttributes"]
-        predicate_values = unique_attributes.split("|")
-        for index, attr in enumerate(self._unique_attributes):
+        predicate_values = self._parsed_token["uniqueAttributes"]
+        if not isinstance(predicate_values, list) or len(predicate_values) != len(
+            self._unique_attributes
+        ):
+            return False
+        for attr, predicate_value in zip(
+            self._unique_attributes, predicate_values, strict=True
+        ):
             curr_val = self._get_unique_value(item, attr, None)
-            if not str(curr_val) == predicate_values[index]:
+            if not str(curr_val) == predicate_value:
                 return False
 
         return True
@@ -171,10 +207,14 @@ class Paginator:
         range_keys = []
         for attr in self._unique_attributes:
             range_keys.append(str(self._get_unique_value(next_item, attr)))
-        token_dict["uniqueAttributes"] = "|".join(range_keys)
+        # Encode as a list (not a delimited string) so attribute values containing
+        # any character, including the old "|" delimiter, successfully round-trip.
+        token_dict["uniqueAttributes"] = range_keys
         return self._token_encoder.encode(token_dict)
 
     def paginate(self, results: list[Any]) -> tuple[list[Any], str | None]:
+        if self._token_strategy == "marker":
+            return self._paginate_with_marker(results)
         index_start = 0
         if self._starting_token:
             try:
@@ -199,4 +239,35 @@ class Paginator:
         if results_page and index_end < len(results):
             last_resource_on_this_page = results[index_end]
             next_token = self._build_next_token(last_resource_on_this_page)
+        return results_page, next_token
+
+    def _paginate_with_marker(self, results: list[Any]) -> tuple[list[Any], str | None]:
+        attr = self._unique_attributes[0]
+        index_start = 0
+        if self._starting_token:
+            marker = str(self._starting_token)
+            try:
+                marker_index = next(
+                    index
+                    for (index, result) in enumerate(results)
+                    if str(self._get_unique_value(result, attr)) == marker
+                )
+            except StopIteration:
+                if self._fail_on_invalid_token:
+                    raise InvalidToken("Resource not found!")
+                return [], None
+            index_start = marker_index
+            if self._token_position == "after_last":
+                index_start += 1
+
+        index_end = min(index_start + self._max_results, len(results))
+        results_page = results[index_start:index_end]
+
+        next_token = None
+        if results_page and index_end < len(results):
+            if self._token_position == "after_last":
+                marker_item = results_page[-1]
+            else:
+                marker_item = results[index_end]
+            next_token = str(self._get_unique_value(marker_item, attr))
         return results_page, next_token

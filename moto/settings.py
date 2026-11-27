@@ -35,6 +35,10 @@ ENABLE_KEYPAIR_VALIDATION = bool(
 
 ENABLE_AMI_VALIDATION = bool(os.environ.get("MOTO_ENABLE_AMI_VALIDATION", False))
 
+CFN_VALIDATE_TEMPLATE_ON_CREATE = bool(
+    os.environ.get("MOTO_CFN_VALIDATE_TEMPLATE_ON_CREATE", False)
+)
+
 MAX_FORM_MEMORY_SIZE = int(
     os.environ.get("MOTO_MAX_FORM_MEMORY_SIZE", 1024 * 1024 * 50)
 )
@@ -82,6 +86,13 @@ def get_s3_default_max_keys() -> int:
 
 def s3_allow_crossdomain_access() -> bool:
     return os.environ.get("MOTO_S3_ALLOW_CROSSACCOUNT_ACCESS", "true").lower() == "true"
+
+
+def sqs_enforce_strict_queue_purge_behaviour() -> bool:
+    return (
+        os.environ.get("MOTO_SQS_ENFORCE_STRICT_QUEUE_PURGE_BEHAVIOUR", "true").lower()
+        == "true"
+    )
 
 
 def ec2_load_default_amis() -> bool:

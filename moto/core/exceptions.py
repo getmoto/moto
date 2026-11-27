@@ -150,20 +150,6 @@ class AuthFailureError(_RESTError):
         )
 
 
-class AWSError(JsonRESTError):
-    TYPE: str | None = None
-    STATUS = 400
-
-    def __init__(
-        self,
-        message: str,
-        exception_type: str | None = None,
-        status: int | None = None,
-    ):
-        super().__init__(exception_type or self.TYPE, message)  # type: ignore[arg-type]
-        self.code = status or self.STATUS
-
-
 class InvalidNextTokenException(JsonRESTError):
     """For AWS Config resource listing. This will be used by many different resource types, and so it is in moto.core."""
 
@@ -175,11 +161,13 @@ class InvalidNextTokenException(JsonRESTError):
         )
 
 
-class InvalidToken(AWSError):
-    code = 400
+class InvalidToken(ServiceException):
+    """Raised by the @paginate decorator when a pagination token can't be used."""
+
+    code = "InvalidToken"
 
     def __init__(self, message: str = "Invalid token"):
-        super().__init__(f"Invalid Token: {message}", "InvalidToken")
+        super().__init__(f"Invalid Token: {message}")
 
 
 class ServiceNotWhitelisted(Exception):

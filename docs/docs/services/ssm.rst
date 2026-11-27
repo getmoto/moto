@@ -59,6 +59,7 @@ Assumes the provided BaselineId exists. No error handling has been implemented y
 
 - [ ] delete_resource_data_sync
 - [ ] delete_resource_policy
+- [ ] deregister_default_host_management_configuration
 - [ ] deregister_managed_instance
 - [X] deregister_patch_baseline_for_patch_group
   deregister a patch baseline for os on patch group, set default
@@ -186,6 +187,7 @@ Pagination and the Filters-parameter is not yet implemented
 - [ ] put_inventory
 - [X] put_parameter
 - [ ] put_resource_policy
+- [ ] register_default_host_management_configuration
 - [ ] register_default_patch_baseline
 - [X] register_patch_baseline_for_patch_group
   register a patch group in ssm backend

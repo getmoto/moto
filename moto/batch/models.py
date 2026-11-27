@@ -2,7 +2,7 @@ import logging
 import re
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from itertools import cycle
 from sys import platform
 from time import sleep
@@ -1023,11 +1023,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     logs = []
                     for line in logs_stdout + logs_stderr:
                         date, line = line.split(" ", 1)
-                        date_obj = (
-                            default_timestamp_parser(date)
-                            .astimezone(timezone.utc)
-                            .replace(tzinfo=None)
-                        )
+                        date_obj = default_timestamp_parser(date)
                         date = unix_time_millis(date_obj)
                         logs.append({"timestamp": date, "message": line.strip()})
                     logs = sorted(logs, key=lambda log: log["timestamp"])

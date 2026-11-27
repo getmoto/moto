@@ -1,5 +1,4 @@
 import datetime
-from collections import OrderedDict
 from gzip import compress as gzip_compress
 
 from freezegun import freeze_time
@@ -24,57 +23,6 @@ def test_parse_qs_unicode_decode_error() -> None:
     headers["foo"] = "bar"
     request = mock_request("GET", "http://request", headers, body)
     BaseResponse().setup_class(request, request.url, request.headers)
-
-
-def test_get_params() -> None:
-    subject = BaseResponse()
-    subject.querystring = OrderedDict(
-        [
-            ("Action", ["CreateRule"]),
-            ("Version", ["2015-12-01"]),
-            (
-                "ListenerArn",
-                [
-                    "arn:aws:elasticloadbalancing:us-east-1:1:listener/my-lb/50dc6c495c0c9188/80139731473870416"
-                ],
-            ),
-            ("Priority", ["100"]),
-            ("Conditions.member.1.Field", ["http-header"]),
-            ("Conditions.member.1.HttpHeaderConfig.HttpHeaderName", ["User-Agent"]),
-            ("Conditions.member.1.HttpHeaderConfig.Values.member.2", ["curl"]),
-            ("Conditions.member.1.HttpHeaderConfig.Values.member.1", ["Mozilla"]),
-            ("Actions.member.1.FixedResponseConfig.StatusCode", ["200"]),
-            ("Actions.member.1.FixedResponseConfig.ContentType", ["text/plain"]),
-            ("Actions.member.1.Type", ["fixed-response"]),
-        ]
-    )
-
-    result = subject._get_params()
-
-    assert result == {
-        "Action": "CreateRule",
-        "Version": "2015-12-01",
-        "ListenerArn": "arn:aws:elasticloadbalancing:us-east-1:1:listener/my-lb/50dc6c495c0c9188/80139731473870416",
-        "Priority": "100",
-        "Conditions": [
-            {
-                "Field": "http-header",
-                "HttpHeaderConfig": {
-                    "HttpHeaderName": "User-Agent",
-                    "Values": ["Mozilla", "curl"],
-                },
-            }
-        ],
-        "Actions": [
-            {
-                "Type": "fixed-response",
-                "FixedResponseConfig": {
-                    "StatusCode": "200",
-                    "ContentType": "text/plain",
-                },
-            }
-        ],
-    }
 
 
 def test_response_metadata() -> None:

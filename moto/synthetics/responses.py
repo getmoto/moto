@@ -3,6 +3,7 @@ Response handlers for AWS CloudWatch Synthetics API emulation in Moto.
 """
 
 import json
+from typing import Any
 
 from moto.core.responses import BaseResponse
 from moto.synthetics.models import SyntheticsBackend, synthetics_backends
@@ -79,24 +80,14 @@ class SyntheticsResponse(BaseResponse):
         """
         List tags for a given resource ARN.
         """
-        # Extract ARN from the URL path /tags/{resourceArn}
-        path_parts = self.path.split("/")
-        arn = path_parts[-1] if len(path_parts) > 1 else None
+        arn = self._get_param("resourceArn")
         if not arn:
             raise ValueError("Resource ARN not found in URL")
         tags = self.synthetics_backend.list_tags_for_resource(arn)
         return json.dumps({"Tags": tags})
 
-    def _get_action(self) -> str:
-        """
-        Override to provide default action for root endpoint.
-        """
-        action = super()._get_action()
-        if action is None and self.path == "/":
-            return "GetHealthCheck"  # Default action for root endpoint
-        return action or "Unknown"
-
-    def get_health_check(self) -> str:
+    @staticmethod
+    def get_health_check(*_: Any) -> str:
         """
         Handle root endpoint requests.
         """

@@ -2,7 +2,8 @@ import copy
 import re
 from collections import OrderedDict
 from collections.abc import Iterator
-from typing import Any, Optional
+from datetime import datetime
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import JsonRESTError
@@ -360,9 +361,7 @@ class DynamoDBBackend(BaseBackend, TaggableResourcesMixin):
         expr_values: dict[str, dict[str, str]] | None = None,
         filter_expression: str | None = None,
         hash_key_conditions: list[tuple[str, dict[str, Any]]] | None = None,
-        range_key_conditions: Optional[
-            list[tuple[str, str, list[dict[str, Any]]]]
-        ] = None,
+        range_key_conditions: list[tuple[str, str, list[dict[str, Any]]]] | None = None,
         **filter_kwargs: Any,
     ) -> tuple[list[Item], int, dict[str, Any] | None]:
         table = self.get_table(table_name)
@@ -766,7 +765,13 @@ class DynamoDBBackend(BaseBackend, TaggableResourcesMixin):
             raise BackupNotFoundException(backup_arn)
         return self.backups[backup_arn]
 
-    def list_backups(self, table_name: str) -> list[Backup]:
+    def list_backups(
+        self,
+        table_name: str | None,
+        lower_bound: datetime | None = None,
+        upper_bound: datetime | None = None,
+        backup_type: str | None = None,
+    ) -> list[Backup]:
         backups = list(self.backups.values())
         if table_name is not None:
             backups = [
@@ -775,7 +780,14 @@ class DynamoDBBackend(BaseBackend, TaggableResourcesMixin):
                 if backup.table.name == table_name
                 or backup.table.table_arn == table_name
             ]
-        return backups
+        if lower_bound is not None:
+            backups = [b for b in backups if b.creation_date_time >= lower_bound]
+        if upper_bound is not None:
+            backups = [b for b in backups if b.creation_date_time < upper_bound]
+        # USER is the default, and ALL covers USER and SYSTEM
+        backup_type = backup_type or "USER"
+        types = {"USER", "SYSTEM"} if backup_type == "ALL" else {backup_type}
+        return [b for b in backups if b.type in types]
 
     def create_backup(self, table_name: str, backup_name: str) -> Backup:
         try:

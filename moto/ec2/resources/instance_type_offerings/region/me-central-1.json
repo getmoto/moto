@@ -1140,6 +1140,34 @@
   "Location": "me-central-1"
  },
  {
+  "InstanceType": "t3.2xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "t3.large",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "t3.medium",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "t3.micro",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "t3.nano",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "t3.small",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "t3.xlarge",
+  "Location": "me-central-1"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "me-central-1"
  },

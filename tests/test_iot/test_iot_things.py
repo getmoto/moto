@@ -147,7 +147,7 @@ def test_list_things_with_next_token():
     for i in range(0, 200):
         client.create_thing(thingName=str(i + 1))
 
-    things = client.list_things()
+    things = client.list_things(maxResults=50)
     assert len(things["things"]) == 50
     assert things["things"][0]["thingName"] == "1"
     assert (
@@ -160,7 +160,7 @@ def test_list_things_with_next_token():
         == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/50"
     )
 
-    things = client.list_things(nextToken=things["nextToken"])
+    things = client.list_things(maxResults=50, nextToken=things["nextToken"])
     assert len(things["things"]) == 50
     assert things["things"][0]["thingName"] == "51"
     assert (
@@ -173,7 +173,7 @@ def test_list_things_with_next_token():
         == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/100"
     )
 
-    things = client.list_things(nextToken=things["nextToken"])
+    things = client.list_things(maxResults=50, nextToken=things["nextToken"])
     assert len(things["things"]) == 50
     assert things["things"][0]["thingName"] == "101"
     assert (
@@ -186,7 +186,7 @@ def test_list_things_with_next_token():
         == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:thing/150"
     )
 
-    things = client.list_things(nextToken=things["nextToken"])
+    things = client.list_things(maxResults=50, nextToken=things["nextToken"])
     assert "nextToken" not in things
     assert len(things["things"]) == 50
     assert things["things"][0]["thingName"] == "151"
@@ -227,7 +227,7 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
             )
 
     # Test filter for thingTypeName
-    things = client.list_things(thingTypeName=thing_type_name)
+    things = client.list_things(maxResults=50, thingTypeName=thing_type_name)
     assert "nextToken" in things
     assert len(things["things"]) == 50
     assert things["things"][0]["thingName"] == "2"
@@ -243,7 +243,7 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     assert all(item["thingTypeName"] == thing_type_name for item in things["things"])
 
     things = client.list_things(
-        nextToken=things["nextToken"], thingTypeName=thing_type_name
+        maxResults=50, nextToken=things["nextToken"], thingTypeName=thing_type_name
     )
     assert "nextToken" not in things
     assert len(things["things"]) == 50
@@ -260,7 +260,9 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     assert all(item["thingTypeName"] == thing_type_name for item in things["things"])
 
     # Test filter for attributes
-    things = client.list_things(attributeName="foo", attributeValue="bar")
+    things = client.list_things(
+        maxResults=50, attributeName="foo", attributeValue="bar"
+    )
     assert "nextToken" in things
     assert len(things["things"]) == 50
     assert things["things"][0]["thingName"] == "3"
@@ -276,7 +278,10 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     assert all(item["attributes"] == {"foo": "bar"} for item in things["things"])
 
     things = client.list_things(
-        nextToken=things["nextToken"], attributeName="foo", attributeValue="bar"
+        maxResults=50,
+        nextToken=things["nextToken"],
+        attributeName="foo",
+        attributeValue="bar",
     )
     assert "nextToken" not in things
     assert len(things["things"]) == 16

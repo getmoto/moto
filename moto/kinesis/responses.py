@@ -1,4 +1,9 @@
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import (
+    ActionResult,
+    BaseResponse,
+    EmptyResult,
+    PaginatedResult,
+)
 
 from .models import KinesisBackend, kinesis_backends
 
@@ -6,6 +11,7 @@ from .models import KinesisBackend, kinesis_backends
 class KinesisResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="kinesis")
+        self.automated_parameter_parsing = True
 
     @property
     def kinesis_backend(self) -> KinesisBackend:
@@ -23,9 +29,8 @@ class KinesisResponse(BaseResponse):
     def describe_stream(self) -> ActionResult:
         stream_name = self._get_param("StreamName")
         stream_arn = self._get_param("StreamARN")
-        limit = self._get_param("Limit")
         stream = self.kinesis_backend.describe_stream(stream_arn, stream_name)
-        return ActionResult(stream.to_json(shard_limit=limit))
+        return PaginatedResult(stream.to_json())
 
     def describe_stream_summary(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
@@ -34,26 +39,12 @@ class KinesisResponse(BaseResponse):
         return ActionResult(stream.to_json_summary())
 
     def list_streams(self) -> ActionResult:
-        streams = self.kinesis_backend.list_streams()
-        stream_names = [stream.stream_name for stream in streams]
-        max_streams = self._get_param("Limit", 10)
-        try:
-            token = self._get_param("ExclusiveStartStreamName")
-        except ValueError:
-            token = self._get_param("ExclusiveStartStreamName")
-        if token:
-            start = stream_names.index(token) + 1
-        else:
-            start = 0
-        streams_resp = stream_names[start : start + max_streams]
-        has_more_streams = False
-        if start + max_streams < len(stream_names):
-            has_more_streams = True
-
-        return ActionResult(
+        streams = self.kinesis_backend.list_streams(
+            exclusive_start_stream_name=self._get_param("ExclusiveStartStreamName"),
+        )
+        return PaginatedResult(
             {
-                "HasMoreStreams": has_more_streams,
-                "StreamNames": streams_resp,
+                "StreamNames": [stream.stream_name for stream in streams],
                 "StreamSummaries": [
                     stream.to_json_summary()["StreamDescriptionSummary"]
                     for stream in streams
@@ -154,17 +145,10 @@ class KinesisResponse(BaseResponse):
     def list_shards(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
         stream_name = self._get_param("StreamName")
-        next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults", 10000)
-        shards, token = self.kinesis_backend.list_shards(
-            stream_arn=stream_arn,
-            stream_name=stream_name,
-            limit=max_results,
-            next_token=next_token,
+        shards = self.kinesis_backend.list_shards(
+            stream_arn=stream_arn, stream_name=stream_name
         )
-        return ActionResult(
-            {"Shards": [s.to_json() for s in shards], "NextToken": token}
-        )
+        return PaginatedResult({"Shards": [s.to_json() for s in shards]})
 
     def update_shard_count(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
@@ -263,16 +247,8 @@ class KinesisResponse(BaseResponse):
 
     def list_stream_consumers(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")
-        next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults", 10000)
-        consumers, token = self.kinesis_backend.list_stream_consumers(
-            stream_arn=stream_arn,
-            limit=max_results,
-            next_token=next_token,
-        )
-        return ActionResult(
-            {"Consumers": [c.to_json() for c in consumers], "NextToken": token}
-        )
+        consumers = self.kinesis_backend.list_stream_consumers(stream_arn=stream_arn)
+        return PaginatedResult({"Consumers": [c.to_json() for c in consumers]})
 
     def register_stream_consumer(self) -> ActionResult:
         stream_arn = self._get_param("StreamARN")

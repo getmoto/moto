@@ -316,3 +316,133 @@ class TestDecorator(unittest.TestCase):
             # This should fail, as our 'resources' argument is inconsistent
             # with the original resources that were provided
             self.method_with_list_as_kwarg(resources=results, next_token=token)
+
+
+def test_paginator__unique_attribute_containing_pipe():
+    result_list = [{"name": f"name|{i}"} for i in range(0, 10)]
+    p = Paginator(max_results=5, unique_attribute="name")
+    page, token = p.paginate(result_list)
+    assert page == result_list[:5]
+    assert token is not None
+
+    p = Paginator(max_results=5, starting_token=token, unique_attribute="name")
+    page, token = p.paginate(result_list)
+    assert page == result_list[5:]
+    assert token is None
+
+
+def test_paginator__multiple_unique_attributes_containing_pipe():
+    # Joining ["x", "y|z"] with "|" gives "x|y|z", which splits back to
+    # ["x", "y", "z"] and would wrongly match the item {"a": "x", "b": "y"}.
+    result_list = [
+        {"a": "x", "b": "q"},
+        {"a": "x", "b": "y"},
+        {"a": "x", "b": "y|z"},
+        {"a": "x", "b": "w"},
+    ]
+    p = Paginator(max_results=2, unique_attribute=["a", "b"])
+    page, token = p.paginate(result_list)
+    assert page == result_list[:2]
+
+    p = Paginator(max_results=2, starting_token=token, unique_attribute=["a", "b"])
+    page, token = p.paginate(result_list)
+    assert page == result_list[2:]
+    assert token is None
+
+
+marker_results = [{"id": f"id{i}"} for i in range(0, 5)]
+
+
+def test_paginator__marker_after_last():
+    p = Paginator(max_results=2, unique_attribute="id", token_strategy="marker")
+    page, token = p.paginate(marker_results)
+    assert page == marker_results[:2]
+    # The marker is the last item returned
+    assert token == "id1"
+
+    p = Paginator(
+        max_results=2,
+        starting_token=token,
+        unique_attribute="id",
+        token_strategy="marker",
+    )
+    page, token = p.paginate(marker_results)
+    assert page == marker_results[2:4]
+    assert token == "id3"
+
+    p = Paginator(
+        max_results=2,
+        starting_token=token,
+        unique_attribute="id",
+        token_strategy="marker",
+    )
+    page, token = p.paginate(marker_results)
+    assert page == marker_results[4:]
+    assert token is None
+
+
+def test_paginator__marker_at_next():
+    p = Paginator(
+        max_results=2,
+        unique_attribute="id",
+        token_strategy="marker",
+        token_position="at_next",
+    )
+    page, token = p.paginate(marker_results)
+    assert page == marker_results[:2]
+    # The marker is the first item of the next page
+    assert token == "id2"
+
+    p = Paginator(
+        max_results=2,
+        starting_token=token,
+        unique_attribute="id",
+        token_strategy="marker",
+        token_position="at_next",
+    )
+    page, token = p.paginate(marker_results)
+    assert page == marker_results[2:4]
+    assert token == "id4"
+
+
+def test_paginator__marker_is_not_encoded_or_bound_to_params():
+    # A marker is a plain item value, so it is accepted whatever the other
+    # request parameters are, unlike an opaque token.
+    p = Paginator(
+        max_results=2,
+        starting_token="id1",
+        unique_attribute="id",
+        token_strategy="marker",
+        param_values_to_check={"filter": "anything"},
+    )
+    page, _ = p.paginate(marker_results)
+    assert page == marker_results[2:4]
+
+
+def test_paginator__unknown_marker():
+    p = Paginator(
+        max_results=2,
+        starting_token="unknown",
+        unique_attribute="id",
+        token_strategy="marker",
+    )
+    with pytest.raises(InvalidToken):
+        p.paginate(marker_results)
+
+    p = Paginator(
+        max_results=2,
+        starting_token="unknown",
+        unique_attribute="id",
+        token_strategy="marker",
+        fail_on_invalid_token=False,
+    )
+    assert p.paginate(marker_results) == ([], None)
+
+
+def test_paginator__invalid_marker_config():
+    with pytest.raises(ValueError):
+        Paginator(max_results=2, unique_attribute="id", token_strategy="unknown")
+    with pytest.raises(ValueError):
+        Paginator(max_results=2, unique_attribute="id", token_position="unknown")
+    with pytest.raises(ValueError):
+        Paginator(max_results=2, unique_attribute=["a", "b"], token_strategy="marker")

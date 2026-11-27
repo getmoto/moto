@@ -59,7 +59,7 @@ def test_textract_start_text_detection_without_document_location():
     assert resp.status_code == 400
     assert data["__type"] == "InvalidParameterException"
     assert (
-        data["message"]
+        data["Message"]
         == "An input parameter violated a constraint. For example, in synchronous operations, an InvalidParameterException exception occurs when neither of the S3Object or Bytes values are supplied in the Document request parameter. Validate your parameter before calling the API operation again."
     )
 
@@ -111,7 +111,7 @@ def test_textract_get_text_detection_without_job_id():
     assert resp.status_code == 400
     data = json.loads(resp.data.decode("utf-8"))
     assert data["__type"] == "InvalidJobIdException"
-    assert data["message"] == "An invalid job identifier was passed."
+    assert data["Message"] == "An invalid job identifier was passed."
 
 
 @mock_aws

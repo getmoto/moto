@@ -302,7 +302,7 @@ def test_update_certificate_authority():
             },
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "InvalidS3ObjectAclInCrlConfiguration"
+    assert err["Code"] == "InvalidArgsException"
     assert (
         err["Message"]
         == f"Invalid value for parameter RevocationConfiguration.CrlConfiguration.S3ObjectAcl, value: {invalid_s3object_acl}, valid values: ['PUBLIC_READ', 'BUCKET_OWNER_FULL_CONTROL']"
@@ -403,7 +403,7 @@ def test_import_certificate_authority_certificate():
             Certificate="invalid certificate pem",
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "MalformedCertificateAuthorityException"
+    assert err["Code"] == "MalformedCertificateException"
     assert err["Message"] == "Malformed certificate."
 
     cert = create_cert()

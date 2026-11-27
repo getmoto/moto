@@ -112,6 +112,33 @@ def test_list_many_streams():
 
 
 @mock_aws
+def test_list_streams_paginates_with_next_token():
+    conn = boto3.client("kinesis", region_name="us-west-2")
+    names = [f"stream{i}" for i in range(5)]
+    for name in names:
+        conn.create_stream(StreamName=name, ShardCount=1)
+
+    resp = conn.list_streams(Limit=2)
+    assert resp["StreamNames"] == names[:2]
+    assert [s["StreamName"] for s in resp["StreamSummaries"]] == names[:2]
+    assert resp["HasMoreStreams"] is True
+
+    resp = conn.list_streams(Limit=2, NextToken=resp["NextToken"])
+    assert resp["StreamNames"] == names[2:4]
+    assert resp["HasMoreStreams"] is True
+
+    resp = conn.list_streams(Limit=2, NextToken=resp["NextToken"])
+    assert resp["StreamNames"] == names[4:]
+    assert resp["HasMoreStreams"] is False
+    assert "NextToken" not in resp
+
+    pages = conn.get_paginator("list_streams").paginate(
+        PaginationConfig={"PageSize": 2}
+    )
+    assert [name for page in pages for name in page["StreamNames"]] == names
+
+
+@mock_aws
 def test_describe_stream_summary():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream_summary"
@@ -921,3 +948,29 @@ def get_stream_arn(client, stream_name):
     return client.describe_stream(StreamName=stream_name)["StreamDescription"][
         "StreamARN"
     ]
+
+
+@mock_aws
+def test_put_and_get_binary_record_data():
+    client = boto3.client("kinesis", region_name="us-west-2")
+    stream_name = "my_stream"
+    client.create_stream(StreamName=stream_name, ShardCount=1)
+
+    # Data that isn't valid UTF-8 must round-trip unchanged
+    single = bytes(range(256))
+    batch = [b"\x00\xff\xfe", b"\x80abc\x81"]
+    client.put_record(StreamName=stream_name, Data=single, PartitionKey="pk")
+    client.put_records(
+        StreamName=stream_name,
+        Records=[{"Data": data, "PartitionKey": "pk"} for data in batch],
+    )
+
+    shard_id = client.describe_stream(StreamName=stream_name)["StreamDescription"][
+        "Shards"
+    ][0]["ShardId"]
+    shard_iterator = client.get_shard_iterator(
+        StreamName=stream_name, ShardId=shard_id, ShardIteratorType="TRIM_HORIZON"
+    )["ShardIterator"]
+    records = client.get_records(ShardIterator=shard_iterator)["Records"]
+
+    assert [r["Data"] for r in records] == [single] + batch

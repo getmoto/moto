@@ -75,6 +75,7 @@ bedrock-agentcore-control
 - [ ] delete_registry_record
 - [ ] delete_resource_policy
 - [ ] delete_workload_identity
+- [ ] get_agent_insight_store
 - [X] get_agent_runtime
 - [X] get_agent_runtime_endpoint
 - [ ] get_api_key_credential_provider
@@ -110,6 +111,7 @@ bedrock-agentcore-control
 - [ ] get_resource_policy
 - [ ] get_token_vault
 - [ ] get_workload_identity
+- [ ] list_agent_insight_stores
 - [X] list_agent_runtime_endpoints
 - [X] list_agent_runtime_versions
 - [ ] list_agent_runtime_versions_by_capacity_provider
@@ -151,6 +153,7 @@ bedrock-agentcore-control
 - [X] list_tags_for_resource
 - [ ] list_workload_identities
 - [ ] put_resource_policy
+- [ ] reset_token_vault_key_material
 - [ ] rotate_payment_connector_credentials
 - [ ] set_token_vault_cmk
 - [ ] start_policy_generation
@@ -158,6 +161,7 @@ bedrock-agentcore-control
 - [ ] synchronize_gateway_targets
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_agent_insight_store
 - [X] update_agent_runtime
 - [X] update_agent_runtime_endpoint
 - [ ] update_api_key_credential_provider

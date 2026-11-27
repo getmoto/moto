@@ -13,13 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Set up Ruby ${{ matrix.ruby-version }}
-        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f
         with:
           ruby-version: ${{ matrix.ruby-version }}
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.15"
       - name: Start MotoServer
         uses: ./.github/actions/run_moto_server
       - name: Install dependencies

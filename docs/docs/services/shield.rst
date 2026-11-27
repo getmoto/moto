@@ -21,17 +21,17 @@ shield
 - [ ] associate_health_check
 - [ ] associate_proactive_engagement_details
 - [X] create_protection
-- [ ] create_protection_group
+- [X] create_protection_group
 - [X] create_subscription
 - [X] delete_protection
-- [ ] delete_protection_group
+- [X] delete_protection_group
 - [ ] delete_subscription
 - [ ] describe_attack
 - [ ] describe_attack_statistics
 - [ ] describe_drt_access
 - [ ] describe_emergency_contact_settings
 - [X] describe_protection
-- [ ] describe_protection_group
+- [X] describe_protection_group
 - [X] describe_subscription
 - [ ] disable_application_layer_automatic_response
 - [ ] disable_proactive_engagement
@@ -42,7 +42,11 @@ shield
 - [ ] enable_proactive_engagement
 - [ ] get_subscription_state
 - [ ] list_attacks
-- [ ] list_protection_groups
+- [X] list_protection_groups
+  
+Pagination has not yet been implemented
+
+
 - [X] list_protections
   
 Pagination has not yet been implemented
@@ -54,6 +58,6 @@ Pagination has not yet been implemented
 - [X] untag_resource
 - [ ] update_application_layer_automatic_response
 - [ ] update_emergency_contact_settings
-- [ ] update_protection_group
+- [X] update_protection_group
 - [ ] update_subscription
 

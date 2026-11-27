@@ -57,16 +57,6 @@ class Portfolio(BaseModel):
     def arn(self) -> str:
         return f"arn:{get_partition(self.region_name)}:catalog:{self.region_name}:{self.account_id}:portfolio/{self.id}"
 
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "Id": self.id,
-            "ARN": self.arn,
-            "DisplayName": self.display_name,
-            "Description": self.description,
-            "CreatedTime": self.created_time,
-            "ProviderName": self.provider_name,
-        }
-
 
 class Product(BaseModel):
     """Service Catalog Product resource."""
@@ -112,23 +102,6 @@ class Product(BaseModel):
     @property
     def arn(self) -> str:
         return f"arn:{get_partition(self.region_name)}:catalog:{self.region_name}:{self.account_id}:product/{self.id}"
-
-    def to_dict(self) -> dict[str, Any]:
-        product_view_summary = {
-            "Id": self.id,  # ?
-            "ProductId": self.id,  # ?
-            "Name": self.name,
-            "Owner": self.owner,
-            "Type": self.product_type,
-            "Distributor": self.distributor,
-            "HasDefaultPath": False,
-            "ShortDescription": self.description,
-            "SupportDescription": self.support_description,
-            "SupportEmail": self.support_email,
-            "SupportUrl": self.support_url,
-        }
-
-        return product_view_summary
 
 
 class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
@@ -214,13 +187,12 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         provider_name: str,
         tags: list[dict[str, str]] | None,
         idempotency_token: str | None,
-    ) -> tuple[dict[str, str], list[dict[str, str]]]:
+    ) -> Portfolio:
         # TODO: Implement accept_language
 
         if idempotency_token and idempotency_token in self.idempotency_tokens:
             portfolio_id = self.idempotency_tokens[idempotency_token]
-            portfolio = self.portfolios[portfolio_id]
-            return portfolio.to_dict(), portfolio.tags
+            return self.portfolios[portfolio_id]
 
         portfolio_id = str(uuid.uuid4())
 
@@ -242,7 +214,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
 
         self.portfolio_access[portfolio_id] = []
 
-        return portfolio.to_dict(), portfolio.tags
+        return portfolio
 
     def create_portfolio_share(
         self,
@@ -293,12 +265,9 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         accept_language: str | None = None,
         page_token: str | None = None,
         page_size: int | None = None,
-    ) -> tuple[list[dict[str, str]], str | None]:
+    ) -> tuple[list[Portfolio], str | None]:
         """TODO: Implement pagination and accept_language"""
-        portfolio_details = [
-            portfolio.to_dict() for portfolio in self.portfolios.values()
-        ]
-        return portfolio_details, None
+        return list(self.portfolios.values()), None
 
     def describe_portfolio_shares(
         self,
@@ -358,22 +327,24 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
     def describe_portfolio(
         self, accept_language: str | None, id: str
     ) -> tuple[
-        dict[str, Any], list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]]
+        Portfolio | None,
+        list[dict[str, str]],
+        list[dict[str, Any]],
+        list[dict[str, str]],
     ]:
         # TODO: Implement accept_language
 
         if id not in self.portfolios:
-            return {}, [], [], []
+            return None, [], [], []
 
         portfolio = self.portfolios[id]
-        portfolio_detail = portfolio.to_dict()
 
         tags = portfolio.tags
 
         tag_options: list[dict[str, Any]] = []
         budgets: list[dict[str, Any]] = []
 
-        return portfolio_detail, tags, tag_options, budgets
+        return portfolio, tags, tag_options, budgets
 
     def create_product(
         self,

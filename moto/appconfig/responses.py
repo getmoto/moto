@@ -101,7 +101,10 @@ class AppConfigResponse(BaseResponse):
 
     def list_configuration_profiles(self) -> str:
         app_id = self._get_param("ApplicationId")
-        profiles = self.appconfig_backend.list_configuration_profiles(app_id)
+        _type = self.querystring.get("type", [None])[0]
+        profiles = self.appconfig_backend.list_configuration_profiles(
+            app_id, _type=_type
+        )
         return json.dumps({"Items": [p.to_json() for p in profiles]})
 
     def list_tags_for_resource(self) -> str:

@@ -443,6 +443,37 @@ def insert_code_to_class(path, base_class, new_code):
         fhandle.write(body)
 
 
+def uri_to_regexp(uri: str) -> str:
+    """converts uri w/ placeholder to regexp
+      '/accounts/{AwsAccountId}/namespaces/{Namespace}/groups'
+    -> '^/accounts/(?P<AwsAccountId>[^/]+)/namespaces/(?P<Namespace>[^/]+)/groups$'
+
+      '/trustStores/{trustStoreArn+}'
+    -> '^/trustStores/(?P<trustStoreArn>.+)$'
+
+    """
+
+    def _convert(elem: str) -> str:
+        if not re.match("^{.*}$", elem):
+            # URL-parts sometimes contain a $
+            # Like Greengrass: /../deployments/$reset
+            # We don't want to our regex to think this marks an end-of-line, so let's escape it
+            return elem.replace("$", r"\$")
+
+        # In the Smithy specification, a plus sign indicates a greedy label, which
+        # allows the label to match multiple path segments, including forward slashes.
+        # If a label is the last segment of a uri, we default it to greedy as well.
+        greedy = elem.endswith("+}") or uri.endswith(elem)
+        name = elem.replace("{", "").replace("}", "").replace("+", "").replace("-", "_")
+        if greedy:
+            return f"(?P<{name}>.+)"
+        return f"(?P<{name}>[^/]+)"
+
+    elems = uri.split("/")
+    regexp = "/".join([_convert(elem) for elem in elems])
+    return f"^{regexp}$"
+
+
 def insert_url(service, operation, api_protocol):
     """Create urls.py with appropriate URL bases and paths."""
     client = boto3.client(service)
@@ -464,7 +495,7 @@ def insert_url(service, operation, api_protocol):
 
     if any(_ for _ in lines if re.match(uri, _)):
         return
-    uri = BaseResponse.uri_to_regexp(uri)[1:-1]
+    uri = uri_to_regexp(uri)[1:-1]
 
     url_paths_found = False
     last_elem_line_index = -1

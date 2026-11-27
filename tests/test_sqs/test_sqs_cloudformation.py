@@ -14,9 +14,9 @@ simple_queue = Template(
     "Resources": {
         "QueueGroup": {
             "Type": "AWS::SQS::Queue",
-            "Properties": {"QueueName": $q_name, "VisibilityTimeout": 60},
+            "Properties": {"QueueName": "$q_name", "VisibilityTimeout": 60}
         }
-    },
+    }
 }"""
 )
 
@@ -209,10 +209,21 @@ def test_create_queue_passing_integer_as_name():
     """
     cf = boto3.client("cloudformation", region_name="us-east-1")
     client = boto3.client("sqs", region_name="us-east-1")
-
+    # No quotes around the QueueName value, so we can test the int/str conversion.
+    unquoted_queue_name = Template(
+        """{
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Resources": {
+            "QueueGroup": {
+                "Type": "AWS::SQS::Queue",
+                "Properties": {"QueueName": $q_name, "VisibilityTimeout": 60}
+            }
+        }
+    }"""
+    )
     stack_name = str(uuid4())[0:6]
     q_name = f"{randint(10000000, 99999999)}"
-    template_body = simple_queue.substitute(q_name=q_name)
+    template_body = unquoted_queue_name.substitute(q_name=q_name)
     cf.create_stack(StackName=stack_name, TemplateBody=template_body)
 
     queue_urls = client.list_queues(QueueNamePrefix=q_name[0:6])["QueueUrls"]

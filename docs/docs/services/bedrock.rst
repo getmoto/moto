@@ -16,6 +16,7 @@ bedrock
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] archive_project
 - [ ] batch_delete_advanced_prompt_optimization_job
 - [ ] batch_delete_evaluation_job
 - [ ] cancel_automated_reasoning_policy_build_workflow
@@ -35,8 +36,10 @@ bedrock
 - [X] create_model_customization_job
 - [ ] create_model_import_job
 - [ ] create_model_invocation_job
+- [ ] create_project
 - [ ] create_prompt_router
 - [ ] create_provisioned_model_throughput
+- [ ] delete_account_data_retention_storage
 - [ ] delete_automated_reasoning_policy
 - [ ] delete_automated_reasoning_policy_build_workflow
 - [ ] delete_automated_reasoning_policy_test_case
@@ -49,12 +52,15 @@ bedrock
 - [ ] delete_inference_profile
 - [ ] delete_marketplace_model_endpoint
 - [X] delete_model_invocation_logging_configuration
+- [ ] delete_organization_data_retention_storage
+- [ ] delete_project_data_retention_storage
 - [ ] delete_prompt_router
 - [ ] delete_provisioned_model_throughput
 - [ ] delete_resource_policy
 - [ ] deregister_marketplace_model_endpoint
 - [ ] export_automated_reasoning_policy_version
 - [ ] get_account_data_retention
+- [ ] get_account_data_retention_storage
 - [ ] get_advanced_prompt_optimization_job
 - [ ] get_automated_reasoning_policy
 - [ ] get_automated_reasoning_policy_annotations
@@ -77,9 +83,16 @@ bedrock
 - [ ] get_model_import_job
 - [ ] get_model_invocation_job
 - [X] get_model_invocation_logging_configuration
+- [ ] get_organization_data_retention_storage
+- [ ] get_project
+- [ ] get_project_data_retention_storage
 - [ ] get_prompt_router
 - [ ] get_provisioned_model_throughput
 - [ ] get_resource_policy
+- [ ] get_trusted_access_program
+- [ ] get_trusted_access_program_account_enrollment
+- [ ] get_trusted_access_program_organization_enrollment
+- [ ] get_trusted_access_program_project_enrollment
 - [ ] get_use_case_for_model_access
 - [ ] list_advanced_prompt_optimization_jobs
 - [ ] list_automated_reasoning_policies
@@ -104,17 +117,28 @@ The foundation_model_arn_equals-argument is not yet supported
 - [X] list_model_customization_jobs
 - [ ] list_model_import_jobs
 - [ ] list_model_invocation_jobs
+- [ ] list_projects
 - [ ] list_prompt_routers
 - [ ] list_provisioned_model_throughputs
 - [X] list_tags_for_resource
+- [ ] list_trusted_access_programs
 - [ ] put_account_data_retention
+- [ ] put_account_data_retention_storage
 - [ ] put_enforced_guardrail_configuration
 - [X] put_model_invocation_logging_configuration
+- [ ] put_organization_data_retention_storage
+- [ ] put_project_data_retention_storage
 - [ ] put_resource_policy
+- [ ] put_trusted_access_program_account_enrollment
+- [ ] put_trusted_access_program_organization_enrollment
+- [ ] put_trusted_access_program_project_enrollment
 - [ ] put_use_case_for_model_access
 - [ ] register_marketplace_model_endpoint
 - [ ] start_automated_reasoning_policy_build_workflow
 - [ ] start_automated_reasoning_policy_test_workflow
+- [ ] start_trusted_access_program_account_application
+- [ ] start_trusted_access_program_organization_application
+- [ ] start_trusted_access_program_project_application
 - [ ] stop_advanced_prompt_optimization_job
 - [ ] stop_evaluation_job
 - [X] stop_model_customization_job
@@ -127,5 +151,6 @@ The foundation_model_arn_equals-argument is not yet supported
 - [ ] update_custom_model_deployment
 - [ ] update_guardrail
 - [ ] update_marketplace_model_endpoint
+- [ ] update_project
 - [ ] update_provisioned_model_throughput
 

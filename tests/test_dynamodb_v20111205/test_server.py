@@ -32,8 +32,11 @@ def test_404(test_client):
 
 
 def test_table_list(test_client):
-    headers = {"X-Amz-Target": "TestTable.ListTables"}
-    res = test_client.get("/", headers=headers)
+    headers = {
+        "X-Amz-Target": "DynamoDB_20111205.ListTables",
+        "Content-Type": "application/x-amz-json-1.0",
+    }
+    res = test_client.post("/", headers=headers)
     assert json.loads(res.data) == {"TableNames": []}
 
 
@@ -54,8 +57,11 @@ def test_create_table(test_client):
         "TableSizeBytes": 0,
     }
 
-    headers = {"X-Amz-Target": "TestTable.ListTables"}
-    res = test_client.get("/", headers=headers)
+    headers = {
+        "X-Amz-Target": "DynamoDB_20111205.ListTables",
+        "Content-Type": "application/x-amz-json-1.0",
+    }
+    res = test_client.post("/", headers=headers)
     res = json.loads(res.data)
     assert res == {"TableNames": [TABLE_WITH_RANGE_NAME]}
 
@@ -76,8 +82,11 @@ def test_create_table_without_range_key(test_client):
         "TableSizeBytes": 0,
     }
 
-    headers = {"X-Amz-Target": "TestTable.ListTables"}
-    res = test_client.get("/", headers=headers)
+    headers = {
+        "X-Amz-Target": "DynamoDB_20111205.ListTables",
+        "Content-Type": "application/x-amz-json-1.0",
+    }
+    res = test_client.post("/", headers=headers)
     res = json.loads(res.data)
     assert res == {"TableNames": [TABLE_NAME]}
 
@@ -87,8 +96,11 @@ def test_create_table_in_different_regions(test_client):
     create_table(test_client)
     create_table(test_client, name="Table2", region="us-west-2")
 
-    headers = {"X-Amz-Target": "TestTable.ListTables"}
-    res = test_client.get("/", headers=headers)
+    headers = {
+        "X-Amz-Target": "DynamoDB_20111205.ListTables",
+        "Content-Type": "application/x-amz-json-1.0",
+    }
+    res = test_client.post("/", headers=headers)
     res = json.loads(res.data)
     assert res == {"TableNames": [TABLE_WITH_RANGE_NAME, "Table2"]}
 
@@ -179,18 +191,27 @@ def test_update_item(test_client):
 def test_delete_table(use_range_key, test_client):
     create_table(test_client, use_range_key=use_range_key)
 
-    headers = {"X-Amz-Target": "DynamoDB_20111205.DeleteTable"}
+    headers = {
+        "X-Amz-Target": "DynamoDB_20111205.DeleteTable",
+        "Content-Type": "application/x-amz-json-1.0",
+    }
     name = TABLE_WITH_RANGE_NAME if use_range_key else TABLE_NAME
     test_client.post("/", headers=headers, json={"TableName": name})
 
-    headers = {"X-Amz-Target": "DynamoDB_20111205.ListTables"}
+    headers = {
+        "X-Amz-Target": "DynamoDB_20111205.ListTables",
+        "Content-Type": "application/x-amz-json-1.0",
+    }
     res = test_client.post("/", headers=headers)
     res = json.loads(res.data)
     assert res == {"TableNames": []}
 
 
 def test_delete_unknown_table(test_client):
-    headers = {"X-Amz-Target": "DynamoDB_20111205.DeleteTable"}
+    headers = {
+        "X-Amz-Target": "DynamoDB_20111205.DeleteTable",
+        "Content-Type": "application/x-amz-json-1.0",
+    }
     res = test_client.post("/", headers=headers, json={"TableName": "unknown_table"})
     assert res.status_code == 400
 
@@ -1032,7 +1053,10 @@ def test_update_item_that_doesnt_exist(test_client):
     create_table(test_client)
 
     # UpdateItem
-    headers = {"X-Amz-Target": "DynamoDB_20111205.UpdateItem"}
+    headers = {
+        "X-Amz-Target": "DynamoDB_20111205.UpdateItem",
+        "Content-Type": "application/x-amz-json-1.0",
+    }
     request_body = {
         "TableName": "Table1",
         "Key": {
@@ -1117,7 +1141,10 @@ def test_delete_unknown_item(test_client):
 
 def test_update_item_in_nonexisting_table(test_client):
     # UpdateItem
-    headers = {"X-Amz-Target": "DynamoDB_20111205.UpdateItem"}
+    headers = {
+        "X-Amz-Target": "DynamoDB_20111205.UpdateItem",
+        "Content-Type": "application/x-amz-json-1.0",
+    }
     request_body = {
         "TableName": "nonexistent",
         "Key": {

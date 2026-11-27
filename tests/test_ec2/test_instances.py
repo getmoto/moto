@@ -737,19 +737,23 @@ def test_get_instances_filtering_by_dns_name():
     )
     instance2 = reservation2[0]
 
+    # Public IPs are drawn from a small random pool, so in ServerMode (shared state)
+    # an instance from another test may share a DNS name with ours
     res1 = client.describe_instances(
         Filters=[{"Name": "dns-name", "Values": [instance1.public_dns_name]}]
     )["Reservations"]
-    assert len(res1) == 1
-    assert len(res1[0]["Instances"]) == 1
-    assert res1[0]["Instances"][0]["InstanceId"] == instance1.id
+    instance_ids = [i["InstanceId"] for r in res1 for i in r["Instances"]]
+    assert instance1.id in instance_ids
+    if instance1.public_dns_name != instance2.public_dns_name:
+        assert instance2.id not in instance_ids
 
     res2 = client.describe_instances(
         Filters=[{"Name": "dns-name", "Values": [instance2.public_dns_name]}]
     )["Reservations"]
-    assert len(res2) == 1
-    assert len(res2[0]["Instances"]) == 1
-    assert res2[0]["Instances"][0]["InstanceId"] == instance2.id
+    instance_ids = [i["InstanceId"] for r in res2 for i in r["Instances"]]
+    assert instance2.id in instance_ids
+    if instance1.public_dns_name != instance2.public_dns_name:
+        assert instance1.id not in instance_ids
 
 
 @mock_aws

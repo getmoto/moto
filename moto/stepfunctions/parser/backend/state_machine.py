@@ -4,7 +4,7 @@ import abc
 import datetime
 import json
 from collections import OrderedDict
-from typing import Final, Optional
+from typing import Final
 
 from moto.stepfunctions.parser.api import (
     Arn,
@@ -54,9 +54,7 @@ class StateMachineInstance:
         definition: Definition,
         role_arn: Arn,
         logging_config: LoggingConfiguration,
-        cloud_watch_logging_configuration: Optional[
-            CloudWatchLoggingConfiguration
-        ] = None,
+        cloud_watch_logging_configuration: CloudWatchLoggingConfiguration | None = None,
         create_date: datetime.datetime | None = None,
         sm_type: StateMachineType | None = None,
         tags: TagList | None = None,

@@ -10,6 +10,12 @@ class TimestreamWriteResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="timestream-write")
 
+    def _get_action(self) -> str:
+        # Timestream Write/Query are combined in Moto, which breaks routing.
+        target = self.normalized_request.headers.get("X-Amz-Target", "")
+        # We ignore the Target's service and just return the Operation name.
+        return target.split(".")[-1]
+
     @property
     def timestreamquery_backend(self) -> TimestreamQueryBackend:
         return timestreamquery_backends[self.current_account][self.region]

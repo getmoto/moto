@@ -15,8 +15,8 @@ def test_passthrough_requests() -> None:
     conn = boto3.client("sqs", region_name="us-west-1")
     conn.create_queue(QueueName="queue1")
 
-    res = requests.get("https://google.com/")
-    assert res.status_code < 400
+    res = requests.get("https://connectivitycheck.gstatic.com/generate_204")
+    assert res.status_code == 204
 
 
 if not settings.TEST_SERVER_MODE:

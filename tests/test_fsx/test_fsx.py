@@ -75,6 +75,27 @@ def test_describe_filesystems_does_not_exist():
     assert len(file_systems) == 0
 
 
+def test_describe_filesystems_pagination(client):
+    created_ids = {
+        client.create_file_system(
+            FileSystemType="LUSTRE",
+            StorageCapacity=1200,
+            StorageType="SSD",
+            SubnetIds=[FAKE_SUBNET_ID],
+            SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+        )["FileSystem"]["FileSystemId"]
+        for _ in range(51)
+    }
+
+    paginator = client.get_paginator("describe_file_systems")
+    listed_ids = {
+        fs["FileSystemId"]
+        for page in paginator.paginate()
+        for fs in page["FileSystems"]
+    }
+    assert created_ids <= listed_ids
+
+
 @mock_aws
 def test_delete_file_system():
     client = boto3.client("fsx", region_name=TEST_REGION_NAME)
@@ -196,6 +217,26 @@ def test_describe_backups():
     assert len(backups) == 2
     assert "BackupId" in backups[0]
     assert ":backup/" in backups[0]["ResourceARN"]
+
+
+def test_describe_backups_pagination(client):
+    fs_id = client.create_file_system(
+        FileSystemType="LUSTRE",
+        StorageCapacity=1200,
+        StorageType="SSD",
+        SubnetIds=[FAKE_SUBNET_ID],
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+    )["FileSystem"]["FileSystemId"]
+    created_ids = {
+        client.create_backup(FileSystemId=fs_id)["Backup"]["BackupId"]
+        for _ in range(51)
+    }
+
+    paginator = client.get_paginator("describe_backups")
+    listed_ids = {
+        b["BackupId"] for page in paginator.paginate() for b in page["Backups"]
+    }
+    assert created_ids <= listed_ids
 
 
 @mock_aws

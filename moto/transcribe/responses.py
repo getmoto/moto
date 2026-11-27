@@ -6,6 +6,7 @@ from .models import TranscribeBackend, transcribe_backends
 class TranscribeResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="transcribe")
+        self.automated_parameter_parsing = True
 
     @property
     def transcribe_backend(self) -> TranscribeBackend:
@@ -26,8 +27,10 @@ class TranscribeResponse(BaseResponse):
             model_settings=self._get_param("ModelSettings"),
             job_execution_settings=self._get_param("JobExecutionSettings"),
             content_redaction=self._get_param("ContentRedaction"),
-            identify_language=self._get_param("IdentifyLanguage"),
-            identify_multiple_languages=self._get_param("IdentifyMultipleLanguages"),
+            identify_language=self._get_bool_param("IdentifyLanguage"),
+            identify_multiple_languages=self._get_bool_param(
+                "IdentifyMultipleLanguages"
+            ),
             language_options=self._get_param("LanguageOptions"),
             subtitles=self._get_param("Subtitles"),
         )

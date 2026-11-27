@@ -28,6 +28,8 @@ bedrock-agent
 - [X] create_knowledge_base
 - [ ] create_prompt
 - [ ] create_prompt_version
+- [ ] create_retrieval_instruction
+- [ ] create_retrieval_instruction_version
 - [ ] create_vpc_configuration
 - [X] delete_agent
 - [ ] delete_agent_action_group
@@ -41,6 +43,7 @@ bedrock-agent
 - [ ] delete_knowledge_base_documents
 - [ ] delete_prompt
 - [ ] delete_resource_policy
+- [ ] delete_retrieval_instruction
 - [ ] delete_vpc_configuration
 - [ ] disassociate_agent_collaborator
 - [ ] disassociate_agent_knowledge_base
@@ -59,6 +62,7 @@ bedrock-agent
 - [ ] get_knowledge_base_documents
 - [ ] get_prompt
 - [ ] get_resource_policy
+- [ ] get_retrieval_instruction
 - [ ] get_vpc_configuration
 - [ ] ingest_knowledge_base_documents
 - [ ] list_agent_action_groups
@@ -75,6 +79,8 @@ bedrock-agent
 - [ ] list_knowledge_base_documents
 - [X] list_knowledge_bases
 - [ ] list_prompts
+- [ ] list_retrieval_instruction_versions
+- [ ] list_retrieval_instructions
 - [X] list_tags_for_resource
 - [ ] list_vpc_configurations
 - [ ] prepare_agent
@@ -94,5 +100,6 @@ bedrock-agent
 - [ ] update_flow_alias
 - [ ] update_knowledge_base
 - [ ] update_prompt
+- [ ] update_retrieval_instruction
 - [ ] validate_flow_definition
 

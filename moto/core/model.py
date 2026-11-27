@@ -21,7 +21,9 @@ which may change over time.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any, cast
+from urllib.parse import parse_qsl
 
 from botocore.model import ListShape as BotocoreListShape
 from botocore.model import MapShape as BotocoreMapShape
@@ -80,6 +82,28 @@ class StructureShape(BotocoreStructureShape, Shape):
         aliases = error_metadata.get("codeAliases", [])
         return aliases
 
+    def _required_members_by_location(self, location: str) -> list[Shape]:
+        members = []
+        for required_member in self.required_members:
+            member = self.members.get(required_member)
+            if member and member.serialization.get("location") == location:
+                members.append(member)
+        return members
+
+    @CachedProperty
+    def required_query_args(self) -> list[str]:
+        return [
+            shape.serialization.get("name", shape.name)
+            for shape in self._required_members_by_location("querystring")
+        ]
+
+    @CachedProperty
+    def required_headers(self) -> list[str]:
+        return [
+            shape.serialization.get("name", shape.name)
+            for shape in self._required_members_by_location("header")
+        ]
+
 
 class ServiceModel(BotocoreServiceModel):
     def __init__(
@@ -100,6 +124,29 @@ class ServiceModel(BotocoreServiceModel):
         return "awsQueryCompatible" in self.metadata
 
 
+@dataclass
+class HTTPTrait:
+    uri: str
+    method: str
+    path: str
+    query_args: dict[str, Any]
+
+    @classmethod
+    def from_model(cls, http: dict[str, Any]) -> HTTPTrait:
+        uri = http.get("requestUri", "/")
+        method = http.get("method", "POST")
+        path = uri
+        query_args: dict[str, Any] = {}
+        # Smithy requestUris can contain mandatory query string literals:
+        # https://smithy.io/2.0/spec/http-bindings.html#query-string-literals
+        if "?" in uri:
+            path, qs = uri.split("?", 1)
+            parsed_qs = parse_qsl(qs, keep_blank_values=True)
+            query_args = dict(parsed_qs)
+
+        return cls(uri, method, path, query_args)
+
+
 class OperationModel(BotocoreOperationModel):
     _operation_model: dict[str, Any]
     _service_model: ServiceModel
@@ -107,6 +154,10 @@ class OperationModel(BotocoreOperationModel):
     @property
     def service_model(self) -> ServiceModel:
         return self._service_model
+
+    @CachedProperty
+    def http_trait(self) -> HTTPTrait:
+        return HTTPTrait.from_model(self.http)
 
 
 class ShapeResolver(BotocoreShapeResolver):

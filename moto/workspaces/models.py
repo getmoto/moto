@@ -1,13 +1,13 @@
 """WorkSpacesBackend class with methods for supported APIs."""
 
 import re
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
-from moto.core.utils import unix_time
+from moto.core.utils import utcnow
 from moto.ds import ds_backends
 from moto.ds.models import Directory
 from moto.ec2 import ec2_backends
@@ -41,12 +41,12 @@ class Workspace(BaseModel):
         self.state = "AVAILABLE"
         self.error_message = error_msg or ""
         self.error_code = error_code or ""
-        self.volume_encryption_key = workspace.get("VolumeEncryptionKey", "")
-        self.user_volume_encryption_enabled = workspace.get(
-            "UserVolumeEncryptionEnabled", ""
+        self.volume_encryption_key = workspace.get("VolumeEncryptionKey")
+        self.user_volume_encryption_enabled: bool | None = workspace.get(
+            "UserVolumeEncryptionEnabled"
         )
-        self.root_volume_encryption_enabled = workspace.get(
-            "RootVolumeEncryptionEnabled", ""
+        self.root_volume_encryption_enabled: bool | None = workspace.get(
+            "RootVolumeEncryptionEnabled"
         )
         workspace_properties = {"RunningMode": running_mode}
         self.workspace_properties = workspace.get("WorkspaceProperties", "")
@@ -66,53 +66,6 @@ class Workspace(BaseModel):
         # The properties of the standby WorkSpace related to related_workspaces
         self.standby_workspaces_properties: list[dict[str, Any]] = []
         self.tags = workspace.get("Tags", [])
-
-    def to_dict_pending(self) -> dict[str, Any]:
-        dct = {
-            "WorkspaceId": self.workspace_id,
-            "DirectoryId": self.directory_id,
-            "UserName": self.user_name,
-            "IpAddress": "",  # UnKnown
-            "State": self.state,
-            "BundleId": self.bundle_id,
-            "SubnetId": "",  # UnKnown
-            "ErrorMessage": self.error_message,
-            "ErrorCode": self.error_code,
-            "ComputerName": self.computer_name,
-            "VolumeEncryptionKey": self.volume_encryption_key,
-            "UserVolumeEncryptionEnabled": self.user_volume_encryption_enabled,
-            "RootVolumeEncryptionEnabled": self.root_volume_encryption_enabled,
-            "WorkspaceProperties": self.workspace_properties,
-            "ModificationStates": self.modification_states,
-            "RelatedWorkspaces": self.related_workspaces,
-            "DataReplicationSettings": self.data_replication_settings,
-            "StandbyWorkspacesProperties": self.standby_workspaces_properties,
-        }
-        return {k: v for k, v in dct.items() if v}
-
-    def filter_empty_values(self, d: dict[str, Any]) -> dict[str, Any]:
-        if isinstance(d, Mapping):
-            return {k: self.filter_empty_values(v) for k, v in d.items() if v}
-        else:
-            return d
-
-    def to_dict_failed(self) -> dict[str, Any]:
-        dct = {
-            "WorkspaceRequest": {
-                "DirectoryId": self.workspace["DirectoryId"],
-                "UserName": self.workspace["UserName"],
-                "BundleId": self.workspace["BundleId"],
-                "SubnetId": "",  # UnKnown
-                "VolumeEncryptionKey": self.volume_encryption_key,
-                "UserVolumeEncryptionEnabled": self.user_volume_encryption_enabled,
-                "RootVolumeEncryptionEnabled": self.root_volume_encryption_enabled,
-                "WorkspaceProperties": self.workspace_properties,
-                "Tags": self.tags,
-            },
-            "ErrorCode": self.error_code,
-            "ErrorMessage": self.error_message,
-        }
-        return self.filter_empty_values(dct)
 
 
 class WorkSpaceDirectory(BaseModel):
@@ -166,7 +119,7 @@ class WorkSpaceDirectory(BaseModel):
         }
         # modify creation properites
         self.workspace_creation_properties = workspace_creation_properties
-        self.ip_group_ids = ""  # create_ip_group
+        self.ip_group_ids: list[str] = []  # create_ip_group
         # Default values for workspace access properties
         workspace_access_properties = {
             "DeviceTypeWindows": (
@@ -224,29 +177,6 @@ class WorkSpaceDirectory(BaseModel):
             group_id=self.workspace_security_group_id
         )
 
-    def to_dict(self) -> dict[str, Any]:
-        dct = {
-            "DirectoryId": self.directory_id,
-            "Alias": self.alias,
-            "DirectoryName": self.directory_name,
-            "RegistrationCode": self.registration_code,
-            "SubnetIds": self.subnet_ids,
-            "DnsIpAddresses": self.dns_ip_addresses,
-            "CustomerUserName": self.customer_username,
-            "IamRoleId": self.iam_rold_id,
-            "DirectoryType": self.directory_type,
-            "WorkspaceSecurityGroupId": self.workspace_security_group_id,
-            "State": self.state,
-            "WorkspaceCreationProperties": self.workspace_creation_properties,
-            "ipGroupIds": self.ip_group_ids,
-            "WorkspaceAccessProperties": self.workspace_access_properties,
-            "Tenancy": self.tenancy,
-            "SelfservicePermissions": self.self_service_permissions,
-            "SamlProperties": self.saml_properties,
-            "CertificateBasedAuthProperties": self.certificate_based_auth_properties,
-        }
-        return {k: v for k, v in dct.items() if v}
-
 
 class WorkspaceImage(BaseModel):
     def __init__(
@@ -264,7 +194,7 @@ class WorkspaceImage(BaseModel):
         # this operation is being mocked.
         self.state = "AVAILABLE"
         self.required_tenancy = "DEFAULT"
-        self.created = unix_time()
+        self.created = utcnow()
         self.owner_account = account_id
         self.error_code = ""
         self.error_message = ""
@@ -277,32 +207,6 @@ class WorkspaceImage(BaseModel):
             "Description": "This WorkSpace image does not have updates available",
         }
         self.error_details: list[dict[str, str]] = []
-
-    def to_dict(self) -> dict[str, Any]:
-        dct = {
-            "ImageId": self.image_id,
-            "Name": self.name,
-            "Description": self.description,
-            "OperatingSystem": self.operating_system,
-            "State": self.state,
-            "RequiredTenancy": self.required_tenancy,
-            "Created": self.created,
-            "OwnerAccountId": self.owner_account,
-        }
-        return {k: v for k, v in dct.items() if v}
-
-    def to_desc_dict(self) -> dict[str, Any]:
-        dct = self.to_dict()
-        dct_options = {
-            "ErrorCode": self.error_code,
-            "ErrorMessage": self.error_message,
-            "Updates": self.updates,
-            "ErrorDetails": self.error_details,
-        }
-        for key, value in dct_options.items():
-            if value is not None:
-                dct[key] = value
-        return dct
 
 
 class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
@@ -345,7 +249,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
 
     def create_workspaces(
         self, workspaces: list[dict[str, Any]]
-    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    ) -> tuple[list[Workspace], list[Workspace]]:
         failed_requests = []
         pending_requests = []
 
@@ -385,9 +289,9 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
                 error_msg=error_msg,
             )
             if error_code:
-                failed_requests.append(workspace.to_dict_failed())
+                failed_requests.append(workspace)
             else:
-                pending_requests.append(workspace.to_dict_pending())
+                pending_requests.append(workspace)
                 self.workspaces[workspace.workspace_id] = workspace
 
         return failed_requests, pending_requests
@@ -428,7 +332,6 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
             ]
         if bundle_id:
             workspaces = [x for x in workspaces if x.bundle_id == bundle_id]
-        # workspaces = [w.to_dict_pending() for w in workspaces]
         return workspaces
 
     def terminate_workspaces(
@@ -564,7 +467,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
 
     def create_workspace_image(
         self, name: str, description: str, workspace_id: str, tags: list[dict[str, str]]
-    ) -> dict[str, Any]:
+    ) -> WorkspaceImage:
         # Check if workspace exists.
         if workspace_id not in self.workspaces:
             raise ResourceNotFoundException(
@@ -583,11 +486,11 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
             account_id=self.account_id,
         )
         self.workspace_images[workspace_image.image_id] = workspace_image
-        return workspace_image.to_dict()
+        return workspace_image
 
     def describe_workspace_images(
         self, image_ids: list[str] | None, image_type: str | None
-    ) -> list[dict[str, Any]]:
+    ) -> list[WorkspaceImage]:
         # Pagination not yet implemented
         workspace_images = list(self.workspace_images.values())
         if image_type == "OWNED":
@@ -600,7 +503,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
             ]
         if image_ids:
             workspace_images = [i for i in workspace_images if i.image_id in image_ids]
-        return [w.to_desc_dict() for w in workspace_images]
+        return workspace_images
 
     def update_workspace_image_permission(
         self, image_id: str, allow_copy_image: bool, shared_account_id: str

@@ -67,12 +67,12 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         try:
             AmazonStateLanguageParser.parse(definition)
         except ASLParserException as asl_parser_exception:
-            raise InvalidDefinition(message=repr(asl_parser_exception))
+            raise InvalidDefinition(repr(asl_parser_exception))
         except Exception as exception:
             exception_name = exception.__class__.__name__
             exception_args = list(exception.args)
             raise InvalidDefinition(
-                message=f"Error={exception_name} Args={exception_args} in definition '{definition}'."
+                f"Error={exception_name} Args={exception_args} in definition '{definition}'."
             )
 
     def create_state_machine(
@@ -86,6 +86,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         tracingConfiguration: TracingConfiguration | None = None,
         encryptionConfiguration: EncryptionConfiguration | None = None,
         version_description: str | None = None,
+        sm_type: str | None = None,
     ) -> StateMachine:
         StepFunctionsParserBackend._validate_definition(definition=definition)
 
@@ -99,6 +100,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
             tracingConfiguration=tracingConfiguration,
             encryptionConfiguration=encryptionConfiguration,
             version_description=version_description,
+            sm_type=sm_type,
         )
 
     def send_task_heartbeat(self, task_token: TaskToken) -> SendTaskHeartbeatOutput:

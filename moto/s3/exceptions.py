@@ -376,6 +376,15 @@ class InvalidRange(S3ClientError):
         self.actual_object_size = actual_size
 
 
+class InvalidPartNumber(S3ClientError):
+    code = "InvalidPartNumber"
+
+    def __init__(self, part_number_requested: int, actual_part_count: int):
+        super().__init__("The requested partnumber is not satisfiable")
+        self.part_number_requested = part_number_requested
+        self.actual_part_count = actual_part_count
+
+
 class RangeNotSatisfiable(RequestedRangeNotSatisfiable):
     def __init__(self) -> None:
         super().__init__(description="Requested Range Not Satisfiable")

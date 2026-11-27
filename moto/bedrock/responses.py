@@ -1,7 +1,6 @@
 """Handles incoming bedrock requests, invokes methods, returns responses."""
 
 import json
-from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 
@@ -13,6 +12,7 @@ class BedrockResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="bedrock")
+        self.automated_parameter_parsing = True
 
     @property
     def bedrock_backend(self) -> BedrockBackend:
@@ -20,21 +20,20 @@ class BedrockResponse(BaseResponse):
         return bedrock_backends[self.current_account][self.region]
 
     def create_model_customization_job(self) -> str:
-        params = json.loads(self.body)
-        job_name = params.get("jobName")
-        custom_model_name = params.get("customModelName")
-        role_arn = params.get("roleArn")
-        client_request_token = params.get("clientRequestToken")
-        base_model_identifier = params.get("baseModelIdentifier")
-        customization_type = params.get("customizationType")
-        custom_model_kms_key_id = params.get("customModelKmsKeyId")
-        job_tags = params.get("jobTags")
-        custom_model_tags = params.get("customModelTags")
-        training_data_config = params.get("trainingDataConfig")
-        validation_data_config = params.get("validationDataConfig")
-        output_data_config = params.get("outputDataConfig")
-        hyper_parameters = params.get("hyperParameters")
-        vpc_config = params.get("vpcConfig")
+        job_name = self._get_param("jobName")
+        custom_model_name = self._get_param("customModelName")
+        role_arn = self._get_param("roleArn")
+        client_request_token = self._get_param("clientRequestToken")
+        base_model_identifier = self._get_param("baseModelIdentifier")
+        customization_type = self._get_param("customizationType")
+        custom_model_kms_key_id = self._get_param("customModelKmsKeyId")
+        job_tags = self._get_param("jobTags")
+        custom_model_tags = self._get_param("customModelTags")
+        training_data_config = self._get_param("trainingDataConfig")
+        validation_data_config = self._get_param("validationDataConfig")
+        output_data_config = self._get_param("outputDataConfig")
+        hyper_parameters = self._get_param("hyperParameters")
+        vpc_config = self._get_param("vpcConfig")
         job_arn = self.bedrock_backend.create_model_customization_job(
             job_name=job_name,
             custom_model_name=custom_model_name,
@@ -54,7 +53,7 @@ class BedrockResponse(BaseResponse):
         return json.dumps({"jobArn": job_arn})
 
     def get_model_customization_job(self) -> str:
-        job_identifier = self.path.split("/")[-1]
+        job_identifier = self._get_param("jobIdentifier")
         model_customization_job = self.bedrock_backend.get_model_customization_job(
             job_identifier=job_identifier
         )
@@ -67,17 +66,15 @@ class BedrockResponse(BaseResponse):
         return json.dumps({"loggingConfig": logging_config})
 
     def put_model_invocation_logging_configuration(self) -> None:
-        params = json.loads(self.body)
-        logging_config = params.get("loggingConfig")
+        logging_config = self._get_param("loggingConfig")
         self.bedrock_backend.put_model_invocation_logging_configuration(
             logging_config=logging_config
         )
         return
 
     def tag_resource(self) -> None:
-        params = json.loads(self.body)
-        resource_arn = params.get("resourceARN")
-        tags = params.get("tags")
+        resource_arn = self._get_param("resourceARN")
+        tags = self._get_param("tags")
         self.bedrock_backend.tag_resource(
             resource_arn=resource_arn,
             tags=tags,
@@ -85,9 +82,8 @@ class BedrockResponse(BaseResponse):
         return
 
     def untag_resource(self) -> str:
-        params = json.loads(self.body)
-        resource_arn = params.get("resourceARN")
-        tag_keys = params.get("tagKeys")
+        resource_arn = self._get_param("resourceARN")
+        tag_keys = self._get_param("tagKeys")
         self.bedrock_backend.untag_resource(
             resource_arn=resource_arn,
             tag_keys=tag_keys,
@@ -95,33 +91,30 @@ class BedrockResponse(BaseResponse):
         return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
-        params = json.loads(self.body)
-        resource_arn = params.get("resourceARN")
+        resource_arn = self._get_param("resourceARN")
         tags = self.bedrock_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
         return json.dumps({"tags": tags})
 
     def get_custom_model(self) -> str:
-        model_identifier = unquote(self.path.split("/")[-1])
+        model_identifier = self._get_param("modelIdentifier")
         custom_model = self.bedrock_backend.get_custom_model(
             model_identifier=model_identifier
         )
         return json.dumps(dict(custom_model.to_dict()))
 
     def list_custom_models(self) -> str:
-        params = self._get_params()
-        creation_time_before = params.get("creationTimeBefore")
-        creation_time_after = params.get("creationTimeAfter")
-        name_contains = params.get("nameContains")
-        base_model_arn_equals = params.get("baseModelArnEquals")
-        foundation_model_arn_equals = params.get("foundationModelArnEquals")
-        max_results = params.get("maxResults")
-        next_token = params.get("nextToken")
-        sort_by = params.get("sortBy")
-        sort_order = params.get("sortOrder")
+        creation_time_before = self._get_param("creationTimeBefore")
+        creation_time_after = self._get_param("creationTimeAfter")
+        name_contains = self._get_param("nameContains")
+        base_model_arn_equals = self._get_param("baseModelArnEquals")
+        foundation_model_arn_equals = self._get_param("foundationModelArnEquals")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        sort_by = self._get_param("sortBy")
+        sort_order = self._get_param("sortOrder")
 
-        max_results = int(max_results) if max_results else None
         model_summaries, next_token = self.bedrock_backend.list_custom_models(
             creation_time_before=creation_time_before,
             creation_time_after=creation_time_after,
@@ -148,15 +141,14 @@ class BedrockResponse(BaseResponse):
         return json.dumps({"nextToken": next_token, "modelSummaries": summaries})
 
     def list_model_customization_jobs(self) -> str:
-        params = self._get_params()
-        creation_time_after = params.get("creationTimeAfter")
-        creation_time_before = params.get("creationTimeBefore")
-        status_equals = params.get("statusEquals")
-        name_contains = params.get("nameContains")
+        creation_time_after = self._get_param("creationTimeAfter")
+        creation_time_before = self._get_param("creationTimeBefore")
+        status_equals = self._get_param("statusEquals")
+        name_contains = self._get_param("nameContains")
         max_results = self._get_int_param("maxResults")
-        next_token = params.get("nextToken")
-        sort_by = params.get("sortBy")
-        sort_order = params.get("sortOrder")
+        next_token = self._get_param("nextToken")
+        sort_by = self._get_param("sortBy")
+        sort_order = self._get_param("sortOrder")
 
         jobs, next_token = self.bedrock_backend.list_model_customization_jobs(
             creation_time_after=creation_time_after,
@@ -191,14 +183,14 @@ class BedrockResponse(BaseResponse):
         )
 
     def delete_custom_model(self) -> str:
-        model_identifier = self.path.split("/")[-1]
+        model_identifier = self._get_param("modelIdentifier")
         self.bedrock_backend.delete_custom_model(
             model_identifier=model_identifier,
         )
         return json.dumps({})
 
     def stop_model_customization_job(self) -> str:
-        job_identifier = self.path.split("/")[-2]
+        job_identifier = self._get_param("jobIdentifier")
         self.bedrock_backend.stop_model_customization_job(
             job_identifier=job_identifier,
         )

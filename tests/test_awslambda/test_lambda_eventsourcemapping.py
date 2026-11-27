@@ -1,3 +1,5 @@
+import ast
+import base64
 import json
 import sys
 import time
@@ -18,6 +20,7 @@ from .utilities import (
     get_role_name,
     get_test_zip_file3,
     get_test_zip_file_error,
+    get_test_zip_file_print_event,
     wait_for_log_msg,
 )
 
@@ -427,7 +430,7 @@ def test_invoke_function_from_kinesis():
         Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": get_test_zip_file3()},
+        Code={"ZipFile": get_test_zip_file_print_event()},
     )
 
     conn.create_event_source_mapping(
@@ -436,7 +439,8 @@ def test_invoke_function_from_kinesis():
     )
 
     # Send Data
-    kinesis.put_record(StreamName=stream_name, Data="data", PartitionKey="1")
+    data = b"\x00binary\xffdata"
+    put_resp = kinesis.put_record(StreamName=stream_name, Data=data, PartitionKey="1")
 
     start = time.time()
     events = []
@@ -455,13 +459,26 @@ def test_invoke_function_from_kinesis():
             logStreamName=log_streams[0]["logStreamName"],
         )
         events = result.get("events")
-        for event in events:
-            if event["message"] == "get_test_zip_file3 success":
-                return
+        messages = [event["message"] for event in events]
+        if any("FINISHED_PRINTING_EVENT" in msg for msg in messages):
+            break
 
         time.sleep(0.5)
+    else:
+        raise AssertionError("Expected message not found in logs:" + str(events))
 
-    raise AssertionError("Expected message not found in logs:" + str(events))
+    # The Lambda prints the event it received as a Python dict
+    printed_event = next(msg for msg in messages if msg.startswith("{"))
+    records = ast.literal_eval(printed_event)["Records"]
+    assert len(records) == 1
+    record = records[0]
+    assert record["eventSource"] == "aws:kinesis"
+    assert record["eventSourceARN"] == kinesis_arn
+    assert record["eventID"] == f"{put_resp['ShardId']}:{put_resp['SequenceNumber']}"
+    assert record["kinesis"]["partitionKey"] == "1"
+    assert record["kinesis"]["sequenceNumber"] == put_resp["SequenceNumber"]
+    # Lambda receives the record data base64-encoded
+    assert base64.b64decode(record["kinesis"]["data"]) == data
 
 
 @mock_aws

@@ -128,7 +128,7 @@ def test_describe_completed_query():
     assert queries[0]["queryId"] == query_id
     assert queries[0]["queryString"] == "fields @message"
     assert queries[0]["status"] == "Complete"
-    assert queries[0]["createTime"]
+    assert isinstance(queries[0]["createTime"], int)
     assert queries[0]["logGroupName"] == "test"
 
     queries = client.describe_queries(logGroupName="test", status="Complete")["queries"]

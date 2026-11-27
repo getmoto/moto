@@ -10,6 +10,7 @@ import yaml
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
 
+from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
@@ -375,12 +376,22 @@ class StackInstances(BaseModel):
         regions: list[str],
         parameters: list[dict[str, Any]] | None,
     ) -> Any:
+        # AWS updates every (account, region) target independently within
+        # the batch - a missing target doesn't stop the rest of the batch
+        # from being updated, it just makes the overall operation raise
+        # once everything else has been processed. Raising immediately on
+        # the first missing target, instead, made the result depend on
+        # request-list ordering.
+        missing_target = False
         for account in accounts:
             for region in regions:
                 instance = self.get_instance(account, region)
                 if instance is None:
-                    raise StackInstanceNotFound()
+                    missing_target = True
+                    continue
                 instance.parameters = parameters or []
+        if missing_target:
+            raise StackInstanceNotFound()
 
     def delete(self, accounts: list[str], regions: list[str]) -> None:
         to_delete = [
@@ -513,9 +524,9 @@ class Stack(CloudFormationModel):
         parameters = [
             {
                 "ParameterKey": k,
-                "ParameterValue": v
-                if v not in self.resource_map.no_echo_parameter_keys
-                else "****",
+                "ParameterValue": (
+                    v if v not in self.resource_map.no_echo_parameter_keys else "****"
+                ),
             }
             for k, v in self.resource_map.resolved_parameters.items()
         ]
@@ -907,7 +918,9 @@ class CloudFormationBackend(BaseBackend, TaggableResourcesMixin):
             # We don't remove StackSets from the list - they still show up when calling list_stack_sets
             stackset_to_delete.delete()
 
-    def list_stack_sets(self) -> Iterable[StackSet]:
+    def list_stack_sets(self, status: str | None = None) -> Iterable[StackSet]:
+        if status:
+            return [s for s in self.stacksets.values() if s.status == status]
         return self.stacksets.values()
 
     def list_stack_set_operations(self, stackset_name: str) -> list[dict[str, Any]]:
@@ -1019,7 +1032,17 @@ class CloudFormationBackend(BaseBackend, TaggableResourcesMixin):
     ) -> Stack:
         """
         The functionality behind EnableTerminationProtection is not yet implemented.
+
+        The TemplateBody can be validated against the cfn-lint ruleset, the same
+        way the ValidateTemplate-action does. This is disabled by default, as
+        cfn-lint may reject templates that would otherwise deploy successfully.
+        Enable this validation by setting the environment variable
+        `MOTO_CFN_VALIDATE_TEMPLATE_ON_CREATE=true`
         """
+        if settings.CFN_VALIDATE_TEMPLATE_ON_CREATE:
+            cfn_lint = self.validate_template(template)
+            if cfn_lint:
+                raise ValidationError(message=cfn_lint[0].message)
         if name in [stack.name for stack in self.stacks.values()]:
             raise AlreadyExistsException(f"Stack {name} already exists")
         stack_id = generate_stack_id(name, self.region_name, self.account_id)
@@ -1284,9 +1307,9 @@ class CloudFormationBackend(BaseBackend, TaggableResourcesMixin):
 
     def list_stack_resources(
         self, stack_name_or_id: str
-    ) -> Iterable[type[CloudFormationModel]]:
+    ) -> tuple[Stack, Iterable[type[CloudFormationModel]]]:
         stack = self.get_stack(stack_name_or_id)
-        return stack.stack_resources
+        return stack, stack.stack_resources
 
     def delete_stack(self, name_or_stack_id: str) -> None:
         if name_or_stack_id in self.stacks:

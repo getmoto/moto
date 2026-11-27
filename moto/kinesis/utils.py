@@ -8,24 +8,6 @@ encode_method = base64.encodebytes
 decode_method = base64.decodebytes
 
 
-PAGINATION_MODEL = {
-    "list_shards": {
-        "input_token": "next_token",
-        "limit_key": "limit",
-        "limit_default": 10000,
-        "unique_attribute": "shard_id",
-        "fail_on_invalid_token": False,
-    },
-    "list_stream_consumers": {
-        "input_token": "next_token",
-        "limit_key": "limit",
-        "limit_default": 10000,
-        "unique_attribute": "consumer_arn",
-        "fail_on_invalid_token": False,
-    },
-}
-
-
 def compose_new_shard_iterator(
     stream_name: str | None,
     shard: Any,

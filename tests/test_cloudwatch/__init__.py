@@ -1,7 +1,16 @@
 import os
 from functools import wraps
 
+import pytest
+
 from moto import mock_aws
+from moto.core.utils import get_service_model
+
+requires_cloudwatch_cbor = pytest.mark.skipif(
+    "smithy-rpc-v2-cbor"
+    not in get_service_model("cloudwatch").metadata.get("protocols", []),
+    reason="This botocore version predates CloudWatch's smithy-rpc-v2-cbor support",
+)
 
 
 def cloudwatch_aws_verified(func):

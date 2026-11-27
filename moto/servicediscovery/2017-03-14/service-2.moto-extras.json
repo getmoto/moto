@@ -1,0 +1,14 @@
+{
+  "version": 1.0,
+  "merge": {
+    "shapes": {
+      "ConflictingDomainExists": {
+        "type": "structure",
+        "members": {
+          "Message": {"shape": "ErrorMessage"}
+        },
+        "exception": true
+      }
+    }
+  }
+}

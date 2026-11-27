@@ -1,0 +1,26 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "DescribeStream": {
+        "limit_default": 10000,
+        "fail_on_invalid_token": false
+      },
+      "ListShards": {
+        "limit_default": 10000,
+        "unique_attribute": "ShardId",
+        "fail_on_invalid_token": false
+      },
+      "ListStreamConsumers": {
+        "limit_default": 10000,
+        "unique_attribute": "ConsumerARN",
+        "fail_on_invalid_token": false
+      },
+      "ListStreams": {
+        "limit_default": 10,
+        "unique_attribute": "StreamName",
+        "fail_on_invalid_token": false
+      }
+    }
+  }
+}

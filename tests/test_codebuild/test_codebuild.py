@@ -387,6 +387,40 @@ def test_codebuild_start_build_with_overrides():
 
 
 @mock_aws
+def test_codebuild_list_builds_for_project_sort_order():
+    client = boto3.client("codebuild", region_name="eu-central-1")
+
+    name = "some_project"
+    client.create_project(
+        name=name,
+        source={"type": "S3", "location": "bucketname/path/file.zip"},
+        artifacts={"type": "NO_ARTIFACTS"},
+        environment={
+            "type": "LINUX_CONTAINER",
+            "image": "contents_not_validated",
+            "computeType": "BUILD_GENERAL1_SMALL",
+        },
+        serviceRole=f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role",
+    )
+    started = [client.start_build(projectName=name)["build"] for _ in range(3)]
+    assert [b["buildNumber"] for b in started] == [1, 2, 3]
+    started_ids = [b["id"] for b in started]
+
+    default = client.list_builds_for_project(projectName=name)["ids"]
+    assert default == started_ids[::-1]
+
+    descending = client.list_builds_for_project(
+        projectName=name, sortOrder="DESCENDING"
+    )["ids"]
+    assert descending == started_ids[::-1]
+
+    ascending = client.list_builds_for_project(projectName=name, sortOrder="ASCENDING")[
+        "ids"
+    ]
+    assert ascending == started_ids
+
+
+@mock_aws
 def test_codebuild_batch_get_builds_1_project():
     client = boto3.client("codebuild", region_name="eu-central-1")
 

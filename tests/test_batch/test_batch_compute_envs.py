@@ -15,7 +15,7 @@ def test_create_managed_compute_environment(use_arn_for_instance_role):
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     instance_role = (
-        iam_arn.replace("role", "instance-profile")
+        iam_arn.replace(":role/", ":instance-profile/")
         if use_arn_for_instance_role
         else iam_arn.split("/")[-1]
     )
@@ -67,7 +67,7 @@ def test_create_managed_compute_environment_with_tags(use_arn_for_instance_role)
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
     instance_role = (
-        iam_arn.replace("role", "instance-profile")
+        iam_arn.replace(":role/", ":instance-profile/")
         if use_arn_for_instance_role
         else iam_arn.split("/")[-1]
     )
@@ -143,7 +143,7 @@ def test_create_managed_compute_environment_with_instance_family():
             "subnets": [subnet_id],
             "securityGroupIds": [sg_id],
             "ec2KeyPair": "string",
-            "instanceRole": iam_arn.replace("role", "instance-profile"),
+            "instanceRole": iam_arn.replace(":role/", ":instance-profile/"),
             "tags": {"string": "string"},
             "bidPercentage": 123,
             "spotIamFleetRole": "string",
@@ -185,7 +185,7 @@ def test_create_managed_compute_environment_with_unknown_instance_type():
                 "subnets": [subnet_id],
                 "securityGroupIds": [sg_id],
                 "ec2KeyPair": "string",
-                "instanceRole": iam_arn.replace("role", "instance-profile"),
+                "instanceRole": iam_arn.replace(":role/", ":instance-profile/"),
                 "tags": {"string": "string"},
                 "bidPercentage": 123,
                 "spotIamFleetRole": "string",
@@ -311,7 +311,7 @@ def test_delete_managed_compute_environment():
             "subnets": [subnet_id],
             "securityGroupIds": [sg_id],
             "ec2KeyPair": "string",
-            "instanceRole": iam_arn.replace("role", "instance-profile"),
+            "instanceRole": iam_arn.replace(":role/", ":instance-profile/"),
             "tags": {"string": "string"},
             "bidPercentage": 123,
             "spotIamFleetRole": "string",
@@ -462,7 +462,7 @@ def test_create_ec2_managed_compute_environment__without_required_params():
                 "type": "EC2",
                 "maxvCpus": 1,
                 "subnets": [subnet_id],
-                "instanceRole": iam_arn.replace("role", "instance-profile"),
+                "instanceRole": iam_arn.replace(":role/", ":instance-profile/"),
             },
             serviceRole=iam_arn,
         )

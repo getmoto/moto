@@ -14,13 +14,17 @@ except ModuleNotFoundError:
 
 
 from botocore.awsrequest import AWSPreparedRequest
-from requests import PreparedRequest
 from werkzeug.datastructures import EnvironHeaders as WerkzeugEnvironHeaders
 from werkzeug.local import LocalProxy
 from werkzeug.wrappers import Request as WerkzeugRequest
 
 from moto.settings import MAX_FORM_MEMORY_SIZE
-from moto.utilities.constants import APPLICATION_JSON, JSON_TYPES
+from moto.utilities.constants import (
+    APPLICATION_CBOR,
+    APPLICATION_JSON,
+    JSON_TYPES,
+    SMITHY_PROTOCOL_RPC_V2_CBOR,
+)
 
 if TYPE_CHECKING:
     from moto.core.model import ServiceModel
@@ -140,32 +144,34 @@ class Request(WerkzeugRequest):
 
 
 def normalize_request(
-    request: AWSPreparedRequest | LocalProxy[Request] | PreparedRequest | Request,
+    request: AWSPreparedRequest | LocalProxy[Request] | Request,
 ) -> Request:
     """Turn however this request reached us into the one type the core acts on."""
     if isinstance(request, LocalProxy):
         request = request._get_current_object()
     if isinstance(request, Request):
         return request
-    if isinstance(request, (AWSPreparedRequest, PreparedRequest)):
-        assert request.method and request.url
+    if isinstance(request, AWSPreparedRequest):
         return Request.from_primitives(
             request.method, request.url, request.headers, request.body
         )
     raise TypeError(f"Cannot normalize request of type {type(request).__name__}")
 
 
-def determine_request_protocol(
-    service_model: ServiceModel, content_type: str | None = None
-) -> str:
+def determine_request_protocol(service_model: ServiceModel, request: Request) -> str:
     protocol = str(service_model.protocol)
     # Short circuit protocol detection for S3 because the ContentType header
     # is often set based on the MIME type of the object data being uploaded.
     if service_model.service_name == "s3":
         return protocol
     supported_protocols = service_model.metadata.get("protocols", [protocol])
-    content_type = content_type if content_type is not None else ""
-    if content_type in JSON_TYPES:
+    content_type = request.content_type or ""
+    if (
+        request.headers.get("smithy-protocol") == SMITHY_PROTOCOL_RPC_V2_CBOR
+        or content_type == APPLICATION_CBOR
+    ):
+        protocol = "smithy-rpc-v2-cbor"
+    elif content_type in JSON_TYPES:
         protocol = "rest-json" if content_type == APPLICATION_JSON else "json"
     elif content_type.startswith("application/x-www-form-urlencoded"):
         protocol = "ec2" if "ec2" in supported_protocols else "query"

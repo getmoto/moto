@@ -384,7 +384,7 @@ def test_put_subscription_filter_with_kinesis():
     )
 
     # Verify that Kinesis Stream has this data
-    nr_of_records = 0
+    records = []
     # We don't know to which shard it was send, so check all of them
     for shard in kinesis_datastream["Shards"]:
         shard_id = shard["ShardId"]
@@ -394,8 +394,14 @@ def test_put_subscription_filter_with_kinesis():
         )["ShardIterator"]
 
         resp = kinesis.get_records(ShardIterator=shard_iterator)
-        nr_of_records = nr_of_records + len(resp["Records"])
-    assert nr_of_records == 1
+        records.extend(resp["Records"])
+    assert len(records) == 1
+
+    # The record data is the gzipped log event payload
+    payload = json.loads(zlib.decompress(records[0]["Data"], 16 + zlib.MAX_WBITS))
+    assert payload["logGroup"] == "lg1"
+    assert payload["logStream"] == "ls1"
+    assert [e["message"] for e in payload["logEvents"]] == ["test", "test 2"]
 
 
 @mock_aws()

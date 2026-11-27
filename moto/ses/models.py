@@ -7,7 +7,7 @@ from email.encoders import encode_7or8bit
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr, getaddresses, parseaddr
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -196,7 +196,7 @@ class Contact(BaseModel):
         email_address: str,
         topic_preferences: list[dict[str, str]],
         unsubscribe_all: bool,
-        attributes_data: Optional[str],
+        attributes_data: str | None,
     ) -> None:
         self.contact_list_name = contact_list_name
         self.email_address = email_address
@@ -225,7 +225,7 @@ class ContactList(BaseModel):
     def __init__(
         self,
         contact_list_name: str,
-        description: Optional[str],
+        description: str | None,
         topics: list[dict[str, str]],
     ) -> None:
         self.contact_list_name = contact_list_name

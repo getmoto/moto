@@ -817,6 +817,21 @@ def test_bad_list_stack_resources():
 
 
 @mock_aws
+def test_list_stack_resources_returns_last_updated_timestamp():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
+    stack = cf.describe_stacks(StackName=TEST_STACK_NAME)["Stacks"][0]
+
+    summaries = cf.list_stack_resources(StackName=TEST_STACK_NAME)[
+        "StackResourceSummaries"
+    ]
+    assert len(summaries) == 1
+    timestamp = summaries[0]["LastUpdatedTimestamp"]
+    assert isinstance(timestamp, datetime)
+    assert timestamp >= stack["CreationTime"]
+
+
+@mock_aws
 def test_delete_stack_set_by_name():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
     cf.create_stack_set(StackSetName="teststackset", TemplateBody=dummy_template_json)
@@ -832,6 +847,22 @@ def test_delete_stack_set_by_name():
     err = exc.value.response["Error"]
     assert err["Code"] == "StackSetNotFoundException"
     assert err["Message"] == "StackSet teststackset not found"
+
+
+@mock_aws
+def test_list_stack_sets_filter_by_status():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack_set(StackSetName="kept", TemplateBody=dummy_template_json)
+    cf.create_stack_set(StackSetName="removed", TemplateBody=dummy_template_json)
+    cf.delete_stack_set(StackSetName="removed")
+
+    def names(**kwargs):
+        summaries = cf.list_stack_sets(**kwargs)["Summaries"]
+        return sorted(s["StackSetName"] for s in summaries)
+
+    assert names() == ["kept", "removed"]
+    assert names(Status="ACTIVE") == ["kept"]
+    assert names(Status="DELETED") == ["removed"]
 
 
 @mock_aws
@@ -1153,6 +1184,27 @@ def test_get_template_summary():
     assert result["ResourceTypes"] == ["AWS::EC2::Instance"]
     assert result["Version"] == "2010-09-09"
     assert result["Description"] == "Stack1 with yaml template"
+
+
+@mock_aws
+def test_get_template_summary_without_template_format_version():
+    conn = boto3.client("cloudformation", region_name=REGION_NAME)
+    template = {"Resources": {"Queue": {"Type": "AWS::SQS::Queue"}}}
+
+    result = conn.get_template_summary(TemplateBody=json.dumps(template))
+    assert result["ResourceTypes"] == ["AWS::SQS::Queue"]
+    assert "Version" not in result
+
+    result = conn.get_template_summary(
+        TemplateBody="Resources:\n  Queue:\n    Type: AWS::SQS::Queue\n"
+    )
+    assert result["ResourceTypes"] == ["AWS::SQS::Queue"]
+    assert "Version" not in result
+
+    conn.create_stack(StackName=TEST_STACK_NAME, TemplateBody=json.dumps(template))
+    result = conn.get_template_summary(StackName=TEST_STACK_NAME)
+    assert result["ResourceTypes"] == ["AWS::SQS::Queue"]
+    assert "Version" not in result
 
 
 @mock_aws
@@ -2984,3 +3036,42 @@ def test_update_missing_stack_instance_raises_exception():
     assert error["Code"] == "StackInstanceNotFoundException"
     metadata = exc.value.response["ResponseMetadata"]
     assert metadata["HTTPStatusCode"] == 404
+
+
+# https://github.com/getmoto/moto/issues/10173
+@mock_aws
+def test_update_stack_instances_updates_existing_targets_regardless_of_order():
+    cf = boto3.client("cloudformation", region_name="eu-west-1")
+    missing_account = "333333333333"
+    cf.create_stack_set(
+        StackSetName="demo",
+        TemplateBody='{"Resources": {}}',
+        PermissionModel="SELF_MANAGED",
+        Parameters=[{"ParameterKey": "Foo", "ParameterValue": "original"}],
+    )
+    # Only ACCOUNT_ID has an instance; missing_account does not.
+    cf.create_stack_instances(
+        StackSetName="demo", Accounts=[ACCOUNT_ID], Regions=["eu-west-1"]
+    )
+
+    # missing_account is ordered before ACCOUNT_ID in the request.
+    with pytest.raises(ClientError) as exc:
+        cf.update_stack_instances(
+            StackSetName="demo",
+            Accounts=[missing_account, ACCOUNT_ID],
+            Regions=["eu-west-1"],
+            ParameterOverrides=[{"ParameterKey": "Foo", "ParameterValue": "updated"}],
+        )
+    assert exc.value.response["Error"]["Code"] == "StackInstanceNotFoundException"
+
+    # ACCOUNT_ID's existing instance should still have been updated, despite
+    # being ordered after the missing target and despite the overall
+    # operation raising.
+    instance = cf.describe_stack_instance(
+        StackSetName="demo",
+        StackInstanceAccount=ACCOUNT_ID,
+        StackInstanceRegion="eu-west-1",
+    )["StackInstance"]
+    assert instance["ParameterOverrides"] == [
+        {"ParameterKey": "Foo", "ParameterValue": "updated"}
+    ]

@@ -312,12 +312,13 @@ def test_update_http_namespace():
 
     ns_id = client.list_namespaces()["Namespaces"][0]["Id"]
 
-    client.update_http_namespace(
+    resp = client.update_http_namespace(
         Id=ns_id,
         Namespace={
             "Description": "updated http",
         },
     )
+    assert "OperationId" in resp
 
     namespace = client.get_namespace(Id=ns_id)["Namespace"]
     assert namespace["Description"] == "updated http"

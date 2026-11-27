@@ -10,7 +10,8 @@ EXCEPTIONS = (URLError, socket.timeout, ConnectionResetError)
 
 start_ts = time.time()
 expected_port = os.environ.get("MOTO_PORT", "5000")
-expected_host = "http://localhost:{}/".format(expected_port)
+expected_path = os.environ.get("MOTO_PATH", "/")
+expected_host = "http://localhost:{}{}".format(expected_port, expected_path)
 print("Waiting for service to come up on {}".format(expected_host))
 while True:
     try:

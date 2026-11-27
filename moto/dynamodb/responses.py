@@ -192,7 +192,7 @@ def validate_select(
             f"1 validation error detected: Value '{select}' at 'select' failed to satisfy constraint: Member must satisfy enum value set: [{', '.join(SELECT_VALUES)}]"
         )
 
-    validation_prefix = "1 validation error detected: " if operation == "Query" else ""
+    validation_prefix = "1 validation error detected: "
 
     if select == "SPECIFIC_ATTRIBUTES" and not (
         projection_expression or attributes_to_get
@@ -1124,7 +1124,7 @@ class DynamoHandler(BaseResponse):
             and segment >= total_segments
         ):
             raise MockValidationException(
-                f"The Segment parameter is zero-based and must be less than parameter TotalSegments: Segment: {segment} is not less than TotalSegments: {total_segments}"
+                "The Segment parameter is zero-based and must be less than parameter TotalSegments"
             )
 
         validate_attributes_used(
@@ -1550,8 +1550,12 @@ class DynamoHandler(BaseResponse):
 
     def list_backups(self) -> ActionResult:
         body = self.body
-        table_name = body.get("TableName")
-        backups = self.dynamodb_backend.list_backups(table_name)
+        backups = self.dynamodb_backend.list_backups(
+            table_name=body.get("TableName"),
+            lower_bound=body.get("TimeRangeLowerBound"),
+            upper_bound=body.get("TimeRangeUpperBound"),
+            backup_type=body.get("BackupType"),
+        )
         response = {"BackupSummaries": [backup.summary for backup in backups]}
         return DynamoResult(response)
 

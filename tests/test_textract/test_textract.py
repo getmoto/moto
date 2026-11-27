@@ -24,13 +24,13 @@ def test_get_document_text_detection():
         {
             "Text": "This is a test",
             "Id": "0",
-            "Confidence": "100",
+            "Confidence": 100.0,
             "Geometry": {
                 "BoundingBox": {
-                    "Width": "0.5",
-                    "Height": "0.5",
-                    "Left": "0.5",
-                    "Top": "0.5",
+                    "Width": 0.5,
+                    "Height": 0.5,
+                    "Left": 0.5,
+                    "Top": 0.5,
                 },
             },
         }
@@ -45,11 +45,11 @@ def test_get_document_text_detection():
 
     assert resp["Blocks"][0]["Text"] == "This is a test"
     assert resp["Blocks"][0]["Id"] == "0"
-    assert resp["Blocks"][0]["Confidence"] == "100"
-    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Width"] == "0.5"
-    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Height"] == "0.5"
-    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Left"] == "0.5"
-    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Top"] == "0.5"
+    assert resp["Blocks"][0]["Confidence"] == 100.0
+    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Width"] == 0.5
+    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Height"] == 0.5
+    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Left"] == 0.5
+    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Top"] == 0.5
     assert resp["JobStatus"] == "SUCCEEDED"
     assert resp["DocumentMetadata"]["Pages"] == TextractBackend.PAGES
 
@@ -154,13 +154,13 @@ def test_get_document_analysis():
         {
             "Text": "This is a test",
             "Id": "0",
-            "Confidence": "100",
+            "Confidence": 100.0,
             "Geometry": {
                 "BoundingBox": {
-                    "Width": "0.5",
-                    "Height": "0.5",
-                    "Left": "0.5",
-                    "Top": "0.5",
+                    "Width": 0.5,
+                    "Height": 0.5,
+                    "Left": 0.5,
+                    "Top": 0.5,
                 },
             },
         }
@@ -176,11 +176,11 @@ def test_get_document_analysis():
 
     assert resp["Blocks"][0]["Text"] == "This is a test"
     assert resp["Blocks"][0]["Id"] == "0"
-    assert resp["Blocks"][0]["Confidence"] == "100"
-    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Width"] == "0.5"
-    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Height"] == "0.5"
-    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Left"] == "0.5"
-    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Top"] == "0.5"
+    assert resp["Blocks"][0]["Confidence"] == 100.0
+    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Width"] == 0.5
+    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Height"] == 0.5
+    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Left"] == 0.5
+    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Top"] == 0.5
     assert resp["JobStatus"] == "SUCCEEDED"
     assert resp["DocumentMetadata"]["Pages"] == TextractBackend.PAGES
 

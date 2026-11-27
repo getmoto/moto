@@ -108,7 +108,7 @@ def test_all_attributes_rejected_for_include_gsi(operation, table_name=None):
         ),
         (
             "scan",
-            "ALL_PROJECTED_ATTRIBUTES can be used only when Querying using an IndexName",
+            "1 validation error detected: ALL_PROJECTED_ATTRIBUTES can be used only when Querying using an IndexName",
         ),
     ],
 )
@@ -147,7 +147,7 @@ def test_all_projected_attributes_rejected_for_table(
         (
             "scan",
             (
-                "Must specify the AttributesToGet or ProjectionExpression when choosing "
+                "1 validation error detected: Must specify the AttributesToGet or ProjectionExpression when choosing "
                 "to get SPECIFIC_ATTRIBUTES"
             ),
         ),
@@ -183,12 +183,9 @@ def test_specific_attributes_requires_attribute_selection(
         ("COUNT", "only the Count"),
     ],
 )
-@pytest.mark.parametrize(
-    "operation, message_prefix",
-    [("query", "1 validation error detected: "), ("scan", "")],
-)
+@pytest.mark.parametrize("operation", ["query", "scan"])
 def test_projection_expression_rejected_for_non_specific_select(
-    select, selection_description, operation, message_prefix, table_name=None
+    select, selection_description, operation, table_name=None
 ):
     client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -213,20 +210,15 @@ def test_projection_expression_rejected_for_non_specific_select(
 
     _assert_validation_error(
         exc,
-        f"{message_prefix}Cannot specify the ProjectionExpression when choosing "
+        f"1 validation error detected: Cannot specify the ProjectionExpression when choosing "
         f"to get {selection_description}",
     )
 
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified(add_gsi=True)
-@pytest.mark.parametrize(
-    "operation, message_prefix",
-    [("query", "1 validation error detected: "), ("scan", "")],
-)
-def test_attributes_to_get_rejected_for_non_specific_select(
-    operation, message_prefix, table_name=None
-):
+@pytest.mark.parametrize("operation", ["query", "scan"])
+def test_attributes_to_get_rejected_for_non_specific_select(operation, table_name=None):
     client = boto3.client("dynamodb", region_name="us-east-1")
     request = {
         "TableName": table_name,
@@ -254,7 +246,7 @@ def test_attributes_to_get_rejected_for_non_specific_select(
 
         _assert_validation_error(
             exc,
-            f"{message_prefix}Cannot specify the AttributesToGet when choosing "
+            f"1 validation error detected: Cannot specify the AttributesToGet when choosing "
             f"to get {selection_description}",
         )
 

@@ -954,3 +954,179 @@ def test_create_launch_template_with_non_base64_encoded_user_data_fails():
     error = exc.value.response["Error"]
     assert error["Code"] == "InvalidUserData.Malformed"
     assert error["Message"] == "Invalid BASE64 encoding of user data."
+
+
+def _version_numbers(ec2_client, template_id):
+    versions = ec2_client.describe_launch_template_versions(
+        LaunchTemplateId=template_id
+    )["LaunchTemplateVersions"]
+    return sorted(v["VersionNumber"] for v in versions)
+
+
+@ec2_aws_verified(create_launch_template=True, return_launch_template_details=True)
+@pytest.mark.aws_verified
+def test_delete_launch_template_versions(
+    ec2_client=None, launch_template_name=None, launch_template_details=None
+):
+    template_id = launch_template_details["LaunchTemplate"]["LaunchTemplateId"]
+    for _ in range(4):
+        ec2_client.create_launch_template_version(
+            LaunchTemplateId=template_id,
+            LaunchTemplateData=MINIMAL_LAUNCH_TEMPLATE_DATA,
+        )
+
+    # Unknown versions are reported per version, duplicates are ignored
+    resp = ec2_client.delete_launch_template_versions(
+        LaunchTemplateId=template_id, Versions=["2", "99", "2"]
+    )
+    assert resp["SuccessfullyDeletedLaunchTemplateVersions"] == [
+        {
+            "LaunchTemplateId": template_id,
+            "LaunchTemplateName": launch_template_name,
+            "VersionNumber": 2,
+        }
+    ]
+    assert resp["UnsuccessfullyDeletedLaunchTemplateVersions"] == [
+        {
+            "LaunchTemplateId": template_id,
+            "LaunchTemplateName": launch_template_name,
+            "VersionNumber": 99,
+            "ResponseError": {
+                "Code": "launchTemplateVersionDoesNotExist",
+                "Message": "The launch template version does not exist.",
+            },
+        }
+    ]
+    assert _version_numbers(ec2_client, template_id) == [1, 3, 4, 5]
+
+    # Calling with a single invalid version will raise a direct error.
+    with pytest.raises(ClientError) as exc:
+        ec2_client.describe_launch_template_versions(
+            LaunchTemplateId=template_id, Versions=["2"]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidLaunchTemplateId.VersionNotFound"
+    assert (
+        err["Message"]
+        == f"Could not find the specified version 2 for the launch template with ID {template_id}."
+    )
+
+    # Delete by name, using $Latest
+    resp = ec2_client.delete_launch_template_versions(
+        LaunchTemplateName=launch_template_name, Versions=["$Latest"]
+    )
+    deleted = resp["SuccessfullyDeletedLaunchTemplateVersions"]
+    assert [v["VersionNumber"] for v in deleted] == [5]
+    assert resp["UnsuccessfullyDeletedLaunchTemplateVersions"] == []
+
+    # The latest version number falls back to the highest remaining version
+    template = ec2_client.describe_launch_templates(LaunchTemplateIds=[template_id])[
+        "LaunchTemplates"
+    ][0]
+    assert template["DefaultVersionNumber"] == 1
+    assert template["LatestVersionNumber"] == 4
+
+    # ...but version numbers are never reused
+    new_version = ec2_client.create_launch_template_version(
+        LaunchTemplateId=template_id,
+        LaunchTemplateData=MINIMAL_LAUNCH_TEMPLATE_DATA,
+    )["LaunchTemplateVersion"]
+    assert new_version["VersionNumber"] == 6
+    assert _version_numbers(ec2_client, template_id) == [1, 3, 4, 6]
+
+    # Min/MaxVersion filter on version number, not on position
+    versions = ec2_client.describe_launch_template_versions(
+        LaunchTemplateId=template_id, MinVersion="2", MaxVersion="4"
+    )["LaunchTemplateVersions"]
+    assert sorted(v["VersionNumber"] for v in versions) == [3, 4]
+
+    # The original default version can be deleted once it is no longer the default
+    ec2_client.modify_launch_template(LaunchTemplateId=template_id, DefaultVersion="3")
+    resp = ec2_client.delete_launch_template_versions(
+        LaunchTemplateId=template_id, Versions=["1"]
+    )
+    deleted = resp["SuccessfullyDeletedLaunchTemplateVersions"]
+    assert [v["VersionNumber"] for v in deleted] == [1]
+    assert _version_numbers(ec2_client, template_id) == [3, 4, 6]
+
+
+@ec2_aws_verified(create_launch_template=True, return_launch_template_details=True)
+@pytest.mark.aws_verified
+def test_delete_launch_template_versions__errors(
+    ec2_client=None, launch_template_name=None, launch_template_details=None
+):
+    template_id = launch_template_details["LaunchTemplate"]["LaunchTemplateId"]
+    ec2_client.create_launch_template_version(
+        LaunchTemplateId=template_id,
+        LaunchTemplateData=MINIMAL_LAUNCH_TEMPLATE_DATA,
+    )
+
+    def delete_versions(**kwargs):
+        with pytest.raises(ClientError) as exc:
+            ec2_client.delete_launch_template_versions(**kwargs)
+        return exc.value.response["Error"]
+
+    # The default version cannot be deleted - this fails the whole request
+    for versions in (["2", "1"], ["$Default"]):
+        err = delete_versions(LaunchTemplateId=template_id, Versions=versions)
+        assert err["Code"] == "InvalidParameterValue"
+        assert (
+            err["Message"]
+            == "The default version cannot be deleted. Either specify another version as default or delete the launch template."
+        )
+
+    for version in ("0", "-1", "abc", "$latest"):
+        err = delete_versions(LaunchTemplateId=template_id, Versions=[version])
+        assert err["Code"] == "InvalidParameterValue"
+        assert err["Message"] == f"Invalid value for version: {version}"
+
+    err = delete_versions(LaunchTemplateId=template_id, Versions=[])
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == "The launch template version list cannot be empty."
+
+    # None of the failed requests deleted anything
+    assert _version_numbers(ec2_client, template_id) == [1, 2]
+
+    err = delete_versions(Versions=["2"])
+    assert err["Code"] == "MissingParameter"
+    assert (
+        err["Message"]
+        == "Either a launch template ID or a launch template name must be specified in the request."
+    )
+
+    err = delete_versions(
+        LaunchTemplateId=template_id,
+        LaunchTemplateName=launch_template_name,
+        Versions=["2"],
+    )
+    assert err["Code"] == "InvalidParameterCombination"
+    assert (
+        err["Message"]
+        == "Either provide launch template ID or launch template name to modify the template."
+    )
+
+    err = delete_versions(LaunchTemplateName="does-not-exist", Versions=["2"])
+    assert err["Code"] == "InvalidLaunchTemplateName.NotFoundException"
+    assert (
+        err["Message"]
+        == "The specified launch template, with template name does-not-exist, does not exist."
+    )
+
+    err = delete_versions(LaunchTemplateId=template_id, Versions=["2"], DryRun=True)
+    assert err["Code"] == "DryRunOperation"
+    assert _version_numbers(ec2_client, template_id) == [1, 2]
+
+    # Create--and immediately delete--a launch template, so
+    # we have a legitimate template id that no longer exists.
+    deleted_id = ec2_client.create_launch_template(
+        LaunchTemplateName=str(uuid4()),
+        LaunchTemplateData=MINIMAL_LAUNCH_TEMPLATE_DATA,
+    )["LaunchTemplate"]["LaunchTemplateId"]
+    ec2_client.delete_launch_template(LaunchTemplateId=deleted_id)
+
+    err = delete_versions(LaunchTemplateId=deleted_id, Versions=["2"])
+    assert err["Code"] == "InvalidLaunchTemplateId.NotFound"
+    assert (
+        err["Message"]
+        == f"The specified launch template, with template ID {deleted_id}, does not exist."
+    )

@@ -44,4 +44,5 @@ Segmentation is not yet implemented
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_index_mode
+- [ ] update_metadata_configuration
 

@@ -4,8 +4,7 @@ from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.parse import default_timestamp_parser
-from moto.core.utils import iso_8601_datetime_with_milliseconds, unix_time
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
 
@@ -20,8 +19,9 @@ class CodeBuildProjectMetadata(BaseModel):
         artifacts: dict[str, Any] | None,
         build_id: str,
         service_role: str,
+        build_number: int,
     ):
-        current_date = iso_8601_datetime_with_milliseconds()
+        current_date = utcnow()
         self.build_metadata: dict[str, Any] = {}
 
         self.build_metadata["id"] = build_id
@@ -29,7 +29,7 @@ class CodeBuildProjectMetadata(BaseModel):
             f"arn:{get_partition(region_name)}:codebuild:{region_name}:{account_id}:build/{build_id}"
         )
 
-        self.build_metadata["buildNumber"] = mock_random.randint(1, 100)
+        self.build_metadata["buildNumber"] = build_number
         self.build_metadata["startTime"] = current_date
         self.build_metadata["currentPhase"] = "QUEUED"
         self.build_metadata["buildStatus"] = "IN_PROGRESS"
@@ -113,7 +113,7 @@ class CodeBuild(BaseModel):
         self.arn = f"arn:{get_partition(region)}:codebuild:{region}:{account_id}:project/{project_name}"
         self.service_role = serviceRole
         self.tags = tags
-        current_date = unix_time()
+        current_date = utcnow()
         self.project_metadata: dict[str, Any] = {}
 
         self.project_metadata["name"] = project_name
@@ -129,7 +129,7 @@ class CodeBuild(BaseModel):
             self.project_metadata["serviceRole"] = (
                 f"arn:{get_partition(region)}:iam::{account_id}:role/service-role/{serviceRole}"
             )
-        self.project_metadata["lastModifiedDate"] = current_date
+        self.project_metadata["lastModified"] = current_date
         self.project_metadata["created"] = current_date
         self.project_metadata["badge"] = {}
         self.project_metadata["badge"]["badgeEnabled"] = (
@@ -234,6 +234,7 @@ class CodeBuildBackend(BaseBackend):
             artifact_override,
             build_id,
             project.service_role,
+            build_number=len(self.build_history[project_name]) + 1,
         )
 
         self.build_history[project_name].append(build_id)
@@ -246,7 +247,7 @@ class CodeBuildBackend(BaseBackend):
         return self.build_metadata[project_name].build_metadata
 
     def _set_phases(self, phases: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        current_date = iso_8601_datetime_with_milliseconds()
+        current_date = utcnow()
         # No phaseStatus for QUEUED on first start
         for existing_phase in phases:
             if existing_phase["phaseType"] == "QUEUED":
@@ -282,9 +283,8 @@ class CodeBuildBackend(BaseBackend):
             for build in metadata:
                 if build["id"] in ids:
                     build["phases"] = self._set_phases(build["phases"])
-                    build["endTime"] = iso_8601_datetime_with_milliseconds(
-                        default_timestamp_parser(build["startTime"])
-                        + datetime.timedelta(minutes=mock_random.randint(1, 5))
+                    build["endTime"] = build["startTime"] + datetime.timedelta(
+                        minutes=mock_random.randint(1, 5)
                     )
                     build["currentPhase"] = "COMPLETED"
                     build["buildStatus"] = "SUCCEEDED"
@@ -293,11 +293,14 @@ class CodeBuildBackend(BaseBackend):
 
         return batch_build_metadata
 
-    def list_builds_for_project(self, project_name: str) -> list[str]:
-        try:
-            return self.build_history[project_name]
-        except KeyError:
-            return []
+    def list_builds_for_project(
+        self, project_name: str, sort_order: str | None = None
+    ) -> list[str]:
+        # Build numbers follow start order, newest first unless ASCENDING
+        ids = self.build_history.get(project_name, [])
+        if sort_order == "ASCENDING":
+            return list(ids)
+        return ids[::-1]
 
     def list_builds(self) -> list[str]:
         ids = []
@@ -316,9 +319,8 @@ class CodeBuildBackend(BaseBackend):
                 if build["id"] == build_id:
                     # set completion properties with variable completion time
                     build["phases"] = self._set_phases(build["phases"])
-                    build["endTime"] = iso_8601_datetime_with_milliseconds(
-                        default_timestamp_parser(build["startTime"])
-                        + datetime.timedelta(minutes=mock_random.randint(1, 5))
+                    build["endTime"] = build["startTime"] + datetime.timedelta(
+                        minutes=mock_random.randint(1, 5)
                     )
                     build["currentPhase"] = "COMPLETED"
                     build["buildStatus"] = "STOPPED"

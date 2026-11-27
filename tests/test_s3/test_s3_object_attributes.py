@@ -1,7 +1,9 @@
+from datetime import datetime
 from uuid import uuid4
 
 import boto3
 import pytest
+from werkzeug.http import parse_date as parse_rfc2822_date
 
 from moto import mock_aws
 
@@ -77,6 +79,17 @@ class TestS3ObjectAttributes:
         resp.pop("ResponseMetadata")
         assert set(resp.keys()) == {"Checksum", "LastModified"}
         assert resp["Checksum"] == {f"Checksum{algo}": value}
+
+    def test_get_attributes_last_modified(self):
+        resp = self.client.get_object_attributes(
+            Bucket=self.bucket_name, Key="mykey", ObjectAttributes=[]
+        )
+        # Botocore will coerce the date string to a Python datetime object.
+        assert isinstance(resp["LastModified"], datetime)
+        # Check that the raw header has the correct format (Botocore doesn't care but other SDKs do).
+        headers = resp["ResponseMetadata"]["HTTPHeaders"]
+        last_modified = headers["last-modified"]
+        assert isinstance(parse_rfc2822_date(last_modified), datetime)
 
     def test_get_attributes_multiple(self):
         resp = self.client.get_object_attributes(

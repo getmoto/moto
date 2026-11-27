@@ -206,6 +206,7 @@ Pagination is not yet implemented
 - [ ] update_delegation_request
 - [X] update_group
 - [X] update_login_profile
+- [ ] update_open_id_connect_provider
 - [X] update_open_id_connect_provider_thumbprint
 - [X] update_role
 - [X] update_role_description

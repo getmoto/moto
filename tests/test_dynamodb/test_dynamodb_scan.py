@@ -909,5 +909,5 @@ class TestParallelScan(BaseTest):
         assert err["Code"] == "ValidationException"
         assert (
             err["Message"]
-            == "The Segment parameter is zero-based and must be less than parameter TotalSegments: Segment: 3 is not less than TotalSegments: 3"
+            == "The Segment parameter is zero-based and must be less than parameter TotalSegments"
         )

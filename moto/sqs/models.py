@@ -21,6 +21,9 @@ from moto.core.utils import (
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import get_partition, md5_hash
 
+from ..settings import (
+    sqs_enforce_strict_queue_purge_behaviour,
+)
 from .constants import MAXIMUM_MESSAGE_LENGTH, MAXIMUM_VISIBILITY_TIMEOUT
 from .exceptions import (
     BatchEntryIdsNotDistinct,
@@ -952,7 +955,14 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
                 messages.append(message)
             except InvalidParameterValue as err:
                 if "DelaySeconds is invalid" in str(err):
-                    failedInvalidDelay.append(entry)
+                    failedInvalidDelay.append(
+                        {
+                            "Id": entry["Id"],
+                            "SenderFault": True,
+                            "Code": err.code,
+                            "Message": err.message,
+                        }
+                    )
                 else:
                     raise err
 
@@ -1139,7 +1149,11 @@ class SQSBackend(BaseBackend, TaggableResourcesMixin):
     def purge_queue(self, queue_name: str) -> None:
         queue = self.get_queue(queue_name)
         now = unix_time()
-        if queue.last_purged_at is not None and now - queue.last_purged_at < 60:
+        if (
+            sqs_enforce_strict_queue_purge_behaviour()
+            and queue.last_purged_at is not None
+            and now - queue.last_purged_at < 60
+        ):
             raise PurgeQueueInProgress(queue.name)
         queue.last_purged_at = now
         queue._messages = []

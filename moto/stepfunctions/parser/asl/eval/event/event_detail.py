@@ -1,4 +1,4 @@
-from typing import Optional, TypedDict
+from typing import TypedDict
 
 from moto.stepfunctions.parser.api import (
     ActivityFailedEventDetails,
@@ -63,13 +63,11 @@ class EventDetails(TypedDict):
     mapIterationFailedEventDetails: MapIterationEventDetails | None
     mapIterationAbortedEventDetails: MapIterationEventDetails | None
     lambdaFunctionFailedEventDetails: LambdaFunctionFailedEventDetails | None
-    lambdaFunctionScheduleFailedEventDetails: Optional[
-        LambdaFunctionScheduleFailedEventDetails
-    ]
+    lambdaFunctionScheduleFailedEventDetails: (
+        LambdaFunctionScheduleFailedEventDetails | None
+    )
     lambdaFunctionScheduledEventDetails: LambdaFunctionScheduledEventDetails | None
-    lambdaFunctionStartFailedEventDetails: Optional[
-        LambdaFunctionStartFailedEventDetails
-    ]
+    lambdaFunctionStartFailedEventDetails: LambdaFunctionStartFailedEventDetails | None
     lambdaFunctionSucceededEventDetails: LambdaFunctionSucceededEventDetails | None
     lambdaFunctionTimedOutEventDetails: LambdaFunctionTimedOutEventDetails | None
     stateEnteredEventDetails: StateEnteredEventDetails | None

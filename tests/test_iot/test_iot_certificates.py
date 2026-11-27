@@ -84,6 +84,47 @@ def test_list_certificates():
 
 
 @mock_aws
+def test_list_certificates_pagination():
+    client = boto3.client("iot", region_name="us-east-1")
+    cert_ids = [
+        client.create_keys_and_certificate(setAsActive=True)["certificateId"]
+        for _ in range(5)
+    ]
+
+    # Manual pagination
+    page1 = client.list_certificates(pageSize=2)
+    assert [c["certificateId"] for c in page1["certificates"]] == cert_ids[0:2]
+    assert "nextMarker" in page1
+
+    page2 = client.list_certificates(pageSize=2, marker=page1["nextMarker"])
+    assert [c["certificateId"] for c in page2["certificates"]] == cert_ids[2:4]
+    assert "nextMarker" in page2
+
+    page3 = client.list_certificates(pageSize=2, marker=page2["nextMarker"])
+    assert [c["certificateId"] for c in page3["certificates"]] == cert_ids[4:]
+    assert "nextMarker" not in page3
+
+    # Without a page size, everything fits on a single page
+    res = client.list_certificates()
+    assert [c["certificateId"] for c in res["certificates"]] == cert_ids
+    assert "nextMarker" not in res
+
+    # Botocore paginator
+    paginator = client.get_paginator("list_certificates")
+    pages = list(paginator.paginate(PaginationConfig={"PageSize": 2}))
+    assert [len(p["certificates"]) for p in pages] == [2, 2, 1]
+    paginated_ids = [c["certificateId"] for p in pages for c in p["certificates"]]
+    assert paginated_ids == cert_ids
+
+    # Botocore paginator with MaxItems
+    result = paginator.paginate(
+        PaginationConfig={"PageSize": 2, "MaxItems": 3}
+    ).build_full_result()
+    assert [c["certificateId"] for c in result["certificates"]] == cert_ids[0:3]
+    assert "NextToken" in result
+
+
+@mock_aws
 def test_update_certificate():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)

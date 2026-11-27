@@ -15,6 +15,7 @@ sagemaker
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_association
+- [ ] add_inference_gateway
 - [X] add_tags
 - [X] associate_trial_component
 - [ ] attach_cluster_node_network_interface
@@ -35,6 +36,7 @@ sagemaker
 - [ ] create_auto_ml_job
 - [X] create_auto_ml_job_v2
 - [X] create_cluster
+- [ ] create_cluster_extension
 - [ ] create_cluster_scheduler_config
 - [ ] create_code_repository
 - [X] create_compilation_job
@@ -51,6 +53,7 @@ sagemaker
 - [X] create_experiment
 - [X] create_feature_group
 - [ ] create_flow_definition
+- [ ] create_global_inference_gateway
 - [ ] create_hub
 - [ ] create_hub_content_presigned_urls
 - [ ] create_hub_content_reference
@@ -61,6 +64,7 @@ sagemaker
 - [ ] create_inference_component
 - [ ] create_inference_experiment
 - [ ] create_inference_recommendations_job
+- [ ] create_inference_router
 - [ ] create_job
 - [ ] create_labeling_job
 - [ ] create_mlflow_app
@@ -90,6 +94,7 @@ sagemaker
 - [ ] create_studio_lifecycle_config
 - [X] create_training_job
 - [ ] create_training_plan
+- [ ] create_training_session
 - [X] create_transform_job
 - [X] create_trial
 - [X] create_trial_component
@@ -106,6 +111,7 @@ sagemaker
 - [ ] delete_artifact
 - [ ] delete_association
 - [X] delete_cluster
+- [ ] delete_cluster_extension
 - [ ] delete_cluster_scheduler_config
 - [ ] delete_code_repository
 - [X] delete_compilation_job
@@ -118,9 +124,11 @@ sagemaker
 - [ ] delete_edge_deployment_stage
 - [X] delete_endpoint
 - [X] delete_endpoint_config
+- [ ] delete_endpoint_policy
 - [X] delete_experiment
 - [ ] delete_feature_group
 - [ ] delete_flow_definition
+- [ ] delete_global_inference_gateway
 - [ ] delete_hub
 - [ ] delete_hub_content
 - [ ] delete_hub_content_reference
@@ -130,6 +138,7 @@ sagemaker
 - [ ] delete_image_version
 - [ ] delete_inference_component
 - [ ] delete_inference_experiment
+- [ ] delete_inference_router
 - [ ] delete_job
 - [ ] delete_mlflow_app
 - [ ] delete_mlflow_tracking_server
@@ -153,6 +162,7 @@ sagemaker
 - [ ] delete_studio_lifecycle_config
 - [X] delete_tags
 - [ ] delete_training_job
+- [ ] delete_training_session
 - [X] delete_trial
 - [X] delete_trial_component
 - [ ] delete_user_profile
@@ -169,9 +179,12 @@ sagemaker
 - [ ] describe_artifact
 - [ ] describe_auto_ml_job
 - [X] describe_auto_ml_job_v2
+- [ ] describe_capacity_reservation
 - [X] describe_cluster
 - [ ] describe_cluster_event
+- [ ] describe_cluster_extension
 - [X] describe_cluster_node
+- [ ] describe_cluster_operation
 - [ ] describe_cluster_scheduler_config
 - [ ] describe_code_repository
 - [X] describe_compilation_job
@@ -189,6 +202,7 @@ sagemaker
 - [X] describe_feature_group
 - [ ] describe_feature_metadata
 - [ ] describe_flow_definition
+- [ ] describe_global_inference_gateway
 - [ ] describe_hub
 - [ ] describe_hub_content
 - [ ] describe_human_task_ui
@@ -198,6 +212,7 @@ sagemaker
 - [ ] describe_inference_component
 - [ ] describe_inference_experiment
 - [ ] describe_inference_recommendations_job
+- [ ] describe_inference_router
 - [ ] describe_job
 - [ ] describe_job_schema_version
 - [ ] describe_labeling_job
@@ -223,12 +238,14 @@ sagemaker
 - [X] describe_processing_job
 - [ ] describe_project
 - [ ] describe_reserved_capacity
+- [ ] describe_resource_associations
 - [ ] describe_space
 - [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
 - [X] describe_training_job
 - [ ] describe_training_plan
 - [ ] describe_training_plan_extension_history
+- [ ] describe_training_session
 - [X] describe_transform_job
 - [X] describe_trial
 - [X] describe_trial_component
@@ -240,7 +257,9 @@ sagemaker
 - [X] disassociate_trial_component
 - [ ] enable_sagemaker_servicecatalog_portfolio
 - [ ] extend_training_plan
+- [ ] get_capacity_reservation_usage
 - [ ] get_device_fleet_report
+- [ ] get_endpoint_policy
 - [ ] get_lineage_group_policy
 - [ ] get_model_package_group_policy
 - [ ] get_sagemaker_servicecatalog_portfolio_status
@@ -259,8 +278,12 @@ sagemaker
 - [ ] list_associations
 - [X] list_auto_ml_jobs
 - [ ] list_candidates_for_auto_ml_job
+- [ ] list_capacity_reservations
 - [ ] list_cluster_events
+- [ ] list_cluster_extension_versions
+- [ ] list_cluster_extensions
 - [X] list_cluster_nodes
+- [ ] list_cluster_operations
 - [ ] list_cluster_scheduler_configs
 - [X] list_clusters
 - [ ] list_code_repositories
@@ -278,6 +301,7 @@ sagemaker
 - [X] list_experiments
 - [ ] list_feature_groups
 - [ ] list_flow_definitions
+- [ ] list_global_inference_gateways
 - [ ] list_hub_content_versions
 - [ ] list_hub_contents
 - [ ] list_hubs
@@ -287,8 +311,10 @@ sagemaker
 - [ ] list_images
 - [ ] list_inference_components
 - [ ] list_inference_experiments
+- [ ] list_inference_gateways
 - [ ] list_inference_recommendations_job_steps
 - [ ] list_inference_recommendations_jobs
+- [ ] list_inference_routers
 - [ ] list_job_schema_versions
 - [ ] list_jobs
 - [ ] list_labeling_jobs
@@ -335,6 +361,7 @@ CreationTimeBefore, CreationTimeAfter, LastModifiedTimeBefore, LastModifiedTimeA
 - [X] list_training_jobs
 - [ ] list_training_jobs_for_hyper_parameter_tuning_job
 - [ ] list_training_plans
+- [ ] list_training_sessions
 - [X] list_transform_jobs
 - [X] list_trial_components
 - [X] list_trials
@@ -342,9 +369,12 @@ CreationTimeBefore, CreationTimeAfter, LastModifiedTimeBefore, LastModifiedTimeA
 - [ ] list_user_profiles
 - [ ] list_workforces
 - [ ] list_workteams
+- [ ] move_cluster_nodes
+- [ ] put_endpoint_policy
 - [ ] put_model_package_group_policy
 - [ ] query_lineage
 - [ ] register_devices
+- [ ] remove_inference_gateway
 - [ ] render_ui_template
 - [ ] retry_pipeline_execution
 - [X] search
@@ -381,11 +411,13 @@ Only a few SearchExpressions are implemented. Please open a bug report if you fi
 - [ ] stop_pipeline_execution
 - [X] stop_processing_job
 - [ ] stop_training_job
+- [ ] stop_training_session
 - [ ] stop_transform_job
 - [ ] update_action
 - [ ] update_app_image_config
 - [ ] update_artifact
 - [ ] update_cluster
+- [ ] update_cluster_extension
 - [ ] update_cluster_scheduler_config
 - [ ] update_cluster_software
 - [ ] update_code_repository
@@ -399,6 +431,7 @@ Only a few SearchExpressions are implemented. Please open a bug report if you fi
 - [ ] update_experiment
 - [ ] update_feature_group
 - [ ] update_feature_metadata
+- [ ] update_global_inference_gateway
 - [ ] update_hub
 - [ ] update_hub_content
 - [ ] update_hub_content_reference
@@ -407,6 +440,7 @@ Only a few SearchExpressions are implemented. Please open a bug report if you fi
 - [ ] update_inference_component
 - [ ] update_inference_component_runtime_config
 - [ ] update_inference_experiment
+- [ ] update_inference_router
 - [ ] update_mlflow_app
 - [ ] update_mlflow_tracking_server
 - [X] update_model_card

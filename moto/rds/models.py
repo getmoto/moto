@@ -108,6 +108,11 @@ KMS_ARN_PATTERN = re.compile(
 )
 
 
+# Valid values are 7 (the default), month * 31 for months 1-23, and 731 (2 years).
+# https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
+VALID_PERFORMANCE_INSIGHTS_RETENTION_PERIODS = [7, *range(31, 714, 31), 731]
+
+
 class SnapshotAttributesMixin:
     ALLOWED_ATTRIBUTE_NAMES = ["restore"]
 
@@ -538,6 +543,9 @@ class DBCluster(RDSBaseModel):
         kms_key_id: str | None = None,
         manage_master_user_password: bool | None = False,
         master_user_secret_kms_key_id: str | None = None,
+        enable_performance_insights: bool = False,
+        performance_insights_retention_period: int | None = None,
+        performance_insights_kms_key_id: str | None = None,
         **kwargs: Any,
     ):
         super().__init__(backend)
@@ -664,6 +672,28 @@ class DBCluster(RDSBaseModel):
                 "enable_global_write_forwarding"
             )
         self.backup_retention_period = backup_retention_period
+        self.performance_insights_enabled = enable_performance_insights
+        if self.performance_insights_enabled:
+            self.performance_insights_retention_period = (
+                performance_insights_retention_period or 7
+            )
+            if (
+                self.performance_insights_retention_period
+                not in VALID_PERFORMANCE_INSIGHTS_RETENTION_PERIODS
+            ):
+                raise InvalidParameterValue(
+                    f"Invalid Performance Insights retention period. Valid values are: {VALID_PERFORMANCE_INSIGHTS_RETENTION_PERIODS}"
+                )
+            self.performance_insights_kms_key_id = (
+                performance_insights_kms_key_id or "default_kms_key_id"
+            )
+        elif (
+            performance_insights_retention_period is not None
+            or performance_insights_kms_key_id is not None
+        ):
+            raise InvalidParameterCombination(
+                "To enable Performance Insights, EnablePerformanceInsights must be set to 'true'"
+            )
 
         if backtrack := kwargs.get("backtrack_window"):
             if self.engine == "aurora-mysql":
@@ -1141,6 +1171,9 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         storage_throughput: int | None = None,
         monitoring_interval: int = 0,
         monitoring_role_arn: str | None = None,
+        enable_performance_insights: bool = False,
+        performance_insights_retention_period: int | None = None,
+        performance_insights_kms_key_id: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(backend)
@@ -1206,6 +1239,28 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         if not self.monitoring_role_arn and self.monitoring_interval != 0:
             raise InvalidParameterCombination(
                 "A MonitoringRoleARN value is required if you specify a MonitoringInterval value other than 0."
+            )
+        self.performance_insights_enabled = enable_performance_insights
+        if self.performance_insights_enabled:
+            self.performance_insights_retention_period = (
+                performance_insights_retention_period or 7
+            )
+            if (
+                self.performance_insights_retention_period
+                not in VALID_PERFORMANCE_INSIGHTS_RETENTION_PERIODS
+            ):
+                raise InvalidParameterValue(
+                    f"Invalid Performance Insights retention period. Valid values are: {VALID_PERFORMANCE_INSIGHTS_RETENTION_PERIODS}"
+                )
+            self.performance_insights_kms_key_id = (
+                performance_insights_kms_key_id or "default_kms_key_id"
+            )
+        elif (
+            performance_insights_retention_period is not None
+            or performance_insights_kms_key_id is not None
+        ):
+            raise InvalidParameterCombination(
+                "To enable Performance Insights, EnablePerformanceInsights must be set to 'true'"
             )
         self.db_cluster_identifier = db_cluster_identifier
         if self.db_cluster_identifier is None:

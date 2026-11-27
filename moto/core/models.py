@@ -220,7 +220,7 @@ class MockAWS(AbstractContextManager["MockAWS"]):
                     CallbackResponse(
                         method=method,
                         url=pattern,
-                        callback=botocore_stubber.process_request,
+                        callback=botocore_stubber.process_prepared_request,
                     )
                 )
             responses_mock.add(

@@ -29,6 +29,7 @@ These authorization checks are quite basic for now. Moto will only throw an Acce
  - The Action matches `describe_key`
 
 
+- [ ] decapsulate
 - [X] decrypt
 - [X] delete_alias
   Delete the alias.
@@ -43,6 +44,7 @@ These authorization checks are quite basic for now. Moto will only throw an Acce
 - [ ] disconnect_custom_key_store
 - [X] enable_key
 - [X] enable_key_rotation
+- [ ] encapsulate
 - [X] encrypt
 - [X] generate_data_key
 - [ ] generate_data_key_pair

@@ -15,6 +15,10 @@ import software.amazon.awssdk.transfer.s3.S3TransferManager;
 
 import java.io.ByteArrayInputStream;
 import java.net.URI;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,6 +60,51 @@ class S3Test
         String receivedString = objectBytes.asUtf8String();
 
         assertEquals(initialString, receivedString);
+    }
+
+    @Test
+    void get_object_attrs() {
+        String bucketName = "bucket" + System.currentTimeMillis();
+        String keyName = "mykey";
+        S3Client s3Client = DependencyFactory.s3Client();
+
+        // Create Bucket
+        s3Client.createBucket(CreateBucketRequest
+                    .builder()
+                    .bucket(bucketName)
+                    .build());
+        s3Client.waiter().waitUntilBucketExists(HeadBucketRequest.builder()
+                    .bucket(bucketName)
+                    .build());
+
+
+        // Upload Object with static data
+        String initialString = "Testing with the {sdk-java}";
+        PutObjectRequest put_request = PutObjectRequest.builder().bucket(bucketName).key(keyName).build();
+        s3Client.putObject(put_request, RequestBody.fromString(initialString));
+
+        // Verify that we can retrieve attributes
+        GetObjectAttributesRequest request = GetObjectAttributesRequest.builder()
+                    .bucket(bucketName)
+                    .key(keyName)
+                    .objectAttributes(Arrays.asList(
+                            ObjectAttributes.E_TAG,
+                            ObjectAttributes.STORAGE_CLASS,
+                            ObjectAttributes.OBJECT_SIZE,
+                            ObjectAttributes.CHECKSUM
+                    ))
+                    .build();
+
+            // Verify GetObjectAttributes API
+            GetObjectAttributesResponse response = s3Client.getObjectAttributes(request);
+
+            // Assert basic attributes are correct
+            assertEquals("STANDARD", response.storageClassAsString());
+            assertEquals(27, response.objectSize());
+
+            // Verify LastModified is returned in the correct format, so that we can process it as a date
+            String formattedDate = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(response.lastModified().atZone(ZoneId.systemDefault()));
+            System.out.println("Last Modified: " + formattedDate);
     }
 
     @Test

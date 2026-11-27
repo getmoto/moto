@@ -8,7 +8,7 @@ from collections import namedtuple
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from botocore.exceptions import ParamValidationError
 
@@ -78,9 +78,8 @@ class Repository(CloudFormationModel, BaseModel):
         encryption_config: dict[str, str] | None,
         image_scan_config: str,
         image_tag_mutability: str,
-        image_tag_mutability_exclusion_filters: Optional[
-            list[ImageTagMutabilityExclusionFilterT]
-        ] = None,
+        image_tag_mutability_exclusion_filters: list[ImageTagMutabilityExclusionFilterT]
+        | None = None,
     ):
         self.account_id = account_id
         self.region_name = region_name
@@ -182,9 +181,8 @@ class Repository(CloudFormationModel, BaseModel):
     def _update_image_tag_mutability(
         self,
         image_tag_mutability: str | None,
-        image_tag_mutability_exclusion_filters: Optional[
-            list[ImageTagMutabilityExclusionFilterT]
-        ],
+        image_tag_mutability_exclusion_filters: list[ImageTagMutabilityExclusionFilterT]
+        | None,
     ) -> None:
         self.image_tag_mutability_exclusion_filters = (
             image_tag_mutability_exclusion_filters
@@ -554,9 +552,8 @@ class ECRBackend(BaseBackend):
         image_scan_config: Any,
         image_tag_mutability: str,
         tags: list[dict[str, str]],
-        image_tag_mutability_exclusion_filters: Optional[
-            list[ImageTagMutabilityExclusionFilterT]
-        ] = None,
+        image_tag_mutability_exclusion_filters: list[ImageTagMutabilityExclusionFilterT]
+        | None = None,
     ) -> Repository:
         if self.repositories.get(repository_name):
             raise RepositoryAlreadyExistsException(repository_name, self.account_id)
@@ -1137,9 +1134,8 @@ class ECRBackend(BaseBackend):
         registry_id: str,
         repository_name: str,
         image_tag_mutability: str,
-        image_tag_mutability_exclusion_filters: Optional[
-            list[ImageTagMutabilityExclusionFilterT]
-        ] = None,
+        image_tag_mutability_exclusion_filters: list[ImageTagMutabilityExclusionFilterT]
+        | None = None,
     ) -> dict[str, str]:
         if image_tag_mutability not in list(RepoTagMutability):
             raise InvalidParameterException(
@@ -1566,9 +1562,8 @@ class ECRBackend(BaseBackend):
 
     def _validate_mutability_exclusion_filters(
         self,
-        image_tag_mutability_exclusion_filters: Optional[
-            list[ImageTagMutabilityExclusionFilterT]
-        ],
+        image_tag_mutability_exclusion_filters: list[ImageTagMutabilityExclusionFilterT]
+        | None,
     ) -> str | None:
         if image_tag_mutability_exclusion_filters is None:
             # It is not mandatory
@@ -1587,9 +1582,8 @@ class ECRBackend(BaseBackend):
     @staticmethod
     def validate_image_tag_mutability_params_compatibility(
         image_tag_mutability: str,
-        image_tag_mutability_exclusion_filters: Optional[
-            list[ImageTagMutabilityExclusionFilterT]
-        ],
+        image_tag_mutability_exclusion_filters: list[ImageTagMutabilityExclusionFilterT]
+        | None,
     ) -> None:
         # If imageTagMutabilityExclusionFilters isn't null, then imageTagMutability can only be the _EXCLUSION variant
         if image_tag_mutability_exclusion_filters is not None:

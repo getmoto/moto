@@ -195,22 +195,9 @@ class SQSResponse(BaseResponse):
         if entries == {}:
             raise EmptyBatchRequest()
 
-        messages, failed_invalid_delay = self.sqs_backend.send_message_batch(
-            queue_name, entries
-        )
+        messages, failed = self.sqs_backend.send_message_batch(queue_name, entries)
 
-        errors = []
-        for entry in failed_invalid_delay:
-            errors.append(
-                {
-                    "Id": entry["Id"],
-                    "SenderFault": "true",
-                    "Code": "InvalidParameterValue",
-                    "Message": "Value 1800 for parameter DelaySeconds is invalid. Reason: DelaySeconds must be &gt;= 0 and &lt;= 900.",
-                }
-            )
-
-        resp: dict[str, Any] = {"Successful": [], "Failed": errors}
+        resp: dict[str, Any] = {"Successful": [], "Failed": failed}
         for msg in messages:
             msg_dict = {
                 "Id": msg.user_id,  # type: ignore

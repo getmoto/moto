@@ -1,7 +1,6 @@
 import copy
-import time
 from base64 import b64decode, b64encode
-from datetime import datetime
+from datetime import datetime, timezone
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
@@ -178,7 +177,7 @@ class ECRResponse(BaseResponse):
             auth_data.append(
                 {
                     "authorizationToken": auth_token,
-                    "expiresAt": time.mktime(datetime(2015, 1, 1).timetuple()),
+                    "expiresAt": datetime(2015, 1, 1, tzinfo=timezone.utc),
                     "proxyEndpoint": f"https://{registry_id}.dkr.ecr.{self.region}.amazonaws.com",
                 }
             )

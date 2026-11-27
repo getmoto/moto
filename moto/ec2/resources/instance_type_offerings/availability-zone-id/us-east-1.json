@@ -12472,6 +12472,30 @@
   "Location": "use1-az4"
  },
  {
+  "InstanceType": "g7e.12xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "g7e.24xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "g7e.2xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "g7e.48xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "g7e.4xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "g7e.8xlarge",
+  "Location": "use1-az4"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "use1-az4"
  },

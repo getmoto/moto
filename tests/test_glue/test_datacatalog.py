@@ -1,4 +1,5 @@
 import json
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 import boto3
@@ -532,6 +533,212 @@ def test_get_partitions_empty():
     response = client.get_partitions(DatabaseName=database_name, TableName=table_name)
 
     assert len(response["Partitions"]) == 0
+
+
+@mock_aws
+def test_get_partitions_with_segment():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+    all_values = [[f"2018-10-{day:02d}"] for day in range(1, 8)]
+    for values in all_values:
+        helpers.create_partition(client, database_name, table_name, values=values)
+
+    total_segments = 3
+    segmented_values = []
+    for segment_number in range(total_segments):
+        response = client.get_partitions(
+            DatabaseName=database_name,
+            TableName=table_name,
+            Segment={"SegmentNumber": segment_number, "TotalSegments": total_segments},
+        )
+        assert len(response["Partitions"]) > 0
+        segmented_values.extend(p["Values"] for p in response["Partitions"])
+
+    # Segments are non-overlapping and together cover every partition
+    assert len(segmented_values) == len(all_values)
+    assert sorted(segmented_values) == sorted(all_values)
+
+    # A single segment returns everything
+    response = client.get_partitions(
+        DatabaseName=database_name,
+        TableName=table_name,
+        Segment={"SegmentNumber": 0, "TotalSegments": 1},
+    )
+    assert len(response["Partitions"]) == len(all_values)
+
+
+@mock_aws
+def test_get_partitions_pagination():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+    all_values = [[f"2018-10-{day:02d}"] for day in range(1, 8)]
+    for values in all_values:
+        helpers.create_partition(client, database_name, table_name, values=values)
+
+    response = client.get_partitions(
+        DatabaseName=database_name, TableName=table_name, MaxResults=3
+    )
+    assert [p["Values"] for p in response["Partitions"]] == all_values[:3]
+    assert "NextToken" in response
+
+    response = client.get_partitions(
+        DatabaseName=database_name,
+        TableName=table_name,
+        MaxResults=3,
+        NextToken=response["NextToken"],
+    )
+    assert [p["Values"] for p in response["Partitions"]] == all_values[3:6]
+
+    paginator = client.get_paginator("get_partitions")
+    pages = list(
+        paginator.paginate(
+            DatabaseName=database_name,
+            TableName=table_name,
+            PaginationConfig={"PageSize": 2},
+        )
+    )
+    assert len(pages) == 4
+    assert [p["Values"] for page in pages for p in page["Partitions"]] == all_values
+    assert "NextToken" not in pages[-1]
+
+    # Pagination applies within a segment
+    pages = list(
+        paginator.paginate(
+            DatabaseName=database_name,
+            TableName=table_name,
+            Segment={"SegmentNumber": 0, "TotalSegments": 2},
+            PaginationConfig={"PageSize": 1},
+        )
+    )
+    segment_values = [p["Values"] for page in pages for p in page["Partitions"]]
+    assert segment_values == all_values[0::2]
+
+
+@mock_aws
+def test_get_partitions_segments_fetched_in_parallel():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+    columns = [helpers.create_column("col1", "string")]
+    all_values = [[f"2018-10-{day:02d}"] for day in range(1, 31)]
+    for values in all_values:
+        helpers.create_partition(
+            client, database_name, table_name, values=values, columns=columns
+        )
+
+    total_segments = 4
+
+    def fetch_segment(segment_number):
+        partitions = []
+        paginator = client.get_paginator("get_partitions")
+        page_iterator = paginator.paginate(
+            DatabaseName=database_name,
+            TableName=table_name,
+            ExcludeColumnSchema=True,
+            Segment={
+                "SegmentNumber": segment_number,
+                "TotalSegments": total_segments,
+            },
+            # Small page size so each segment spans multiple pages
+            PaginationConfig={"PageSize": 3},
+        )
+        for page in page_iterator:
+            partitions.extend(page["Partitions"])
+        return partitions
+
+    with ThreadPoolExecutor(max_workers=total_segments) as executor:
+        results = list(executor.map(fetch_segment, range(total_segments)))
+
+    for segment_partitions in results:
+        assert len(segment_partitions) > 3
+    all_partitions = [p for segment in results for p in segment]
+    fetched_values = [p["Values"] for p in all_partitions]
+    assert len(fetched_values) == len(all_values)
+    assert sorted(fetched_values) == sorted(all_values)
+    for partition in all_partitions:
+        assert "Columns" not in partition["StorageDescriptor"]
+
+
+@mock_aws
+def test_get_partitions_pagination_with_pipe_in_partition_values():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+    # Partition Values are the paginator's unique attribute, and "|" was
+    # previously used as the delimiter in the pagination token, which broke
+    # resuming from a NextToken when values contained a pipe.
+    all_values = [[f"value|{i}"] for i in range(5)]
+    for values in all_values:
+        helpers.create_partition(client, database_name, table_name, values=values)
+
+    paginator = client.get_paginator("get_partitions")
+    pages = list(
+        paginator.paginate(
+            DatabaseName=database_name,
+            TableName=table_name,
+            PaginationConfig={"PageSize": 2},
+        )
+    )
+    assert len(pages) == 3
+    assert [p["Values"] for page in pages for p in page["Partitions"]] == all_values
+
+
+@mock_aws
+def test_get_partitions_with_invalid_segment_number():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_partitions(
+            DatabaseName=database_name,
+            TableName=table_name,
+            Segment={"SegmentNumber": 2, "TotalSegments": 2},
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+
+
+@mock_aws
+def test_get_partitions_exclude_column_schema():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    table_name = "myfirsttable"
+    helpers.create_database(client, database_name)
+    helpers.create_table(client, database_name, table_name)
+    columns = [helpers.create_column("col1", "string")]
+    part_input = helpers.create_partition_input(
+        database_name, table_name, values=["2018-10-01"], columns=columns
+    )
+    helpers.create_partition(client, database_name, table_name, part_input)
+
+    response = client.get_partitions(
+        DatabaseName=database_name, TableName=table_name, ExcludeColumnSchema=True
+    )
+    storage_descriptor = response["Partitions"][0]["StorageDescriptor"]
+    expected = {
+        k: v for k, v in part_input["StorageDescriptor"].items() if k != "Columns"
+    }
+    assert storage_descriptor == expected
+
+    # Columns are still stored and returned by default
+    response = client.get_partitions(DatabaseName=database_name, TableName=table_name)
+    assert response["Partitions"][0]["StorageDescriptor"]["Columns"] == columns
+    response = client.get_partitions(
+        DatabaseName=database_name, TableName=table_name, ExcludeColumnSchema=False
+    )
+    assert response["Partitions"][0]["StorageDescriptor"]["Columns"] == columns
 
 
 @mock_aws

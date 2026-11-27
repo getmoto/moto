@@ -243,6 +243,24 @@ class TestRecorder(TestCase):
         # cleanup
         os.remove("text.txt")
 
+    def test_s3_presigned_request_using_requests_is_recorded_once(self):
+        s3 = boto3.client(
+            "s3", "us-east-1", aws_access_key_id="ak", aws_secret_access_key="sk"
+        )
+        s3.create_bucket(Bucket="mybucket")
+
+        params = {"Bucket": "mybucket", "Key": "data"}
+        put_url = s3.generate_presigned_url("put_object", params, ExpiresIn=900)
+        get_url = s3.generate_presigned_url("get_object", params, ExpiresIn=900)
+
+        self._start_recording()
+        requests.put(put_url, data=b"ABCD")
+        requests.get(get_url)
+        self._stop_recording()
+
+        rows = [json.loads(x) for x in self._download_recording().splitlines()]
+        assert [row["method"] for row in rows] == ["PUT", "GET"]
+
     def _create_ddb_table(self, ddb, table_name):
         ddb.create_table(
             TableName=table_name,

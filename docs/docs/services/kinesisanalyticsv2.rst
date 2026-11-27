@@ -25,6 +25,7 @@ kinesisanalyticsv2
 - [X] create_application
 - [ ] create_application_presigned_url
 - [ ] create_application_snapshot
+- [ ] create_snapshot
 - [ ] delete_application
 - [ ] delete_application_cloud_watch_logging_option
 - [ ] delete_application_input_processing_configuration
@@ -32,15 +33,22 @@ kinesisanalyticsv2
 - [ ] delete_application_reference_data_source
 - [ ] delete_application_snapshot
 - [ ] delete_application_vpc_configuration
+- [ ] delete_snapshot
 - [X] describe_application
 - [ ] describe_application_operation
 - [ ] describe_application_snapshot
 - [ ] describe_application_version
+- [ ] describe_snapshot
+- [ ] describe_snapshot_operation
 - [ ] discover_input_schema
+- [ ] export_snapshot
+- [ ] import_snapshot
 - [ ] list_application_operations
 - [ ] list_application_snapshots
 - [ ] list_application_versions
 - [X] list_applications
+- [ ] list_snapshot_operations
+- [ ] list_snapshots
 - [X] list_tags_for_resource
 - [ ] rollback_application
 - [ ] start_application

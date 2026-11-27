@@ -230,6 +230,28 @@ def test_update_state_machine():
 
 
 @mock_aws
+def test_state_machine_creation_stores_the_requested_type():
+    client = boto3.client("stepfunctions", region_name=region)
+    standard = client.create_state_machine(
+        name="standard", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    express = client.create_state_machine(
+        name="express",
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        type="EXPRESS",
+        publish=True,
+    )
+
+    for arn, expected in [
+        (standard["stateMachineArn"], "STANDARD"),
+        (express["stateMachineArn"], "EXPRESS"),
+        (express["stateMachineVersionArn"], "EXPRESS"),
+    ]:
+        assert client.describe_state_machine(stateMachineArn=arn)["type"] == expected
+
+
+@mock_aws
 def test_state_machine_list_returns_empty_list_by_default():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -262,6 +284,27 @@ def test_state_machine_list_returns_created_state_machines():
     assert sm_list["stateMachines"][1]["creationDate"] == machine2["creationDate"]
     assert sm_list["stateMachines"][1]["name"] == "name2"
     assert sm_list["stateMachines"][1]["stateMachineArn"] == machine2["stateMachineArn"]
+
+
+@mock_aws
+def test_state_machine_list_returns_the_type_of_each_state_machine():
+    client = boto3.client("stepfunctions", region_name=region)
+    client.create_state_machine(
+        name="standard", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    client.create_state_machine(
+        name="express",
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        type="EXPRESS",
+    )
+
+    sm_list = client.list_state_machines()["stateMachines"]
+
+    assert {sm["name"]: sm["type"] for sm in sm_list} == {
+        "standard": "STANDARD",
+        "express": "EXPRESS",
+    }
 
 
 @mock_aws

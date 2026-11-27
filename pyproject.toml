@@ -4,10 +4,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 addopts = "--color=yes"
-filterwarnings = [
-    # https://github.com/boto/boto3/issues/3889#issuecomment-2578155761
-    "ignore:datetime.datetime.utcnow:DeprecationWarning:botocore"
-]
 markers = [
     "network: requires network connection",
     "requires_docker: requires running docker",
@@ -25,8 +21,6 @@ ignore = [
     "B027",  # `ResourceEval.eval_resource` is an empty method in an abstract base class, but has no abstract decorator
     "B904",  # Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
     "E501",  # Line length
-    "UP007",  # Use X | Y for type annotations - should only be enabled when we support Python >= 3.10
-    "UP045",  # Use `X | None` for type annotations - same as above
 ]
 extend-select = ["B", "C4", "E", "F", "G", "I", "T", "UP", "W"]
 

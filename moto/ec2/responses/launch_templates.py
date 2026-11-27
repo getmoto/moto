@@ -100,6 +100,42 @@ class LaunchTemplates(EC2BaseResponse):
 
         return ActionResult(result)
 
+    def delete_launch_template_versions(self) -> ActionResult:
+        name = self._get_param("LaunchTemplateName")
+        tid = self._get_param("LaunchTemplateId")
+        versions = self._get_param("Versions", [])
+
+        self.error_on_dryrun()
+
+        template, deleted, not_found = self.ec2_backend.delete_launch_template_versions(
+            name, tid, versions
+        )
+
+        result = {
+            "SuccessfullyDeletedLaunchTemplateVersions": [
+                {
+                    "LaunchTemplateId": template.id,
+                    "LaunchTemplateName": template.name,
+                    "VersionNumber": number,
+                }
+                for number in deleted
+            ],
+            "UnsuccessfullyDeletedLaunchTemplateVersions": [
+                {
+                    "LaunchTemplateId": template.id,
+                    "LaunchTemplateName": template.name,
+                    "VersionNumber": number,
+                    "ResponseError": {
+                        "Code": "launchTemplateVersionDoesNotExist",
+                        "Message": "The launch template version does not exist.",
+                    },
+                }
+                for number in not_found
+            ],
+        }
+
+        return ActionResult(result)
+
     def describe_launch_template_versions(self) -> ActionResult:
         name = self._get_param("LaunchTemplateName")
         template_id = self._get_param("LaunchTemplateId")

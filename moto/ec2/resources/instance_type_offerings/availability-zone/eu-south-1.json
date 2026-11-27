@@ -5712,6 +5712,10 @@
   "Location": "eu-south-1c"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "eu-south-1c"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "eu-south-1c"
  },

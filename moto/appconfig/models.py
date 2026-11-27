@@ -230,10 +230,13 @@ class AppConfigBackend(BaseBackend):
         return config_profile
 
     def list_configuration_profiles(
-        self, app_id: str
+        self, app_id: str, _type: str | None = None
     ) -> Iterable[ConfigurationProfile]:
         app = self.get_application(app_id)
-        return app.config_profiles.values()
+        profiles = app.config_profiles.values()
+        if _type:
+            return [p for p in profiles if p._type == _type]
+        return profiles
 
     def create_hosted_configuration_version(
         self,

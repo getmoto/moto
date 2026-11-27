@@ -39,3 +39,28 @@ class RuleGroupNamespaceNotFound(ResourceNotFoundException):
             resource_id=name,
             resource_type="AWS::APS::RuleGroupNamespace",
         )
+
+
+class AlertManagerDefinitionNotFound(ResourceNotFoundException):
+    code = 404
+
+    def __init__(self, workspace_id: str):
+        super().__init__(
+            "AlertManagerDefinition not found",
+            resource_id=workspace_id,
+            resource_type="AWS::APS::Workspace",
+        )
+
+
+class AlertManagerDefinitionAlreadyExists(AmpException):
+    code = 409
+
+    def __init__(self, workspace_id: str):
+        super().__init__("ConflictException", "AlertManagerDefinition already exists")
+        self.description = json.dumps(
+            {
+                "resourceId": workspace_id,
+                "message": self.message,
+                "resourceType": "AWS::APS::Workspace",
+            }
+        )

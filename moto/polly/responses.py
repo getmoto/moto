@@ -1,7 +1,6 @@
 import json
 import re
 from typing import Any
-from urllib.parse import urlsplit
 
 from moto.core.responses import BaseResponse
 
@@ -28,15 +27,7 @@ class PollyResponse(BaseResponse):
     def _error(self, code: str, message: str) -> tuple[str, dict[str, int]]:
         return json.dumps({"__type": code, "message": message}), {"status": 400}
 
-    def _get_action(self) -> str:
-        # Amazon is now naming things /v1/api_name
-        url_parts = urlsplit(self.uri).path.lstrip("/").split("/")
-        # [0] = 'v1'
-
-        return url_parts[1]
-
-    # DescribeVoices
-    def voices(self) -> str | tuple[str, dict[str, int]]:
+    def describe_voices(self) -> str | tuple[str, dict[str, int]]:
         language_code = self._get_param("LanguageCode")
 
         if language_code is not None and language_code not in LANGUAGE_CODES:
@@ -51,26 +42,8 @@ class PollyResponse(BaseResponse):
 
         return json.dumps({"Voices": voices})
 
-    def lexicons(self) -> str | tuple[str, dict[str, int]]:
-        # Dish out requests based on methods
-
-        # anything after the /v1/lexicons/
-        args = urlsplit(self.uri).path.lstrip("/").split("/")[2:]
-
-        if self.method == "GET":
-            if len(args) == 0:
-                return self._get_lexicons_list()
-            else:
-                return self._get_lexicon(*args)
-        elif self.method == "PUT":
-            return self._put_lexicons(*args)
-        elif self.method == "DELETE":
-            return self._delete_lexicon(*args)
-
-        return self._error("InvalidAction", "Bad route")
-
-    # PutLexicon
-    def _put_lexicons(self, lexicon_name: str) -> str | tuple[str, dict[str, int]]:
+    def put_lexicon(self) -> str | tuple[str, dict[str, int]]:
+        lexicon_name = self._get_param("LexiconName")
         if LEXICON_NAME_REGEX.match(lexicon_name) is None:
             return self._error(
                 "InvalidParameterValue", "Lexicon name must match [0-9A-Za-z]{1,20}"
@@ -83,14 +56,13 @@ class PollyResponse(BaseResponse):
 
         return ""
 
-    # ListLexicons
-    def _get_lexicons_list(self) -> str:
+    def list_lexicons(self) -> str:
         result = {"Lexicons": self.polly_backend.list_lexicons()}
 
         return json.dumps(result)
 
-    # GetLexicon
-    def _get_lexicon(self, lexicon_name: str) -> str | tuple[str, dict[str, int]]:
+    def get_lexicon(self) -> str | tuple[str, dict[str, int]]:
+        lexicon_name = self._get_param("LexiconName")
         try:
             lexicon = self.polly_backend.get_lexicon(lexicon_name)
         except KeyError:
@@ -103,8 +75,8 @@ class PollyResponse(BaseResponse):
 
         return json.dumps(result)
 
-    # DeleteLexicon
-    def _delete_lexicon(self, lexicon_name: str) -> str | tuple[str, dict[str, int]]:
+    def delete_lexicon(self) -> str | tuple[str, dict[str, int]]:
+        lexicon_name = self._get_param("LexiconName")
         try:
             self.polly_backend.delete_lexicon(lexicon_name)
         except KeyError:
@@ -112,8 +84,7 @@ class PollyResponse(BaseResponse):
 
         return ""
 
-    # SynthesizeSpeech
-    def speech(self) -> tuple[str, dict[str, Any]]:
+    def synthesize_speech(self) -> tuple[str, dict[str, Any]]:
         # Sanity check params
         args = {
             "lexicon_names": None,

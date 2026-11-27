@@ -62,6 +62,7 @@ Only the Aurora-Postgresql and Neptune-engine is currently implemented
 
 
 - [ ] describe_pending_maintenance_actions
+- [ ] describe_serverless_v2_platform_versions
 - [ ] describe_valid_db_instance_modifications
 - [X] failover_db_cluster
 - [ ] failover_global_cluster

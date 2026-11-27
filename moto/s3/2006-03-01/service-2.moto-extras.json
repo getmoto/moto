@@ -5,6 +5,14 @@
       "xmlNamespace": "http://s3.amazonaws.com/doc/2006-03-01/"
     },
     "operations": {
+      "BucketCORSPreflightCheck": {
+        "name": "BucketCORSPreflightCheck",
+        "http": {
+          "method": "OPTIONS",
+          "requestUri": "/{Bucket}"
+        },
+        "documentation":""
+      },
       "CopyObject": {
         "output": {
           "resultWrapper": "CopyObjectResult"
@@ -20,9 +28,19 @@
           "resultWrapper": "InitiateMultipartUploadResult"
         }
       },
+      "CreateSession": {
+        "output": {
+          "resultWrapper": "CreateSessionResult"
+        }
+      },
       "DeleteObjects": {
         "output": {
           "resultWrapper": "DeleteResult"
+        }
+      },
+      "GetBucketAccelerateConfiguration": {
+        "output": {
+          "resultWrapper": "AccelerateConfiguration"
         }
       },
       "GetBucketAcl": {
@@ -40,6 +58,11 @@
           "resultWrapper": "ServerSideEncryptionConfiguration"
         }
       },
+      "GetBucketLifecycle": {
+        "output": {
+          "resultWrapper": "LifecycleConfiguration"
+        }
+      },
       "GetBucketLifecycleConfiguration": {
         "output": {
           "resultWrapper": "LifecycleConfiguration"
@@ -53,6 +76,11 @@
       "GetBucketLogging": {
         "output": {
           "resultWrapper": "BucketLoggingStatus"
+        }
+      },
+      "GetBucketNotification": {
+        "output": {
+          "resultWrapper": "NotificationConfiguration"
         }
       },
       "GetBucketNotificationConfiguration": {
@@ -70,9 +98,24 @@
           "resultWrapper": "ReplicationConfiguration"
         }
       },
+      "GetBucketRequestPayment": {
+        "output": {
+          "resultWrapper": "RequestPaymentConfiguration"
+        }
+      },
       "GetBucketTagging": {
         "output": {
           "resultWrapper": "Tagging"
+        }
+      },
+      "GetBucketVersioning": {
+        "output": {
+          "resultWrapper": "VersioningConfiguration"
+        }
+      },
+      "GetBucketWebsite": {
+        "output": {
+          "resultWrapper": "WebsiteConfiguration"
         }
       },
       "GetObjectAcl": {
@@ -105,14 +148,44 @@
           "resultWrapper": "PublicAccessBlockConfiguration"
         }
       },
+      "ListBucketAnalyticsConfigurations": {
+        "output": {
+          "resultWrapper": "ListBucketAnalyticsConfigurationResult"
+        }
+      },
+      "ListBucketIntelligentTieringConfigurations": {
+        "output": {
+          "resultWrapper": "ListBucketIntelligentTieringConfigurationsOutput"
+        }
+      },
+      "ListBucketInventoryConfigurations": {
+        "output": {
+          "resultWrapper": "ListInventoryConfigurationsResult"
+        }
+      },
+      "ListBucketMetricsConfigurations": {
+        "output": {
+          "resultWrapper": "ListMetricsConfigurationsResult"
+        }
+      },
       "ListBuckets": {
         "output": {
           "resultWrapper": "ListAllMyBucketsResult"
         }
       },
+      "ListDirectoryBuckets": {
+        "output": {
+          "resultWrapper": "ListAllMyDirectoryBucketsResult"
+        }
+      },
       "ListMultipartUploads": {
         "output": {
           "resultWrapper": "ListMultipartUploadsResult"
+        }
+      },
+      "ListObjectAnnotations": {
+        "output": {
+          "resultWrapper": "ListObjectAnnotationsOutput"
         }
       },
       "ListObjectVersions": {
@@ -128,6 +201,32 @@
       "ListObjectsV2": {
         "output": {
           "resultWrapper": "ListBucketResult"
+        }
+      },
+      "ListParts": {
+        "output": {
+          "resultWrapper": "ListPartsResult"
+        }
+      },
+      "ObjectCORSPreflightCheck": {
+        "name": "ObjectCORSPreflightCheck",
+        "http": {
+          "method": "OPTIONS",
+          "requestUri": "/{Bucket}/{Key+}"
+        },
+        "documentation":""
+      },
+      "PostObject": {
+        "name": "PostObject",
+        "http": {
+          "method": "POST",
+          "requestUri": "/{Bucket}"
+        },
+        "documentation":""
+      },
+      "PutObjectAnnotation": {
+        "output": {
+          "resultWrapper": "PutObjectAnnotationOutput"
         }
       }
     },
@@ -200,6 +299,15 @@
           "StorageClass": {"shape": "StorageClass"}
         },
         "error": {"httpStatusCode": 403},
+        "exception": true
+      },
+      "InvalidPartNumber": {
+        "type": "structure",
+        "members": {
+          "PartNumberRequested": {"shape": "PartNumber"},
+          "ActualPartCount": {"shape": "PartsCount"}
+        },
+        "error": {"httpStatusCode": 416},
         "exception": true
       },
       "InvalidRange": {

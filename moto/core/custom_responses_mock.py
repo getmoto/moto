@@ -3,10 +3,10 @@ from http.client import responses as http_responses
 from typing import Any
 
 import responses
+from requests import PreparedRequest
 
 from moto.backends import get_service_from_url
 from moto.core.config import passthrough_service, passthrough_url
-from moto.core.request import normalize_request
 from moto.core.versions import is_responses_0_17_x
 
 from .responses import TYPE_RESPONSE
@@ -22,16 +22,11 @@ class CallbackResponse(responses.CallbackResponse):
             return self.method == other.method and self.url.pattern == other.url.pattern  # type: ignore
         return super().__eq__(other)
 
-    def get_response(self, request: Any) -> responses.HTTPResponse:
+    def get_response(self, request: PreparedRequest) -> responses.HTTPResponse:
         """
         Need to override this so we can pass decode_content=False
         """
-        request = normalize_request(request)
         headers = self.get_headers()
-
-        from moto.moto_api import recorder
-
-        recorder._record_request(request)
 
         result = self.callback(request)
         if isinstance(result, Exception):
@@ -85,7 +80,7 @@ class CallbackResponse(responses.CallbackResponse):
             return False
 
 
-def not_implemented_callback(request: Any) -> TYPE_RESPONSE:
+def not_implemented_callback(request: PreparedRequest) -> TYPE_RESPONSE:
     status = 400
     headers: dict[str, str] = {}
     response = "The method is not implemented"

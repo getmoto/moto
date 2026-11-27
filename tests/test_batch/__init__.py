@@ -30,11 +30,11 @@ def _setup(ec2_client: Any, iam_client: Any) -> tuple[str, str, str, str]:
     )
     subnet_id = resp["Subnet"]["SubnetId"]
     resp = ec2_client.create_security_group(
-        Description="test_sg_desc", GroupName=str(uuid4())[0:6], VpcId=vpc_id
+        Description="test_sg_desc", GroupName=f"sg-{uuid4()}", VpcId=vpc_id
     )
     sg_id = resp["GroupId"]
 
-    role_name = f"{str(uuid4())[0:6]}"
+    role_name = f"batch-role-{uuid4()}"
     assume_role_policy = json.dumps(
         {
             "Version": "2012-10-17",

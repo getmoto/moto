@@ -61,6 +61,7 @@ es
 - [X] remove_tags
 - [ ] revoke_vpc_endpoint_access
 - [ ] start_elasticsearch_service_software_update
+- [ ] update_clone
 - [ ] update_elasticsearch_domain_config
 - [ ] update_package
 - [ ] update_vpc_endpoint

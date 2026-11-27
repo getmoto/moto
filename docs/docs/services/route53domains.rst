@@ -30,6 +30,7 @@ route53domains
 - [ ] enable_domain_transfer_lock
 - [ ] get_contact_reachability_status
 - [ ] get_domain_detail
+- [ ] get_domain_prices
 - [ ] get_domain_suggestions
 - [ ] get_operation_detail
 - [X] list_domains
@@ -44,6 +45,7 @@ route53domains
 - [ ] renew_domain
 - [ ] resend_contact_reachability_email
 - [ ] resend_operation_authorization
+- [ ] restore_domain
 - [ ] retrieve_domain_auth_code
 - [ ] transfer_domain
 - [ ] transfer_domain_to_another_aws_account

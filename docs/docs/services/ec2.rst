@@ -43,7 +43,9 @@ ec2
 - [ ] associate_instance_event_window
 - [ ] associate_ipam_byoasn
 - [ ] associate_ipam_resource_discovery
+- [ ] associate_kms_key_id
 - [ ] associate_nat_gateway_address
+- [ ] associate_networking_flex_cost_allocation_policy
 - [ ] associate_route_server
 - [X] associate_route_table
 - [ ] associate_security_group_vpc
@@ -130,6 +132,7 @@ ec2
 - [ ] create_local_gateway_virtual_interface_group
 - [ ] create_mac_system_integrity_protection_modification_task
 - [X] create_managed_prefix_list
+- [ ] create_metric_category
 - [X] create_nat_gateway
 - [X] create_network_acl
 - [X] create_network_acl_entry
@@ -137,6 +140,7 @@ ec2
 - [ ] create_network_insights_path
 - [X] create_network_interface
 - [ ] create_network_interface_permission
+- [ ] create_networking_flex_cost_allocation_policy
 - [ ] create_placement_group
 - [ ] create_public_ipv4_pool
 - [ ] create_replace_root_volume_task
@@ -171,6 +175,7 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [ ] create_transit_gateway_metering_policy
 - [ ] create_transit_gateway_metering_policy_entry
 - [ ] create_transit_gateway_multicast_domain
+- [ ] create_transit_gateway_network_function_attachment
 - [X] create_transit_gateway_peering_attachment
 - [ ] create_transit_gateway_policy_table
 - [ ] create_transit_gateway_policy_table_entry
@@ -225,7 +230,12 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [ ] delete_ipam_scope
 - [X] delete_key_pair
 - [X] delete_launch_template
-- [ ] delete_launch_template_versions
+- [X] delete_launch_template_versions
+  
+Returns the template, the deleted version numbers,
+and the version numbers that could not be found.
+
+
 - [ ] delete_local_gateway_route
 - [ ] delete_local_gateway_route_table
 - [ ] delete_local_gateway_route_table_virtual_interface_group_association
@@ -233,6 +243,7 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [ ] delete_local_gateway_virtual_interface
 - [ ] delete_local_gateway_virtual_interface_group
 - [X] delete_managed_prefix_list
+- [ ] delete_metric_category
 - [X] delete_nat_gateway
 - [X] delete_network_acl
 - [X] delete_network_acl_entry
@@ -242,6 +253,7 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [ ] delete_network_insights_path
 - [X] delete_network_interface
 - [ ] delete_network_interface_permission
+- [ ] delete_networking_flex_cost_allocation_policies
 - [ ] delete_placement_group
 - [ ] delete_public_ipv4_pool
 - [ ] delete_queued_reserved_instances
@@ -269,6 +281,7 @@ The CopyTagsFromSource-parameter is not yet implemented.
 - [ ] delete_transit_gateway_metering_policy
 - [ ] delete_transit_gateway_metering_policy_entry
 - [ ] delete_transit_gateway_multicast_domain
+- [ ] delete_transit_gateway_network_function_attachment
 - [X] delete_transit_gateway_peering_attachment
 - [ ] delete_transit_gateway_policy_table
 - [ ] delete_transit_gateway_policy_table_entry
@@ -420,6 +433,7 @@ The Filters-parameter is not yet implemented
 - [ ] describe_mac_hosts
 - [ ] describe_mac_modification_tasks
 - [X] describe_managed_prefix_lists
+- [ ] describe_metric_categories
 - [ ] describe_moving_addresses
 - [X] describe_nat_gateways
 - [X] describe_network_acls
@@ -430,6 +444,8 @@ The Filters-parameter is not yet implemented
 - [ ] describe_network_interface_attribute
 - [ ] describe_network_interface_permissions
 - [X] describe_network_interfaces
+- [ ] describe_networking_flex_cost_allocation_policies
+- [ ] describe_networking_flex_cost_allocation_policy_associations
 - [ ] describe_outpost_lags
 - [ ] describe_placement_groups
 - [ ] describe_prefix_lists
@@ -477,6 +493,7 @@ The Filters-parameter is not yet implemented
 - [ ] describe_transit_gateway_connects
 - [ ] describe_transit_gateway_metering_policies
 - [ ] describe_transit_gateway_multicast_domains
+- [ ] describe_transit_gateway_network_function_attachments
 - [X] describe_transit_gateway_peering_attachments
 - [ ] describe_transit_gateway_policy_tables
 - [ ] describe_transit_gateway_route_table_announcements
@@ -568,7 +585,9 @@ The DryRun parameter is ignored.
 - [ ] disassociate_instance_event_window
 - [ ] disassociate_ipam_byoasn
 - [ ] disassociate_ipam_resource_discovery
+- [ ] disassociate_kms_key_id
 - [ ] disassociate_nat_gateway_address
+- [ ] disassociate_networking_flex_cost_allocation_policy
 - [ ] disassociate_route_server
 - [X] disassociate_route_table
 - [ ] disassociate_security_group_vpc
@@ -617,6 +636,7 @@ The DryRun parameter is ignored.
 - [ ] get_capacity_manager_metric_data
 - [ ] get_capacity_manager_metric_dimensions
 - [ ] get_capacity_manager_monitored_tag_keys
+- [ ] get_capacity_manager_supportability_scores
 - [ ] get_capacity_reservation_usage
 - [ ] get_client_vpn_endpoint_authorization_policy
 - [ ] get_coip_pool_usage
@@ -632,6 +652,7 @@ The DryRun parameter is ignored.
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_image_ancestry
 - [ ] get_image_block_public_access_state
+- [ ] get_image_findings
 - [ ] get_instance_metadata_defaults
 - [ ] get_instance_tpm_ek_pub
 - [ ] get_instance_types_from_instance_requirements
@@ -661,6 +682,7 @@ The DryRun parameter is ignored.
 - [ ] get_managed_resource_visibility
 - [ ] get_network_insights_access_scope_analysis_findings
 - [ ] get_network_insights_access_scope_content
+- [ ] get_networking_flex_cost_allocation_policy_versions
 - [X] get_password_data
 - [ ] get_reserved_instances_exchange_quote
 - [ ] get_route_server_associations
@@ -671,6 +693,7 @@ The DryRun parameter is ignored.
 - [ ] get_snapshot_block_public_access_state
 - [ ] get_spot_placement_scores
 - [X] get_subnet_cidr_reservations
+- [ ] get_transit_gateway_attachment_nat_configuration
 - [ ] get_transit_gateway_attachment_propagations
 - [ ] get_transit_gateway_metering_policy_entries
 - [ ] get_transit_gateway_multicast_domain_associations
@@ -738,7 +761,9 @@ The DryRun parameter is ignored.
 - [ ] modify_local_gateway_route
 - [X] modify_managed_prefix_list
 - [ ] modify_managed_resource_visibility
+- [ ] modify_metric_category
 - [X] modify_network_interface_attribute
+- [ ] modify_networking_flex_cost_allocation_policy
 - [ ] modify_private_dns_name_options
 - [ ] modify_public_ip_dns_name_options
 - [ ] modify_reserved_instances
@@ -752,7 +777,10 @@ The DryRun parameter is ignored.
 - [ ] modify_traffic_mirror_filter_rule
 - [X] modify_traffic_mirror_session
 - [X] modify_transit_gateway
+- [ ] modify_transit_gateway_attachment_nat_configuration
 - [ ] modify_transit_gateway_metering_policy
+- [ ] modify_transit_gateway_network_function_attachment
+- [ ] modify_transit_gateway_peering_attachment
 - [ ] modify_transit_gateway_policy_table_entry
 - [ ] modify_transit_gateway_prefix_list_reference
 - [X] modify_transit_gateway_vpc_attachment
