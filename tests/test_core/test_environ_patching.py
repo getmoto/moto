@@ -1,4 +1,6 @@
+import io
 import os
+import unittest
 from unittest.mock import patch
 
 from moto import mock_aws
@@ -49,3 +51,83 @@ def test_aws_keys_can_be_none() -> None:
     finally:
         # Reset the value original - don't want to change the users system
         os.environ[KEY] = original
+
+
+ORIGINAL_CREDS = {
+    "AWS_ACCESS_KEY_ID": "original-key",
+    "AWS_SECRET_ACCESS_KEY": "original-secret",
+}
+
+
+def test_aws_keys_are_restored_when_the_same_mock_is_started_twice() -> None:
+    with patch.dict(os.environ, ORIGINAL_CREDS):
+        mock = mock_aws()
+        mock.start()
+        mock.start()
+        assert os.environ[KEY] == "FOOBARKEY"
+
+        mock.stop()
+        assert os.environ[KEY] == "FOOBARKEY"
+
+        mock.stop()
+        assert os.environ[KEY] == "original-key"
+        assert os.environ["AWS_SECRET_ACCESS_KEY"] == "original-secret"
+
+
+def test_aws_keys_are_restored_when_a_decorated_class_calls_its_own_methods() -> None:
+    @mock_aws
+    class TestWithHelper(unittest.TestCase):
+        def helper(self) -> str:
+            return os.environ[KEY]
+
+        def test_calls_helper(self) -> None:
+            assert self.helper() == "FOOBARKEY"
+
+    with patch.dict(os.environ, ORIGINAL_CREDS):
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestWithHelper)
+        result = unittest.TextTestRunner(stream=io.StringIO()).run(suite)
+        assert result.wasSuccessful()
+
+        assert os.environ[KEY] == "original-key"
+        assert os.environ["AWS_SECRET_ACCESS_KEY"] == "original-secret"
+
+
+def test_aws_keys_are_restored_when_mocks_stop_in_a_different_order() -> None:
+    with patch.dict(os.environ, ORIGINAL_CREDS):
+        first = mock_aws()
+        second = mock_aws()
+        first.start()
+        second.start()
+
+        first.stop()
+        assert os.environ[KEY] == "FOOBARKEY"
+
+        second.stop()
+        assert os.environ[KEY] == "original-key"
+        assert os.environ["AWS_SECRET_ACCESS_KEY"] == "original-secret"
+
+
+def test_nested_mock_does_not_mock_the_aws_keys_again() -> None:
+    with patch.dict(os.environ, ORIGINAL_CREDS):
+        with mock_aws():
+            os.environ[KEY] = "set-by-user"
+            with mock_aws():
+                assert os.environ[KEY] == "set-by-user"
+            assert os.environ[KEY] == "set-by-user"
+        assert os.environ[KEY] == "original-key"
+        assert os.environ["AWS_SECRET_ACCESS_KEY"] == "original-secret"
+
+
+def test_aws_keys_are_restored_when_the_inner_mock_does_not_patch_credentials() -> None:
+    with patch.dict(os.environ, ORIGINAL_CREDS):
+        outer = mock_aws()
+        inner = mock_aws(config={"core": {"mock_credentials": False}})
+        outer.start()
+        inner.start()
+
+        inner.stop()
+        assert os.environ[KEY] == "FOOBARKEY"
+
+        outer.stop()
+        assert os.environ[KEY] == "original-key"
+        assert os.environ["AWS_SECRET_ACCESS_KEY"] == "original-secret"
