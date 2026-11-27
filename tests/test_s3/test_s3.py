@@ -3700,3 +3700,28 @@ def test_list_buckets_with_prefix_and_bucket_region():
     resp = client.list_buckets(Prefix=prefix, BucketRegion="us-east-2")
 
     assert [b["Name"] for b in resp["Buckets"]] == [us_east_2_prefixed_bucket]
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_options_request_on_service_root():
+    s3_root_url = (
+        "http://localhost:5000/"
+        if settings.TEST_SERVER_MODE
+        else "https://s3.amazonaws.com/"
+    )
+
+    resp = requests.options(s3_root_url)
+    assert resp.status_code == 400
+    assert "<Code>BadRequest</Code>" in resp.text
+    assert (
+        "<Message>Insufficient information. Origin request header needed.</Message>"
+        in resp.text
+    )
+
+    resp = requests.options(s3_root_url, headers={"Origin": "https://example.org"})
+    assert resp.status_code == 403
+    assert "<Code>AccessForbidden</Code>" in resp.text
+    assert "<Message>CORSResponse: Bucket not found</Message>" in resp.text
+    assert "<Method>OPTIONS</Method>" in resp.text
+    assert "<ResourceType>BUCKET</ResourceType>" in resp.text

@@ -241,7 +241,10 @@
       },
       "AccessForbidden": {
         "type": "structure",
-        "members": {},
+        "members": {
+          "Method": {"shape": "AllowedMethod"},
+          "ResourceType": {"shape": "_ResourceType"}
+        },
         "error": {"httpStatusCode": 403},
         "exception": true
       },
