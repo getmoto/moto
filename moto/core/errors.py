@@ -28,6 +28,7 @@ COMMON_ERROR_CODES = [
     "InvalidParameterValue",
     # Raised by Moto's @paginate decorator for any service.
     "InvalidToken",
+    "MissingParameter",
     "ValidationError",
     "ValidationException",
 ]

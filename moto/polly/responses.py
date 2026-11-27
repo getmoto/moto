@@ -4,6 +4,15 @@ from typing import Any
 
 from moto.core.responses import BaseResponse
 
+from .exceptions import (
+    InvalidParameterValue,
+    InvalidSampleRateException,
+    MarksNotSupportedForFormatException,
+    MissingParameter,
+    SsmlMarksNotSupportedForTextTypeException,
+    TextLengthExceededException,
+    ValidationException,
+)
 from .models import PollyBackend, polly_backends
 from .resources import LANGUAGE_CODES, VOICE_IDS
 
@@ -24,10 +33,7 @@ class PollyResponse(BaseResponse):
             self._json = json.loads(self.body)
         return self._json
 
-    def _error(self, code: str, message: str) -> tuple[str, dict[str, int]]:
-        return json.dumps({"__type": code, "message": message}), {"status": 400}
-
-    def describe_voices(self) -> str | tuple[str, dict[str, int]]:
+    def describe_voices(self) -> str:
         language_code = self._get_param("LanguageCode")
 
         if language_code is not None and language_code not in LANGUAGE_CODES:
@@ -36,21 +42,19 @@ class PollyResponse(BaseResponse):
                 f"1 validation error detected: Value '{language_code}' at 'languageCode' failed to satisfy constraint: "
                 f"Member must satisfy enum value set: [{all_codes}]"
             )
-            return msg, {"status": 400}
+            raise ValidationException(msg)
 
         voices = self.polly_backend.describe_voices(language_code)
 
         return json.dumps({"Voices": voices})
 
-    def put_lexicon(self) -> str | tuple[str, dict[str, int]]:
+    def put_lexicon(self) -> str:
         lexicon_name = self._get_param("LexiconName")
         if LEXICON_NAME_REGEX.match(lexicon_name) is None:
-            return self._error(
-                "InvalidParameterValue", "Lexicon name must match [0-9A-Za-z]{1,20}"
-            )
+            raise InvalidParameterValue("Lexicon name must match [0-9A-Za-z]{1,20}")
 
         if "Content" not in self.json:
-            return self._error("MissingParameter", "Content is missing from the body")
+            raise MissingParameter("Content is missing from the body")
 
         self.polly_backend.put_lexicon(lexicon_name, self.json["Content"])
 
@@ -61,12 +65,9 @@ class PollyResponse(BaseResponse):
 
         return json.dumps(result)
 
-    def get_lexicon(self) -> str | tuple[str, dict[str, int]]:
+    def get_lexicon(self) -> str:
         lexicon_name = self._get_param("LexiconName")
-        try:
-            lexicon = self.polly_backend.get_lexicon(lexicon_name)
-        except KeyError:
-            return self._error("LexiconNotFoundException", "Lexicon not found")
+        lexicon = self.polly_backend.get_lexicon(lexicon_name)
 
         result = {
             "Lexicon": {"Name": lexicon_name, "Content": lexicon.content},
@@ -75,12 +76,9 @@ class PollyResponse(BaseResponse):
 
         return json.dumps(result)
 
-    def delete_lexicon(self) -> str | tuple[str, dict[str, int]]:
+    def delete_lexicon(self) -> str:
         lexicon_name = self._get_param("LexiconName")
-        try:
-            self.polly_backend.delete_lexicon(lexicon_name)
-        except KeyError:
-            return self._error("LexiconNotFoundException", "Lexicon not found")
+        self.polly_backend.delete_lexicon(lexicon_name)
 
         return ""
 
@@ -96,67 +94,54 @@ class PollyResponse(BaseResponse):
 
         if "LexiconNames" in self.json:
             for lex in self.json["LexiconNames"]:
-                try:
-                    self.polly_backend.get_lexicon(lex)
-                except KeyError:
-                    return self._error("LexiconNotFoundException", "Lexicon not found")
+                self.polly_backend.get_lexicon(lex)
 
             args["lexicon_names"] = self.json["LexiconNames"]
 
         if "OutputFormat" not in self.json:
-            return self._error("MissingParameter", "Missing parameter OutputFormat")
+            raise MissingParameter("Missing parameter OutputFormat")
         if self.json["OutputFormat"] not in ("json", "mp3", "ogg_vorbis", "pcm"):
-            return self._error(
-                "InvalidParameterValue", "Not one of json, mp3, ogg_vorbis, pcm"
-            )
+            raise InvalidParameterValue("Not one of json, mp3, ogg_vorbis, pcm")
         args["output_format"] = self.json["OutputFormat"]
 
         if "SampleRate" in self.json:
             sample_rate = int(self.json["SampleRate"])
             if sample_rate not in (8000, 16000, 22050):
-                return self._error(
-                    "InvalidSampleRateException",
-                    "The specified sample rate is not valid.",
-                )
+                raise InvalidSampleRateException()
             args["sample_rate"] = sample_rate
 
         if "SpeechMarkTypes" in self.json:
             for value in self.json["SpeechMarkTypes"]:
                 if value not in ("sentance", "ssml", "viseme", "word"):
-                    return self._error(
-                        "InvalidParameterValue",
-                        "Not one of sentance, ssml, viseme, word",
+                    raise InvalidParameterValue(
+                        "Not one of sentance, ssml, viseme, word"
                     )
             args["speech_marks"] = self.json["SpeechMarkTypes"]
 
         if "Text" not in self.json:
-            return self._error("MissingParameter", "Missing parameter Text")
+            raise MissingParameter("Missing parameter Text")
         args["text"] = self.json["Text"]
 
         if "TextType" in self.json:
             if self.json["TextType"] not in ("ssml", "text"):
-                return self._error("InvalidParameterValue", "Not one of ssml, text")
+                raise InvalidParameterValue("Not one of ssml, text")
             args["text_type"] = self.json["TextType"]
 
         if "VoiceId" not in self.json:
-            return self._error("MissingParameter", "Missing parameter VoiceId")
+            raise MissingParameter("Missing parameter VoiceId")
         if self.json["VoiceId"] not in VOICE_IDS:
             all_voices = ", ".join(VOICE_IDS)  # type: ignore
-            return self._error("InvalidParameterValue", f"Not one of {all_voices}")
+            raise InvalidParameterValue(f"Not one of {all_voices}")
         args["voice_id"] = self.json["VoiceId"]
 
         # More validation
         if len(args["text"]) > 3000:  # type: ignore
-            return self._error("TextLengthExceededException", "Text too long")
+            raise TextLengthExceededException()
 
         if args["speech_marks"] is not None and args["output_format"] != "json":
-            return self._error(
-                "MarksNotSupportedForFormatException", "OutputFormat must be json"
-            )
+            raise MarksNotSupportedForFormatException()
         if args["speech_marks"] is not None and args["text_type"] == "text":
-            return self._error(
-                "SsmlMarksNotSupportedForTextTypeException", "TextType must be ssml"
-            )
+            raise SsmlMarksNotSupportedForTextTypeException()
 
         content_type = "audio/json"
         if args["output_format"] == "mp3":

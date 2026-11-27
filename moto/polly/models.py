@@ -5,6 +5,7 @@ from xml.etree import ElementTree as ET
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 
+from .exceptions import LexiconNotFoundException
 from .resources import VOICE_DATA
 from .utils import make_arn_for_lexicon
 
@@ -77,11 +78,13 @@ class PollyBackend(BaseBackend):
         return [item for item in VOICE_DATA if item["LanguageCode"] == language_code]
 
     def delete_lexicon(self, name: str) -> None:
-        # implement here
+        if name not in self._lexicons:
+            raise LexiconNotFoundException()
         del self._lexicons[name]
 
     def get_lexicon(self, name: str) -> Lexicon:
-        # Raises KeyError
+        if name not in self._lexicons:
+            raise LexiconNotFoundException()
         return self._lexicons[name]
 
     def list_lexicons(self) -> list[dict[str, Any]]:
