@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from collections import OrderedDict
 from collections.abc import Iterable, Iterator
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 import yaml
@@ -461,6 +461,8 @@ class Stack(CloudFormationModel):
 
         self.output_map = self._create_output_map()
         self.creation_time = utcnow()
+        # Only set once the stack is updated, or created through a change set
+        self.last_updated_time: datetime | None = None
         self.status = "CREATE_PENDING"
         self.disable_rollback = False
 
@@ -600,6 +602,7 @@ class Stack(CloudFormationModel):
         self._add_stack_event(
             "UPDATE_IN_PROGRESS", resource_status_reason="User Initiated"
         )
+        self.last_updated_time = utcnow()
         self.template = template
         self._parse_template()
         self.resource_map.update(self.template_dict, parameters)
@@ -1179,6 +1182,8 @@ class CloudFormationBackend(BaseBackend, TaggableResourcesMixin):
             raise ValidationError(stack_name)
 
         stack = self.stacks[change_set.stack_id]
+        # AWS sets LastUpdatedTime on execution, for a CREATE change set as well
+        stack.last_updated_time = utcnow()
         # TODO: handle execution errors and implement rollback
         if change_set.change_set_type == "CREATE":
             stack._add_stack_event(
