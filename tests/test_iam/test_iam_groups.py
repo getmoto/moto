@@ -90,6 +90,37 @@ def test_get_all_groups():
 
 
 @mock_aws
+@pytest.mark.parametrize(
+    "path_prefix, expected_names",
+    [
+        (None, {"root", "team", "nested", "other", "similar"}),
+        ("/", {"root", "team", "nested", "other", "similar"}),
+        ("/team/", {"team", "nested"}),
+        ("/team/nested/", {"nested"}),
+        ("/missing/", set()),
+        ("/TEAM/", set()),
+    ],
+)
+def test_list_groups_with_path_prefix(path_prefix, expected_names):
+    conn = boto3.client("iam", region_name="us-east-1")
+    for name, path in [
+        ("root", "/"),
+        ("team", "/team/"),
+        ("nested", "/team/nested/"),
+        ("other", "/other/"),
+        ("similar", "/team-other/"),
+    ]:
+        conn.create_group(GroupName=name, Path=path)
+
+    kwargs = {"PathPrefix": path_prefix} if path_prefix is not None else {}
+    groups = conn.list_groups(**kwargs)["Groups"]
+    assert {group["GroupName"] for group in groups} == expected_names
+
+    # Filtering a response must not remove the other groups from the backend.
+    assert len(conn.list_groups()["Groups"]) == 5
+
+
+@mock_aws
 def test_add_unknown_user_to_group():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:

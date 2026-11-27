@@ -2580,7 +2580,9 @@ class IAMBackend(BaseBackend):
         except KeyError:
             raise NotFoundException(f"Group {group_name} not found")
 
-    def list_groups(self) -> Iterable[Group]:
+    def list_groups(self, path_prefix: str | None = None) -> Iterable[Group]:
+        if path_prefix:
+            return filter_items_with_path_prefix(path_prefix, self.groups.values())
         return self.groups.values()
 
     def get_groups_for_user(self, user_name: str) -> list[Group]:
