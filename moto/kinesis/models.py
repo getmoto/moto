@@ -492,12 +492,11 @@ class Stream(CloudFormationModel):
 
         backend: KinesisBackend = kinesis_backends[account_id][region_name]
         stream = backend.create_stream(
-            resource_name, shard_count, retention_period_hours=retention_period_hours
+            resource_name,
+            shard_count,
+            retention_period_hours=retention_period_hours,
+            tags=tags,
         )
-        if any(tags):
-            backend.add_tags_to_stream(
-                stream_arn=None, stream_name=stream.stream_name, tags=tags
-            )
         return stream
 
     @classmethod
@@ -600,6 +599,7 @@ class KinesisBackend(BaseBackend):
         shard_count: int,
         stream_mode: dict[str, str] | None = None,
         retention_period_hours: int | None = None,
+        tags: dict[str, str] | None = None,
     ) -> Stream:
         if stream_name in self.streams:
             raise ResourceInUseError(stream_name)
@@ -611,6 +611,7 @@ class KinesisBackend(BaseBackend):
             account_id=self.account_id,
             region_name=self.region_name,
         )
+        stream.tags.update(tags or {})
         self.streams[stream_name] = stream
         return stream
 

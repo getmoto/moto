@@ -853,6 +853,17 @@ def test_add_list_remove_tags():
 
 
 @mock_aws
+def test_create_stream_with_tags():
+    client = boto3.client("kinesis", region_name="eu-west-2")
+    client.create_stream(
+        StreamName="my-stream", ShardCount=1, Tags={"tag1": "val1", "tag2": "val2"}
+    )
+
+    tags = client.list_tags_for_stream(StreamName="my-stream")["Tags"]
+    assert tags == [{"Key": "tag1", "Value": "val1"}, {"Key": "tag2", "Value": "val2"}]
+
+
+@mock_aws
 def test_merge_shards():
     client = boto3.client("kinesis", region_name="eu-west-2")
     stream_name = "my_stream_summary"
