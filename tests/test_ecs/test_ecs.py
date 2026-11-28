@@ -755,6 +755,36 @@ def test_create_service():
 
 
 @mock_aws
+def test_create_service_without_security_groups():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+    subnet, _ = setup_ecs(client, ec2)
+
+    svc = client.create_service(
+        cluster="test_ecs_cluster",
+        serviceName="test_ecs_service",
+        taskDefinition="test_ecs_task",
+        desiredCount=1,
+        networkConfiguration={"awsvpcConfiguration": {"subnets": [subnet.id]}},
+    )["service"]
+
+    # AWS doesn't fill in the default security group, it returns an empty list
+    expected = {
+        "awsvpcConfiguration": {
+            "subnets": [subnet.id],
+            "securityGroups": [],
+            "assignPublicIp": "DISABLED",
+        }
+    }
+    assert svc["networkConfiguration"] == expected
+    assert svc["deployments"][0]["networkConfiguration"] == expected
+    svc = client.describe_services(
+        cluster="test_ecs_cluster", services=["test_ecs_service"]
+    )["services"][0]
+    assert svc["networkConfiguration"] == expected
+
+
+@mock_aws
 def test_create_running_service():
     if settings.TEST_SERVER_MODE:
         raise SkipTest(
@@ -2509,6 +2539,38 @@ def test_run_task_awsvpc_network__unknown_sec_group():
     ][0]
     # Unknown SecurityGroup is created for us
     assert eni["Groups"] == [{"GroupId": "unknown_sg", "GroupName": "unknown_sg"}]
+
+
+@mock_aws
+def test_run_task_awsvpc_network_without_security_groups():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2_client = boto3.client("ec2", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+    subnet, _ = setup_ecs(client, ec2)
+
+    task = client.run_task(
+        cluster="test_ecs_cluster",
+        taskDefinition="test_ecs_task",
+        launchType="FARGATE",
+        networkConfiguration={"awsvpcConfiguration": {"subnets": [subnet.id]}},
+    )["tasks"][0]
+    eni_id = next(
+        t["value"]
+        for t in task["attachments"][0]["details"]
+        if t["name"] == "networkInterfaceId"
+    )
+
+    # The task's network interface gets the VPC's default security group
+    default_sg = ec2_client.describe_security_groups(
+        Filters=[
+            {"Name": "vpc-id", "Values": [subnet.vpc_id]},
+            {"Name": "group-name", "Values": ["default"]},
+        ]
+    )["SecurityGroups"][0]
+    eni = ec2_client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])[
+        "NetworkInterfaces"
+    ][0]
+    assert eni["Groups"] == [{"GroupId": default_sg["GroupId"], "GroupName": "default"}]
 
 
 @mock_aws
