@@ -70,38 +70,80 @@ def setup_target_group(boto_client):
 
 @mock_aws
 @pytest.mark.parametrize(
-    "condition",
+    "condition,expected",
     [
-        {"Field": "host-header", "Values": ["example.com"]},
-        {
-            "Field": "host-header",
-            "HostHeaderConfig": {"Values": ["example.com", "www.example.com"]},
-        },
-        {
-            "Field": "http-header",
-            "HttpHeaderConfig": {
-                "HttpHeaderName": "User-Agent",
-                "Values": ["Mozilla"],
+        # AWS returns host-header and path-pattern conditions in both forms
+        (
+            {"Field": "host-header", "Values": ["example.com"]},
+            {
+                "Field": "host-header",
+                "Values": ["example.com"],
+                "HostHeaderConfig": {"Values": ["example.com"]},
             },
-        },
-        {
-            "Field": "http-request-method",
-            "HttpRequestMethodConfig": {"Values": ["GET", "POST"]},
-        },
-        {"Field": "path-pattern", "Values": ["/home"]},
-        {
-            "Field": "path-pattern",
-            "PathPatternConfig": {"Values": ["/home", "/about"]},
-        },
-        {
-            "Field": "query-string",
-            "QueryStringConfig": {"Values": [{"Key": "hello", "Value": "world"}]},
-        },
-        {"Field": "source-ip", "SourceIpConfig": {"Values": ["172.28.7.0/24"]}},
+        ),
+        (
+            {
+                "Field": "host-header",
+                "HostHeaderConfig": {"Values": ["example.com", "www.example.com"]},
+            },
+            {
+                "Field": "host-header",
+                "Values": ["example.com", "www.example.com"],
+                "HostHeaderConfig": {"Values": ["example.com", "www.example.com"]},
+            },
+        ),
+        (
+            {
+                "Field": "http-header",
+                "HttpHeaderConfig": {
+                    "HttpHeaderName": "User-Agent",
+                    "Values": ["Mozilla"],
+                },
+            },
+            None,
+        ),
+        (
+            {
+                "Field": "http-request-method",
+                "HttpRequestMethodConfig": {"Values": ["GET", "POST"]},
+            },
+            None,
+        ),
+        (
+            {"Field": "path-pattern", "Values": ["/home"]},
+            {
+                "Field": "path-pattern",
+                "Values": ["/home"],
+                "PathPatternConfig": {"Values": ["/home"]},
+            },
+        ),
+        (
+            {
+                "Field": "path-pattern",
+                "PathPatternConfig": {"Values": ["/home", "/about"]},
+            },
+            {
+                "Field": "path-pattern",
+                "Values": ["/home", "/about"],
+                "PathPatternConfig": {"Values": ["/home", "/about"]},
+            },
+        ),
+        (
+            {
+                "Field": "query-string",
+                "QueryStringConfig": {"Values": [{"Key": "hello", "Value": "world"}]},
+            },
+            None,
+        ),
+        (
+            {"Field": "source-ip", "SourceIpConfig": {"Values": ["172.28.7.0/24"]}},
+            None,
+        ),
     ],
 )
-def test_create_rule_condition(condition):
+def test_create_rule_condition(condition, expected):
     conn = boto3.client("elbv2", region_name="us-east-1")
+    expected = expected or condition
 
     http_listener_arn = setup_listener(conn)
 
@@ -117,17 +159,24 @@ def test_create_rule_condition(condition):
     assert len(response["Rules"]) == 1
     rule = response.get("Rules")[0]
     assert rule["Priority"] == "100"
-    assert rule["Conditions"] == [condition]
+    assert rule["Conditions"] == [expected]
 
     # assert describe_rules response
     response = conn.describe_rules(ListenerArn=http_listener_arn)
     assert len(response["Rules"]) == 2  # including the default rule
+    assert response["Rules"][1]["Conditions"] == []
 
     # assert describe_rules with arn filter response
     rule = response["Rules"][0]
-    assert rule["Conditions"] == [condition]
+    assert rule["Conditions"] == [expected]
     response = conn.describe_rules(RuleArns=[rule["RuleArn"]])
     assert response["Rules"] == [rule]
+
+    # assert set_rule_priorities response
+    response = conn.set_rule_priorities(
+        RulePriorities=[{"RuleArn": rule["RuleArn"], "Priority": 101}]
+    )
+    assert response["Rules"][0]["Conditions"] == [expected]
 
     # assert describe_tags response
     response = conn.describe_tags(ResourceArns=[rule["RuleArn"]])
@@ -136,12 +185,17 @@ def test_create_rule_condition(condition):
 
 @mock_aws
 @pytest.mark.parametrize(
-    "create_condition,modify_condition",
+    "create_condition,modify_condition,expected",
     [
         (
             {"Field": "host-header", "Values": ["example.com"]},
             {
                 "Field": "host-header",
+                "HostHeaderConfig": {"Values": ["example.com", "www.example.com"]},
+            },
+            {
+                "Field": "host-header",
+                "Values": ["example.com", "www.example.com"],
                 "HostHeaderConfig": {"Values": ["example.com", "www.example.com"]},
             },
         ),
@@ -160,6 +214,7 @@ def test_create_rule_condition(condition):
                     "Values": ["Mozilla", "curl"],
                 },
             },
+            None,
         ),
         (
             {"Field": "path-pattern", "Values": ["/home"]},
@@ -167,10 +222,15 @@ def test_create_rule_condition(condition):
                 "Field": "path-pattern",
                 "PathPatternConfig": {"Values": ["/home", "/about"]},
             },
+            {
+                "Field": "path-pattern",
+                "Values": ["/home", "/about"],
+                "PathPatternConfig": {"Values": ["/home", "/about"]},
+            },
         ),
     ],
 )
-def test_modify_rule_condition(create_condition, modify_condition):
+def test_modify_rule_condition(create_condition, modify_condition, expected):
     conn = boto3.client("elbv2", region_name="us-east-1")
 
     http_listener_arn = setup_listener(conn)
@@ -186,7 +246,7 @@ def test_modify_rule_condition(create_condition, modify_condition):
     response = conn.modify_rule(RuleArn=rule["RuleArn"], Conditions=[modify_condition])
     assert len(response["Rules"]) == 1
     modified_rule = response.get("Rules")[0]
-    assert modified_rule["Conditions"] == [modify_condition]
+    assert modified_rule["Conditions"] == [expected or modify_condition]
 
 
 @mock_aws
