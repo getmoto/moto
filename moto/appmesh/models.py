@@ -44,6 +44,7 @@ from moto.appmesh.exceptions import (
     VirtualRouterNotFoundError,
 )
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.utils import unix_time
 from moto.utilities.paginator import paginate
 
 PAGINATION_MODEL = {
@@ -350,14 +351,12 @@ class AppMeshBackend(BaseBackend):
         return mesh
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_meshes(self) -> list[dict[str, str | int]]:
+    def list_meshes(self) -> list[dict[str, str | int | float]]:
         return [
             {
                 "arn": mesh.metadata.arn,
-                "createdAt": mesh.metadata.created_at.strftime("%d/%m/%Y, %H:%M:%S"),
-                "lastUpdatedAt": mesh.metadata.last_updated_at.strftime(
-                    "%d/%m/%Y, %H:%M:%S"
-                ),
+                "createdAt": unix_time(mesh.metadata.created_at),
+                "lastUpdatedAt": unix_time(mesh.metadata.last_updated_at),
                 "meshName": mesh.mesh_name,
                 "meshOwner": mesh.metadata.mesh_owner,
                 "resourceOwner": mesh.metadata.resource_owner,
@@ -484,17 +483,13 @@ class AppMeshBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_virtual_routers(
         self, mesh_name: str, mesh_owner: str | None
-    ) -> list[dict[str, str | int]]:
+    ) -> list[dict[str, str | int | float]]:
         self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
         return [
             {
                 "arn": virtual_router.metadata.arn,
-                "createdAt": virtual_router.metadata.created_at.strftime(
-                    "%d/%m/%Y, %H:%M:%S"
-                ),
-                "lastUpdatedAt": virtual_router.metadata.last_updated_at.strftime(
-                    "%d/%m/%Y, %H:%M:%S"
-                ),
+                "createdAt": unix_time(virtual_router.metadata.created_at),
+                "lastUpdatedAt": unix_time(virtual_router.metadata.last_updated_at),
                 "meshName": virtual_router.mesh_name,
                 "meshOwner": virtual_router.metadata.mesh_owner,
                 "resourceOwner": virtual_router.metadata.resource_owner,

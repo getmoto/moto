@@ -5,6 +5,7 @@ from moto.appmesh.dataclasses.shared import Metadata, Status
 from moto.appmesh.dataclasses.virtual_gateway import VirtualGateway
 from moto.appmesh.dataclasses.virtual_node import VirtualNode
 from moto.appmesh.dataclasses.virtual_router import VirtualRouter
+from moto.core.utils import unix_time
 
 
 @dataclass
@@ -29,10 +30,8 @@ class Mesh:
             "meshName": self.mesh_name,
             "metadata": {
                 "arn": self.metadata.arn,
-                "createdAt": self.metadata.created_at.strftime("%d/%m/%Y, %H:%M:%S"),
-                "lastUpdatedAt": self.metadata.last_updated_at.strftime(
-                    "%d/%m/%Y, %H:%M:%S"
-                ),
+                "createdAt": unix_time(self.metadata.created_at),
+                "lastUpdatedAt": unix_time(self.metadata.last_updated_at),
                 "meshOwner": self.metadata.mesh_owner,
                 "resourceOwner": self.metadata.resource_owner,
                 "uid": self.metadata.uid,
