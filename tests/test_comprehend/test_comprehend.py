@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -96,6 +98,34 @@ def test_list_entity_recognizers():
 
 
 @mock_aws
+def test_list_entity_recognizers_filtered_by_status_and_submit_time():
+    client = boto3.client("comprehend", region_name="us-east-2")
+    client.create_entity_recognizer(
+        DataAccessRoleArn="iam_role_with_20_chars",
+        InputDataConfig=INPUT_DATA_CONFIG,
+        LanguageCode="en",
+        RecognizerName="myname",
+    )
+    now = datetime.now(timezone.utc)
+    hour = timedelta(hours=1)
+
+    def count(recognizer_filter):
+        resp = client.list_entity_recognizers(Filter=recognizer_filter)
+        return len(resp["EntityRecognizerPropertiesList"])
+
+    assert count({"Status": "TRAINED"}) == 1
+    assert count({"Status": "IN_ERROR"}) == 0
+    assert count({"SubmitTimeBefore": now + hour}) == 1
+    assert count({"SubmitTimeBefore": now - hour}) == 0
+    assert count({"SubmitTimeAfter": now - hour}) == 1
+    assert count({"SubmitTimeAfter": now + hour}) == 0
+    assert count({"RecognizerName": "myname", "Status": "IN_ERROR"}) == 0
+
+    props = client.list_entity_recognizers()["EntityRecognizerPropertiesList"][0]
+    assert now - hour < props["SubmitTime"] < now + hour
+
+
+@mock_aws
 def test_create_entity_recognizer():
     client = boto3.client("comprehend", region_name="ap-southeast-1")
     resp = client.create_entity_recognizer(
@@ -163,6 +193,7 @@ def test_describe_entity_recognizer():
     assert props["InputDataConfig"] == INPUT_DATA_CONFIG
     assert props["DataAccessRoleArn"] == "iam_role_with_20_chars"
     assert props["VersionName"] == "terraform-20221003201727469000000002"
+    assert "SubmitTime" in props
 
 
 @mock_aws

@@ -88,7 +88,6 @@ Pagination is not yet implemented.
 - [X] list_entity_recognizers
   
 Pagination is not yet implemented.
-The following filters are not yet implemented: Status, SubmitTimeBefore, SubmitTimeAfter
 
 
 - [X] list_events_detection_jobs

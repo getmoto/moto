@@ -98,6 +98,7 @@ class EntityRecognizer(BaseModel):
         self.model_kms_key_id = model_kms_key_id
         self.model_policy = model_policy
         self.status = "TRAINED"
+        self.submit_time = utcnow()
 
 
 class DocumentClassifier(BaseModel):
@@ -278,15 +279,21 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
     ) -> Iterable[EntityRecognizer]:
         """
         Pagination is not yet implemented.
-        The following filters are not yet implemented: Status, SubmitTimeBefore, SubmitTimeAfter
         """
+        recognizers = list(self.recognizers.values())
         if "RecognizerName" in _filter:
-            return [
-                entity
-                for entity in self.recognizers.values()
-                if entity.name == _filter["RecognizerName"]
+            recognizers = [
+                r for r in recognizers if r.name == _filter["RecognizerName"]
             ]
-        return self.recognizers.values()
+        if "Status" in _filter:
+            recognizers = [r for r in recognizers if r.status == _filter["Status"]]
+        if "SubmitTimeBefore" in _filter:
+            before_time = _filter["SubmitTimeBefore"]
+            recognizers = [r for r in recognizers if r.submit_time < before_time]
+        if "SubmitTimeAfter" in _filter:
+            after_time = _filter["SubmitTimeAfter"]
+            recognizers = [r for r in recognizers if r.submit_time > after_time]
+        return recognizers
 
     def create_entity_recognizer(
         self,
