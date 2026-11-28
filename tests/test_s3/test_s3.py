@@ -26,7 +26,7 @@ from moto.s3.models import s3_backends
 from moto.s3.responses import DEFAULT_REGION_NAME
 from tests import DEFAULT_ACCOUNT_ID, aws_verified
 
-from . import s3_aws_verified
+from . import generate_content_md5, s3_aws_verified
 
 
 class MyModel:
@@ -3725,3 +3725,38 @@ def test_options_request_on_service_root():
     assert "<Message>CORSResponse: Bucket not found</Message>" in resp.text
     assert "<Method>OPTIONS</Method>" in resp.text
     assert "<ResourceType>BUCKET</ResourceType>" in resp.text
+
+
+@mock_aws
+def test_put_object_and_upload_part_check_content_md5():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="bucket")
+    body = b"abc"
+    wrong = generate_content_md5(b"xyz")
+
+    upload_id = client.create_multipart_upload(Bucket="bucket", Key="mp")["UploadId"]
+    calls = [
+        lambda md5: client.put_object(
+            Bucket="bucket", Key="k", Body=body, ContentMD5=md5
+        ),
+        lambda md5: client.upload_part(
+            Bucket="bucket",
+            Key="mp",
+            UploadId=upload_id,
+            PartNumber=1,
+            Body=body,
+            ContentMD5=md5,
+        ),
+    ]
+    for call in calls:
+        with pytest.raises(ClientError) as exc:
+            call(wrong)
+        assert exc.value.response["Error"]["Code"] == "BadDigest"
+        assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+        with pytest.raises(ClientError) as exc:
+            call("not-base64")
+        assert exc.value.response["Error"]["Code"] == "InvalidDigest"
+
+        call(generate_content_md5(body))
+    assert client.get_object(Bucket="bucket", Key="k")["Body"].read() == body
