@@ -252,6 +252,55 @@ class EKSResponse(BaseResponse):
         tags = self.eks_backend.list_tags_for_resource(self._extract_arn_from_path())
         return ActionResult({"tags": tags})
 
+    def create_access_entry(self) -> ActionResult:
+        access_entry = self.eks_backend.create_access_entry(
+            cluster_name=self._get_param("name"),
+            principal_arn=self._get_param("principalArn"),
+            kubernetes_groups=self._get_param("kubernetesGroups"),
+            tags=self._get_param("tags"),
+            username=self._get_param("username"),
+            type=self._get_param("type"),
+        )
+
+        return ActionResult({"accessEntry": access_entry})
+
+    def describe_access_entry(self) -> ActionResult:
+        access_entry = self.eks_backend.describe_access_entry(
+            cluster_name=self._get_param("name"),
+            principal_arn=self._get_param("principalArn"),
+        )
+
+        return ActionResult({"accessEntry": access_entry})
+
+    def list_access_entries(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        access_entries, next_token = self.eks_backend.list_access_entries(
+            cluster_name=cluster_name, max_results=max_results, next_token=next_token
+        )
+
+        return ActionResult({"accessEntries": access_entries, "nextToken": next_token})
+
+    def update_access_entry(self) -> ActionResult:
+        access_entry = self.eks_backend.update_access_entry(
+            cluster_name=self._get_param("name"),
+            principal_arn=self._get_param("principalArn"),
+            kubernetes_groups=self._get_param("kubernetesGroups"),
+            username=self._get_param("username"),
+        )
+
+        return ActionResult({"accessEntry": access_entry})
+
+    def delete_access_entry(self) -> ActionResult:
+        self.eks_backend.delete_access_entry(
+            cluster_name=self._get_param("name"),
+            principal_arn=self._get_param("principalArn"),
+        )
+
+        return EmptyResult()
+
     def _extract_arn_from_path(self) -> str:
         # /tags/arn_that_may_contain_a_slash
         path = unquote(self.path)
