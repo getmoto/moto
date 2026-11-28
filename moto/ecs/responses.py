@@ -464,7 +464,10 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def list_task_definition_families(self) -> ActionResult:
         family_prefix = self._get_param("familyPrefix")
-        results = self.ecs_backend.list_task_definition_families(family_prefix)
+        status = self._get_param("status")
+        results = self.ecs_backend.list_task_definition_families(
+            family_prefix, status=status
+        )
 
         return ActionResult({"families": list(results)})
 
