@@ -1014,20 +1014,18 @@ def test_create_policy_with_duplicate_tag():
 
 
 @mock_aws()
-def test_create_policy_with_duplicate_tag_different_casing():
+def test_create_policy_with_case_distinct_tags():
     conn = boto3.client("iam", region_name="us-east-1")
-
-    # Duplicate tag with different casing:
-    with pytest.raises(ClientError) as ce:
-        conn.create_policy(
-            PolicyName="TestCreatePolicyWithTags3",
-            PolicyDocument=MOCK_POLICY,
-            Tags=[{"Key": "a", "Value": ""}, {"Key": "A", "Value": ""}],
-        )
-    assert (
-        "Duplicate tag keys found. Please note that Tag keys are case insensitive."
-        in ce.value.response["Error"]["Message"]
-    )
+    tags = [{"Key": "a", "Value": "lower"}, {"Key": "A", "Value": "upper"}]
+    policy = conn.create_policy(
+        PolicyName="TestCreatePolicyWithTags3",
+        PolicyDocument=MOCK_POLICY,
+        Tags=tags,
+    )["Policy"]
+    assert {tag["Key"]: tag["Value"] for tag in policy["Tags"]} == {
+        "a": "lower",
+        "A": "upper",
+    }
 
 
 @mock_aws()
@@ -1276,27 +1274,18 @@ def test_updating_existing_tagged_policy_with_duplicate_tag():
 
 
 @mock_aws()
-def test_updating_existing_tagged_policy_with_duplicate_tag_different_casing():
+def test_updating_existing_tagged_policy_with_case_distinct_tags():
     conn = boto3.client("iam", region_name="us-east-1")
-    conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
+    arn = conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)[
+        "Policy"
+    ]["Arn"]
     conn.tag_policy(
-        PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
-        Tags=[
-            {"Key": "somekey", "Value": "somevalue"},
-            {"Key": "someotherkey", "Value": "someothervalue"},
-        ],
+        PolicyArn=arn,
+        Tags=[{"Key": "a", "Value": "lower"}, {"Key": "A", "Value": "upper"}],
     )
-
-    # Duplicate tag with different casing:
-    with pytest.raises(ClientError) as ce:
-        conn.tag_policy(
-            PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
-            Tags=[{"Key": "a", "Value": ""}, {"Key": "A", "Value": ""}],
-        )
-    assert (
-        "Duplicate tag keys found. Please note that Tag keys are case insensitive."
-        in ce.value.response["Error"]["Message"]
-    )
+    assert {
+        tag["Key"]: tag["Value"] for tag in conn.list_policy_tags(PolicyArn=arn)["Tags"]
+    } == {"a": "lower", "A": "upper"}
 
 
 @mock_aws()
