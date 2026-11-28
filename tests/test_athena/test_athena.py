@@ -695,3 +695,27 @@ def test_get_query_runtime_statistics_with_execution_id():
     )
 
     assert "QueryRuntimeStatistics" in statistics
+
+
+@mock_aws
+def test_get_query_execution_unknown_id():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_query_execution(QueryExecutionId="1")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
+    assert err["Message"] == "QueryExecution 1 was not found"
+
+
+@mock_aws
+def test_stop_query_execution_unknown_id():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.stop_query_execution(QueryExecutionId="1")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
+    assert err["Message"] == "QueryExecution 1 was not found"
