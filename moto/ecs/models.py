@@ -368,7 +368,7 @@ class Task(ManagedState, BaseModel):
             eni = ec2_backend.create_network_interface(
                 subnet=net_conf["subnets"][0],
                 private_ip_address=random_private_ip(),
-                group_ids=net_conf["securityGroups"],
+                group_ids=net_conf.get("securityGroups"),
                 description="moto ECS",
             )
             eni.status = "in-use"
@@ -484,7 +484,7 @@ class Service(CloudFormationModel, BaseModel):
         launch_type: str | None = None,
         service_registries: list[dict[str, Any]] | None = None,
         platform_version: str | None = None,
-        network_configuration: dict[str, dict[str, list[str]]] | None = None,
+        network_configuration: dict[str, dict[str, Any]] | None = None,
         propagate_tags: str = "NONE",
         role_arn: str | None = None,
     ):
@@ -509,6 +509,9 @@ class Service(CloudFormationModel, BaseModel):
         self._account_id = backend.account_id
         self._backend = backend
         self.role_arn = role_arn
+        if network_configuration is not None:
+            network_configuration = self._validate_network(network_configuration)
+        self.network_configuration = network_configuration or {}
 
         try:
             # negative running count not allowed, set to 0 if so
@@ -560,14 +563,9 @@ class Service(CloudFormationModel, BaseModel):
             self.deployments = []
         self.propagate_tags = propagate_tags
 
-        if network_configuration is not None:
-            self.network_configuration = self._validate_network(network_configuration)
-        else:
-            self.network_configuration = {}
-
     def _validate_network(
-        self, nc: dict[str, dict[str, list[str]]]
-    ) -> dict[str, dict[str, list[str]]]:
+        self, nc: dict[str, dict[str, Any]]
+    ) -> dict[str, dict[str, Any]]:
         c = nc["awsvpcConfiguration"]
         if len(c["subnets"]) == 0:
             raise InvalidParameterException("subnets can not be empty.")
@@ -581,15 +579,26 @@ class Service(CloudFormationModel, BaseModel):
                 f"Error retrieving subnet information for [{subnet_id}]: {exc.message} (ErrorCode: {exc.code})"
             )
 
-        try:
-            ec2_backend.describe_security_groups(group_ids=c["securityGroups"])
-        except InvalidSecurityGroupNotFoundError as exc:
-            sg = exc.message.split("'{'")[1].split("'}'")[0]
-            raise InvalidParameterException(
-                f"Error retrieving security group information for [{sg}]: "
-                f"The security group '{sg}' does not exist (ErrorCode: InvalidGroup.NotFound)"
-            )
-        return nc
+        if security_groups := c.get("securityGroups"):
+            try:
+                ec2_backend.describe_security_groups(group_ids=security_groups)
+            except InvalidSecurityGroupNotFoundError as exc:
+                sg = exc.message.split("'{'")[1].split("'}'")[0]
+                raise InvalidParameterException(
+                    f"Error retrieving security group information for [{sg}]: "
+                    f"The security group '{sg}' does not exist (ErrorCode: InvalidGroup.NotFound)"
+                )
+        else:
+            # Tasks use the VPC's default security group, but AWS returns an empty list
+            security_groups = []
+
+        return {
+            "awsvpcConfiguration": {
+                "subnets": c["subnets"],
+                "securityGroups": security_groups,
+                "assignPublicIp": c.get("assignPublicIp", "DISABLED"),
+            }
+        }
 
     @property
     def arn(self) -> str:
