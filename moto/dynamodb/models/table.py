@@ -886,11 +886,13 @@ class Table(CloudFormationModel):
             hash_attrs = [self.hash_key_attr]
             range_attrs = [self.range_key_attr]
 
-            possible_results = [
-                item
-                for item in self.all_items()
-                if isinstance(item, Item) and item.hash_key == hash_key
-            ]
+            partition = self.items.get(hash_key)
+            if isinstance(partition, Item):
+                possible_results = [partition]
+            elif partition:
+                possible_results = list(partition.values())
+            else:
+                possible_results = []
 
         # SORT
         if index_name:
