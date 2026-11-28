@@ -497,6 +497,36 @@ def test_list_keys():
     assert {"KeyId": k2["KeyId"], "KeyArn": k2["Arn"]} in keys
 
 
+@mock_aws
+def test_list_keys_pagination():
+    client = boto3.client("kms", region_name="us-east-1")
+    with mock.patch.object(rsa, "generate_private_key", return_value=""):
+        key_ids = [
+            client.create_key(Description=f"key{i}")["KeyMetadata"]["KeyId"]
+            for i in range(5)
+        ]
+
+    page1 = client.list_keys(Limit=2)
+    assert len(page1["Keys"]) == 2
+    assert page1["Truncated"] is True
+    assert page1["NextMarker"]
+
+    seen = [k["KeyId"] for k in page1["Keys"]]
+    marker = page1["NextMarker"]
+    while True:
+        page = client.list_keys(Limit=2, Marker=marker)
+        seen.extend(k["KeyId"] for k in page["Keys"])
+        if not page["Truncated"]:
+            break
+        marker = page["NextMarker"]
+
+    assert sorted(seen) == sorted(key_ids)
+
+    all_keys = client.list_keys()
+    assert len(all_keys["Keys"]) == 5
+    assert all_keys["Truncated"] is False
+
+
 @pytest.mark.parametrize("id_or_arn", ["KeyId", "Arn"])
 @mock_aws
 def test_enable_key_rotation(id_or_arn):

@@ -23,7 +23,7 @@ class KmsResponse(BaseResponse):
         super().__init__(service_name="kms")
 
     def _get_param(self, param_name: str, if_none: Any = None) -> Any:
-        params = json.loads(self.body)
+        params = json.loads(self.body) if self.body else {}
 
         for key in ("Plaintext", "CiphertextBlob", "Message"):
             if key in params:
@@ -195,13 +195,15 @@ class KmsResponse(BaseResponse):
 
     def list_keys(self) -> str:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListKeys.html"""
-        keys = self.kms_backend.list_keys()
+        limit = self._get_param("Limit")
+        marker = self._get_param("Marker")
+        keys, next_marker = self.kms_backend.list_keys(limit=limit, marker=marker)
 
         return json.dumps(
             {
                 "Keys": [{"KeyArn": key.arn, "KeyId": key.id} for key in keys],
-                "NextMarker": None,
-                "Truncated": False,
+                "NextMarker": next_marker,
+                "Truncated": bool(next_marker),
             }
         )
 

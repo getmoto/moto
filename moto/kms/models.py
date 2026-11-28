@@ -471,8 +471,21 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
 
         return key
 
-    def list_keys(self) -> Iterable[Key]:
-        return self.keys.values()
+    def list_keys(
+        self, limit: int | None = None, marker: str | None = None
+    ) -> tuple[list[Key], str | None]:
+        limit = int(limit) if limit else 1000
+        start_index = int(marker) if marker else 0
+
+        all_keys = list(self.keys.values())
+        keys_to_return = all_keys[start_index : start_index + limit]
+
+        if len(all_keys) <= (start_index + limit):
+            marker = None
+        else:
+            marker = str(start_index + limit)
+
+        return keys_to_return, marker
 
     @staticmethod
     def get_key_id(key_id: str) -> str:
@@ -876,7 +889,11 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
 
     # Resource Groups Tagging API (TaggableResourcesMixin method overrides)
     def iter_tagged_resources(self) -> Iterator[TaggedResource]:
-        for key in self.list_keys():
+        all_keys, marker = self.list_keys()
+        while marker is not None:
+            next_keys, marker = self.list_keys(marker=marker)
+            all_keys.extend(next_keys)
+        for key in all_keys:
             yield TaggedResource(
                 arn=key.arn,
                 tags=self.tagger.get_tag_dict_for_resource(key.id),
