@@ -349,6 +349,7 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
                 "lastUpdatedDateTime": ba.last_updated_date_time,
             }
             for ba in self.bot_aliases.values()
+            if ba.bot_id == bot_id
         ]
 
         return bot_alias_summaries, bot_id
