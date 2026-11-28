@@ -10,7 +10,6 @@ from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
-from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -355,15 +354,6 @@ class Key(CloudFormationModel):
 
 class KmsBackend(BaseBackend, TaggableResourcesMixin):
     SERVICE_NAMESPACE = "kms"
-
-    PAGINATION_MODEL = {
-        "list_key_rotations": {
-            "input_token": "next_marker",
-            "limit_key": "limit",
-            "limit_default": 1000,
-            "unique_attribute": "RotationDate",
-        }
-    }
 
     def __init__(self, region_name: str, account_id: str | None = None):
         super().__init__(region_name=region_name, account_id=account_id)  # type: ignore
@@ -833,10 +823,7 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
 
         return key_id
 
-    @paginate(PAGINATION_MODEL)
-    def list_key_rotations(
-        self, key_id: str, limit: int, next_marker: str
-    ) -> list[dict[str, str | datetime]]:
+    def list_key_rotations(self, key_id: str) -> list[dict[str, str | datetime]]:
         key: Key = self.keys[self.get_key_id(key_id)]
 
         return key.rotations
