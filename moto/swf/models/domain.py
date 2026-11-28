@@ -89,7 +89,12 @@ class Domain(BaseModel):
 
     def add_workflow_execution(self, workflow_execution: WorkflowExecution) -> None:
         _id = workflow_execution.workflow_id
-        if self.get_workflow_execution(_id, raise_if_none=False):
+        # A workflowId identifies a workflow execution for the whole retention
+        # period, so a closed execution blocks reuse just like an open one.
+        # get_workflow_execution() cannot answer this: without a run_id it only
+        # looks at open executions, so it misses a closed one, and its
+        # raise_if_closed-flag is only reached when a run_id is given.
+        if any(w.workflow_id == _id for w in self.workflow_executions):
             raise SWFWorkflowExecutionAlreadyStartedFault()
         self.workflow_executions.append(workflow_execution)
 
