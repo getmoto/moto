@@ -360,7 +360,9 @@ class ManagedPolicy(Policy, CloudFormationModel):
     is_attachable = True
 
     def attach_to(self, obj: Role | Group | User) -> None:
-        self.attachment_count += 1
+        # Attaching an already attached policy is a no-op
+        if self.arn not in obj.managed_policies:
+            self.attachment_count += 1
         obj.managed_policies[self.arn] = self
 
     def detach_from(self, obj: Role | Group | User) -> None:
@@ -2546,11 +2548,14 @@ class IAMBackend(BaseBackend):
 
     def delete_group(self, group_name: str) -> None:
         try:
-            del self.groups[group_name]
+            group = self.groups.pop(group_name)
         except KeyError:
             raise NotFoundException(
                 f"The group with name {group_name} cannot be found."
             )
+        # Keep the attachment counts of the group's managed policies accurate
+        for policy in list(group.managed_policies.values()):
+            policy.detach_from(group)
 
     def update_group(
         self, group_name: str, new_group_name: str | None, new_path: str | None
@@ -2754,6 +2759,16 @@ class IAMBackend(BaseBackend):
 
     def delete_policy(self, policy_arn: str) -> None:
         policy = self.get_policy(policy_arn)
+        if policy.attachment_count > 0:
+            raise DeleteConflictException(
+                "Cannot delete a policy attached to entities."
+            )
+        if len(policy.versions) > 1:
+            raise DeleteConflictException(
+                "This policy has more than one version. Before you delete a policy, "
+                "you must delete the policy's versions. The default version is "
+                "deleted with the policy."
+            )
         del self.managed_policies[policy.arn]
 
     def create_access_key(
