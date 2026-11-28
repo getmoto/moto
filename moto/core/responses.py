@@ -22,7 +22,7 @@ from werkzeug.http import http_date
 from moto import settings
 from moto.core.authorization import ActionAuthenticatorMixin
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
-from moto.core.exceptions import ServiceException
+from moto.core.exceptions import InvalidToken, ServiceException
 from moto.core.model import OperationModel, ServiceModel
 from moto.core.parse import PROTOCOL_PARSERS, XFormedDict
 from moto.core.request import Request, determine_request_protocol
@@ -136,6 +136,7 @@ class PaginatedResult(ActionResult):
         # Copy so the derived defaults below don't modify the cached model
         paging_config = dict(get_pagination_model(service_name)[operation_name])
         paging_config.setdefault("limit_default", 100)
+        invalid_token_error = paging_config.pop("invalid_token_error", None)
         token_write_path, marker_attribute = self._parse_output_token(
             paging_config["output_token"]
         )
@@ -164,7 +165,12 @@ class PaginatedResult(ActionResult):
 
             get_result_to_paginate.__name__ = operation_name
             paginator = paginate(pagination_model)(get_result_to_paginate)
-            paginated_results, next_token = paginator(**kwargs)
+            try:
+                paginated_results, next_token = paginator(**kwargs)
+            except InvalidToken as exc:
+                if invalid_token_error is None:
+                    raise
+                raise ServiceException(invalid_token_error, exc.message) from exc
             set_value(self._result, result_key, paginated_results)
         if token_write_path:
             set_value(self._result, token_write_path, next_token)
