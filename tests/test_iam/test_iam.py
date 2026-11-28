@@ -1,3 +1,4 @@
+import contextlib
 import csv
 import json
 from datetime import datetime
@@ -15,7 +16,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
 from moto.iam import iam_backends
 from moto.s3.responses import DEFAULT_REGION_NAME
-from tests import DEFAULT_ACCOUNT_ID
+from tests import DEFAULT_ACCOUNT_ID, aws_verified
 
 MOCK_CERT = """-----BEGIN CERTIFICATE-----
 MIIBpzCCARACCQCY5yOdxCTrGjANBgkqhkiG9w0BAQsFADAXMRUwEwYDVQQKDAxt
@@ -650,6 +651,174 @@ def test_delete_policy():
     ] == ["TestCreatePolicy"]
     conn.delete_policy(PolicyArn=response["Policy"]["Arn"])
     assert conn.list_policies(Scope="Local")["Policies"] == []
+
+
+@aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize("entity", ["role", "user", "group"])
+def test_delete_policy_attached_to_entity(entity):
+    conn = boto3.client("iam", region_name="us-east-1")
+    entity_name = {f"{entity.capitalize()}Name": f"{entity}-{uuid4()}"}
+    policy_name = f"policy-{uuid4()}"
+    attach = getattr(conn, f"attach_{entity}_policy")
+    detach = getattr(conn, f"detach_{entity}_policy")
+    trust_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {"Service": "ec2.amazonaws.com"},
+                "Action": "sts:AssumeRole",
+            }
+        ],
+    }
+    # Not MOCK_POLICY: AWS rejects a policy document with leading whitespace
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::example-bucket",
+            }
+        ],
+    }
+
+    entity_created = False
+    policy_arn = None
+    try:
+        if entity == "role":
+            conn.create_role(
+                AssumeRolePolicyDocument=json.dumps(trust_policy), **entity_name
+            )
+        else:
+            getattr(conn, f"create_{entity}")(**entity_name)
+        entity_created = True
+        policy_arn = conn.create_policy(
+            PolicyName=policy_name, PolicyDocument=json.dumps(policy_document)
+        )["Policy"]["Arn"]
+
+        # Attaching twice is a no-op, so a single detach is enough
+        attach(PolicyArn=policy_arn, **entity_name)
+        attach(PolicyArn=policy_arn, **entity_name)
+
+        with pytest.raises(ClientError) as exc:
+            conn.delete_policy(PolicyArn=policy_arn)
+        err = exc.value.response["Error"]
+        assert err["Code"] == "DeleteConflict"
+        assert err["Message"] == "Cannot delete a policy attached to entities."
+
+        detach(PolicyArn=policy_arn, **entity_name)
+        conn.delete_policy(PolicyArn=policy_arn)
+        with pytest.raises(ClientError) as exc:
+            conn.get_policy(PolicyArn=policy_arn)
+        assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
+        policy_arn = None
+    finally:
+        if policy_arn:
+            # If test fails, the policy may or may be attached/exist.
+            with contextlib.suppress(conn.exceptions.NoSuchEntityException):
+                detach(PolicyArn=policy_arn, **entity_name)
+            with contextlib.suppress(conn.exceptions.NoSuchEntityException):
+                conn.delete_policy(PolicyArn=policy_arn)
+        if entity_created:
+            getattr(conn, f"delete_{entity}")(**entity_name)
+
+
+@mock_aws
+def test_delete_policy_after_deleting_attached_group():
+    conn = boto3.client("iam", region_name="us-east-1")
+    conn.create_group(GroupName="my-group")
+    policy_arn = conn.create_policy(PolicyName="my-policy", PolicyDocument=MOCK_POLICY)[
+        "Policy"
+    ]["Arn"]
+    conn.attach_group_policy(GroupName="my-group", PolicyArn=policy_arn)
+
+    conn.delete_group(GroupName="my-group")
+
+    conn.delete_policy(PolicyArn=policy_arn)
+    with pytest.raises(ClientError) as exc:
+        conn.get_policy(PolicyArn=policy_arn)
+    assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_delete_policy_with_multiple_versions():
+    conn = boto3.client("iam", region_name="us-east-1")
+    policy_name = f"policy-{uuid4()}"
+
+    def policy_document(bucket: str) -> str:
+        return json.dumps(
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": "s3:ListBucket",
+                        "Resource": f"arn:aws:s3:::{bucket}",
+                    }
+                ],
+            }
+        )
+
+    policy_arn = None
+    try:
+        policy_arn = conn.create_policy(
+            PolicyName=policy_name, PolicyDocument=policy_document("bucket-1")
+        )["Policy"]["Arn"]
+        conn.create_policy_version(
+            PolicyArn=policy_arn, PolicyDocument=policy_document("bucket-2")
+        )
+        conn.create_policy_version(
+            PolicyArn=policy_arn,
+            PolicyDocument=policy_document("bucket-3"),
+            SetAsDefault=True,
+        )
+        versions = conn.list_policy_versions(PolicyArn=policy_arn)["Versions"]
+        assert sorted((v["VersionId"], v["IsDefaultVersion"]) for v in versions) == [
+            ("v1", False),
+            ("v2", False),
+            ("v3", True),
+        ]
+
+        # A policy can't be deleted while it has non-default versions
+        with pytest.raises(ClientError) as exc:
+            conn.delete_policy(PolicyArn=policy_arn)
+        err = exc.value.response["Error"]
+        assert err["Code"] == "DeleteConflict"
+        assert err["Message"] == (
+            "This policy has more than one version. Before you delete a policy, "
+            "you must delete the policy's versions. The default version is "
+            "deleted with the policy."
+        )
+
+        conn.delete_policy_version(PolicyArn=policy_arn, VersionId="v1")
+        with pytest.raises(ClientError) as exc:
+            conn.delete_policy(PolicyArn=policy_arn)
+        assert exc.value.response["Error"]["Code"] == "DeleteConflict"
+
+        # Only the default version is left, which is deleted with the policy
+        conn.delete_policy_version(PolicyArn=policy_arn, VersionId="v2")
+        versions = conn.list_policy_versions(PolicyArn=policy_arn)["Versions"]
+        assert [v["VersionId"] for v in versions] == ["v3"]
+
+        conn.delete_policy(PolicyArn=policy_arn)
+        with pytest.raises(ClientError) as exc:
+            conn.get_policy(PolicyArn=policy_arn)
+        assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
+        policy_arn = None
+    finally:
+        if policy_arn:
+            # The test failed part-way, so delete whatever is left
+            with contextlib.suppress(conn.exceptions.NoSuchEntityException):
+                versions = conn.list_policy_versions(PolicyArn=policy_arn)["Versions"]
+                for version in versions:
+                    if not version["IsDefaultVersion"]:
+                        conn.delete_policy_version(
+                            PolicyArn=policy_arn, VersionId=version["VersionId"]
+                        )
+                conn.delete_policy(PolicyArn=policy_arn)
 
 
 @mock_aws
