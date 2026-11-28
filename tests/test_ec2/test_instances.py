@@ -40,6 +40,16 @@ def test_add_servers():
         assert i["ImageId"] == EXAMPLE_AMI_ID
 
 
+@mock_aws
+def test_run_instances_uses_max_count_not_min_count():
+    # Moto doesn't simulate capacity constraints, so - unlike real AWS,
+    # which launches as many instances as it can between MinCount and
+    # MaxCount - it can always launch the full MaxCount.
+    client = boto3.client("ec2", region_name="us-east-1")
+    resp = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=3)
+    assert len(resp["Instances"]) == 3
+
+
 @freeze_time("2014-01-01 05:00:00")
 @mock_aws
 def test_instance_launch_and_terminate():
