@@ -98,6 +98,41 @@ def test_state_machine_with_json_regex():
 
 @aws_verified
 @pytest.mark.aws_verified
+def test_state_machine_with_json_regex_no_matches():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Don't need to test this in ServerMode")
+
+    _input = {"Parameters": [{"Name": "/bacon/cooked/like", "Value": "crispy"}]}
+    _output = {
+        "Parameters": [{"Name": "/bacon/cooked/like", "Value": "crispy"}],
+        "parameterTransforms": {"eggs": []},
+    }
+
+    def _verify_result(client, execution, execution_arn):
+        assert execution["input"] == json.dumps(_input)
+        assert json.loads(execution["output"]) == _output
+        return True
+
+    verify_execution_result(
+        _verify_result,
+        "SUCCEEDED",
+        "json_regex",
+        exec_input=json.dumps(_input),
+    )
+
+
+def test_extract_json_filter_empty_match():
+    from moto.stepfunctions.parser.asl.utils.json_path import extract_json
+
+    data = {"items": [{"k": "a"}, {"k": "b"}]}
+    assert extract_json("$.items[?(@.k == 'c')]", data) == []
+    assert extract_json("$.items[?(@.k == 'a')].k", data) == ["a"]
+    assert extract_json("$.items[?(@.k == 'c')].k", data) == []
+    assert extract_json("$[?(@.k == 'c')]", [{"k": "a"}]) == []
+
+
+@aws_verified
+@pytest.mark.aws_verified
 def test_version_is_only_available_when_published():
     from tests.test_stepfunctions.test_stepfunctions import simple_definition
 
