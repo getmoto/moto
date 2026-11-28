@@ -21,8 +21,9 @@ class KinesisResponse(BaseResponse):
         stream_name = self._get_param("StreamName")
         shard_count = self._get_param("ShardCount")
         stream_mode = self._get_param("StreamModeDetails")
+        tags = self._get_param("Tags")
         self.kinesis_backend.create_stream(
-            stream_name, shard_count, stream_mode=stream_mode
+            stream_name, shard_count, stream_mode=stream_mode, tags=tags
         )
         return EmptyResult()
 
