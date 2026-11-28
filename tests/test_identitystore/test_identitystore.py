@@ -1147,6 +1147,314 @@ def test_describe_group_doesnt_exist() -> None:
     assert "RequestId" in err.response
 
 
+@mock_aws
+def test_update_group():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+    _, _, group_id = __create_test_group(client, identity_store_id)
+
+    client.update_group(
+        IdentityStoreId=identity_store_id,
+        GroupId=group_id,
+        Operations=[
+            {"AttributePath": "displayName", "AttributeValue": "new_name"},
+            {"AttributePath": "description", "AttributeValue": "new_description"},
+        ],
+    )
+
+    group = client.describe_group(IdentityStoreId=identity_store_id, GroupId=group_id)
+    assert group["DisplayName"] == "new_name"
+    assert group["Description"] == "new_description"
+
+    # The group can be found using the new name
+    resp = client.get_group_id(
+        IdentityStoreId=identity_store_id,
+        AlternateIdentifier={
+            "UniqueAttribute": {
+                "AttributePath": "displayName",
+                "AttributeValue": "new_name",
+            }
+        },
+    )
+    assert resp["GroupId"] == group_id
+
+    # Omitting the AttributeValue removes the attribute
+    client.update_group(
+        IdentityStoreId=identity_store_id,
+        GroupId=group_id,
+        Operations=[{"AttributePath": "description"}],
+    )
+    group = client.describe_group(IdentityStoreId=identity_store_id, GroupId=group_id)
+    assert group["DisplayName"] == "new_name"
+    assert "Description" not in group
+
+
+@mock_aws
+def test_update_group_duplicate_name():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+    group1_name, _, _ = __create_test_group(client, identity_store_id)
+    group2_name, _, group2_id = __create_test_group(client, identity_store_id)
+
+    with pytest.raises(ClientError) as exc:
+        client.update_group(
+            IdentityStoreId=identity_store_id,
+            GroupId=group2_id,
+            Operations=[
+                {"AttributePath": "displayName", "AttributeValue": group1_name}
+            ],
+        )
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ConflictException"
+    assert err.response["Error"]["Message"] == "Duplicate GroupDisplayName"
+    assert err.response["Reason"] == "UNIQUENESS_CONSTRAINT_VIOLATION"
+
+    # Group is unchanged
+    group = client.describe_group(IdentityStoreId=identity_store_id, GroupId=group2_id)
+    assert group["DisplayName"] == group2_name
+
+    # Re-using the current name of the group is allowed
+    client.update_group(
+        IdentityStoreId=identity_store_id,
+        GroupId=group2_id,
+        Operations=[{"AttributePath": "displayName", "AttributeValue": group2_name}],
+    )
+
+
+@mock_aws
+def test_update_group_invalid_attribute_path():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+    _, _, group_id = __create_test_group(client, identity_store_id)
+
+    with pytest.raises(ClientError) as exc:
+        client.update_group(
+            IdentityStoreId=identity_store_id,
+            GroupId=group_id,
+            Operations=[{"AttributePath": "unknown", "AttributeValue": "value"}],
+        )
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ValidationException"
+    assert err.response["Error"]["Message"] == "Invalid attribute path: unknown"
+
+
+@mock_aws
+def test_update_group_doesnt_exist():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    with pytest.raises(ClientError) as exc:
+        client.update_group(
+            IdentityStoreId=identity_store_id,
+            GroupId=str(uuid4()),
+            Operations=[{"AttributePath": "displayName", "AttributeValue": "name"}],
+        )
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert err.response["Error"]["Message"] == "GROUP not found."
+    assert err.response["ResourceType"] == "GROUP"
+
+
+@mock_aws
+def test_update_user():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+    user = __create_and_verify_sparse_user(client, identity_store_id)
+    user_id = user["UserId"]
+
+    client.update_user(
+        IdentityStoreId=identity_store_id,
+        UserId=user_id,
+        Operations=[
+            {"AttributePath": "userName", "AttributeValue": "new_username"},
+            {"AttributePath": "displayName", "AttributeValue": "new_display_name"},
+            {"AttributePath": "nickName", "AttributeValue": "nick"},
+            {"AttributePath": "title", "AttributeValue": "Engineer"},
+            {"AttributePath": "locale", "AttributeValue": "en-US"},
+            {
+                "AttributePath": "emails",
+                "AttributeValue": [
+                    {"value": "user@example.com", "type": "work", "primary": True}
+                ],
+            },
+            {
+                "AttributePath": "addresses",
+                "AttributeValue": [
+                    {"streetAddress": "123 Any Street", "locality": "Any Town"}
+                ],
+            },
+        ],
+    )
+
+    updated = client.describe_user(IdentityStoreId=identity_store_id, UserId=user_id)
+    assert updated["UserName"] == "new_username"
+    assert updated["DisplayName"] == "new_display_name"
+    assert updated["NickName"] == "nick"
+    assert updated["Title"] == "Engineer"
+    assert updated["Locale"] == "en-US"
+    assert updated["Emails"] == [
+        {"Value": "user@example.com", "Type": "work", "Primary": True}
+    ]
+    assert updated["Addresses"] == [
+        {"StreetAddress": "123 Any Street", "Locality": "Any Town"}
+    ]
+    # Other attributes are unchanged
+    assert updated["Name"] == user["Name"]
+
+    # The user can be found using the updated attributes
+    for path, value in [
+        ("userName", "new_username"),
+        ("emails.value", "user@example.com"),
+    ]:
+        resp = client.get_user_id(
+            IdentityStoreId=identity_store_id,
+            AlternateIdentifier={
+                "UniqueAttribute": {"AttributePath": path, "AttributeValue": value}
+            },
+        )
+        assert resp["UserId"] == user_id
+
+
+@mock_aws
+def test_update_user_name_attributes():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+    user = __create_and_verify_sparse_user(client, identity_store_id)
+    user_id = user["UserId"]
+
+    client.update_user(
+        IdentityStoreId=identity_store_id,
+        UserId=user_id,
+        Operations=[
+            {"AttributePath": "name.givenName", "AttributeValue": "Mary"},
+            {"AttributePath": "name.middleName", "AttributeValue": "Jane"},
+        ],
+    )
+    updated = client.describe_user(IdentityStoreId=identity_store_id, UserId=user_id)
+    assert updated["Name"] == {
+        "GivenName": "Mary",
+        "MiddleName": "Jane",
+        "FamilyName": user["Name"]["FamilyName"],
+    }
+
+    # Replace the full name
+    client.update_user(
+        IdentityStoreId=identity_store_id,
+        UserId=user_id,
+        Operations=[
+            {
+                "AttributePath": "name",
+                "AttributeValue": {"givenName": "John", "familyName": "Doe"},
+            },
+        ],
+    )
+    updated = client.describe_user(IdentityStoreId=identity_store_id, UserId=user_id)
+    assert updated["Name"] == {"GivenName": "John", "FamilyName": "Doe"}
+
+    # Omitting the AttributeValue removes the attribute
+    client.update_user(
+        IdentityStoreId=identity_store_id,
+        UserId=user_id,
+        Operations=[{"AttributePath": "name.formatted", "AttributeValue": "J. Doe"}],
+    )
+    client.update_user(
+        IdentityStoreId=identity_store_id,
+        UserId=user_id,
+        Operations=[{"AttributePath": "name.formatted"}],
+    )
+    updated = client.describe_user(IdentityStoreId=identity_store_id, UserId=user_id)
+    assert updated["Name"] == {"GivenName": "John", "FamilyName": "Doe"}
+
+
+@mock_aws
+def test_update_user_remove_required_attribute():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+    user = __create_and_verify_sparse_user(client, identity_store_id)
+
+    with pytest.raises(ClientError) as exc:
+        client.update_user(
+            IdentityStoreId=identity_store_id,
+            UserId=user["UserId"],
+            Operations=[{"AttributePath": "name.familyName"}],
+        )
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ValidationException"
+    assert (
+        err.response["Error"]["Message"]
+        == "familyname: The attribute familyname is required"
+    )
+
+    # User is unchanged
+    resp = client.describe_user(
+        IdentityStoreId=identity_store_id, UserId=user["UserId"]
+    )
+    assert resp["Name"] == user["Name"]
+
+
+@mock_aws
+def test_update_user_duplicate_username():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+    user1 = __create_and_verify_sparse_user(client, identity_store_id)
+    user2 = __create_and_verify_sparse_user(client, identity_store_id)
+
+    with pytest.raises(ClientError) as exc:
+        client.update_user(
+            IdentityStoreId=identity_store_id,
+            UserId=user2["UserId"],
+            Operations=[
+                {"AttributePath": "userName", "AttributeValue": user1["UserName"]}
+            ],
+        )
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ConflictException"
+    assert err.response["Error"]["Message"] == "Duplicate UserName"
+    assert err.response["Reason"] == "UNIQUENESS_CONSTRAINT_VIOLATION"
+
+    # Re-using the current username of the user is allowed
+    client.update_user(
+        IdentityStoreId=identity_store_id,
+        UserId=user2["UserId"],
+        Operations=[{"AttributePath": "userName", "AttributeValue": user2["UserName"]}],
+    )
+
+
+@pytest.mark.parametrize("path", ["unknown", "userId", "name.unknown", "emails.value"])
+@mock_aws
+def test_update_user_invalid_attribute_path(path):
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+    user = __create_and_verify_sparse_user(client, identity_store_id)
+
+    with pytest.raises(ClientError) as exc:
+        client.update_user(
+            IdentityStoreId=identity_store_id,
+            UserId=user["UserId"],
+            Operations=[{"AttributePath": path, "AttributeValue": "value"}],
+        )
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ValidationException"
+    assert err.response["Error"]["Message"] == f"Invalid attribute path: {path}"
+
+
+@mock_aws
+def test_update_user_doesnt_exist():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    with pytest.raises(ClientError) as exc:
+        client.update_user(
+            IdentityStoreId=identity_store_id,
+            UserId=str(uuid4()),
+            Operations=[{"AttributePath": "displayName", "AttributeValue": "name"}],
+        )
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert err.response["Error"]["Message"] == "USER not found."
+    assert err.response["ResourceType"] == "USER"
+
+
 def __create_test_group(client, store_id: str):
     rand = "".join(random.choices(string.ascii_lowercase, k=8))
     group_name = f"test_group_{rand}"

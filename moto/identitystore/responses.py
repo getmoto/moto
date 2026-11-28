@@ -268,6 +268,28 @@ class IdentityStoreResponse(BaseResponse):
         )
         return json.dumps({"Results": results})
 
+    def update_group(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        group_id = self._get_param("GroupId")
+        operations = self._get_param("Operations")
+        self.identitystore_backend.update_group(
+            identity_store_id=identity_store_id,
+            group_id=group_id,
+            operations=operations,
+        )
+        return json.dumps({})
+
+    def update_user(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        user_id = self._get_param("UserId")
+        operations = self._get_param("Operations")
+        self.identitystore_backend.update_user(
+            identity_store_id=identity_store_id,
+            user_id=user_id,
+            operations=operations,
+        )
+        return json.dumps({})
+
     def delete_group(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
         group_id = self._get_param("GroupId")
