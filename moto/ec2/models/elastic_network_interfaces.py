@@ -133,6 +133,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
                     [{"Primary": False, "PrivateIpAddress": ip} for ip in ips]
                 )
 
+        self.private_dns_name: str | None = None
         if self.subnet:
             vpc = self.ec2_backend.get_vpc(self.subnet.vpc_id)
             if vpc and vpc.enable_dns_hostnames:
