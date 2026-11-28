@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -79,8 +79,6 @@ class Route53DomainsBackend(BaseBackend):
 
         self.__validate_duplicate_operations(requested_operation)
 
-        expiration_date = utcnow() + timedelta(days=365 * duration_in_years)
-
         try:
             domain = Route53Domain.validate(
                 domain_name=domain_name,
@@ -93,7 +91,7 @@ class Route53DomainsBackend(BaseBackend):
                 admin_privacy=private_protect_admin_contact,
                 registrant_privacy=private_protect_registrant_contact,
                 tech_privacy=private_protect_tech_contact,
-                expiration_date=expiration_date,
+                duration_in_years=duration_in_years,
                 extra_params=extra_params,
             )
 
