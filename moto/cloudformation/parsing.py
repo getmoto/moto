@@ -783,8 +783,17 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         other_template: dict[str, Any],
         parameters: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        old = self._resource_json_map
-        new = other_template["Resources"]
+        # parse_resource() adds empty Properties to the stored resources that have
+        # none, so for the sake of comparison we have to do the same here or those
+        # resources will be incorrectly marked as modified.
+        old = {
+            name: {"Properties": {}, **resource}
+            for name, resource in self._resource_json_map.items()
+        }
+        new = {
+            name: {"Properties": {}, **resource}
+            for name, resource in other_template["Resources"].items()
+        }
 
         resource_names_by_action = {
             "Add": [name for name in new if name not in old],
