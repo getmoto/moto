@@ -2027,6 +2027,112 @@ def test_create_change_set_twice__no_changes():
 
 
 @mock_aws
+def test_create_change_set_defaults_to_update():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+
+    def template(*queues: str) -> str:
+        resources = {q: {"Type": "AWS::SQS::Queue"} for q in queues}
+        return json.dumps({"Resources": resources})
+
+    stack_id = cf.create_stack(StackName="my-stack", TemplateBody=template("Queue1"))[
+        "StackId"
+    ]
+
+    # No ChangeSetType, so this updates the existing stack
+    change_set = cf.create_change_set(
+        StackName="my-stack",
+        ChangeSetName="add-queue",
+        TemplateBody=template("Queue1", "Queue2"),
+    )
+    assert change_set["StackId"] == stack_id
+
+    change_set = cf.describe_change_set(StackName="my-stack", ChangeSetName="add-queue")
+    assert change_set["ChangeSetName"] == "add-queue"
+    assert [
+        (c["ResourceChange"]["Action"], c["ResourceChange"]["LogicalResourceId"])
+        for c in change_set["Changes"]
+    ] == [("Add", "Queue2")]
+    assert [s["StackId"] for s in cf.describe_stacks()["Stacks"]] == [stack_id]
+
+
+@mock_aws
+def test_create_change_set_without_type_for_missing_stack():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+
+    with pytest.raises(ClientError) as exc:
+        cf.create_change_set(
+            StackName="missing-stack",
+            ChangeSetName="my-change-set",
+            TemplateBody=json.dumps({"Resources": {"Q": {"Type": "AWS::SQS::Queue"}}}),
+        )
+    assert exc.value.response["Error"]["Code"] == "ValidationError"
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_create_change_set_type_must_match_stack_existence():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    template = json.dumps({"Resources": {"Queue": {"Type": "AWS::SQS::Queue"}}})
+    existing_stack = f"stack-{uuid4()}"
+    review_stack = f"stack-{uuid4()}"
+    stacks_created = []
+    try:
+        # UPDATE can't be used for a new stack
+        with pytest.raises(ClientError) as exc:
+            cf.create_change_set(
+                StackName=f"stack-{uuid4()}",
+                ChangeSetName="update-missing",
+                TemplateBody=template,
+                ChangeSetType="UPDATE",
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationError"
+
+        # CREATE can't be used for an existing stack
+        cf.create_stack(StackName=existing_stack, TemplateBody=template)
+        stacks_created.append(existing_stack)
+        cf.get_waiter("stack_create_complete").wait(StackName=existing_stack)
+        with pytest.raises(ClientError) as exc:
+            cf.create_change_set(
+                StackName=existing_stack,
+                ChangeSetName="create-existing",
+                TemplateBody=template,
+                ChangeSetType="CREATE",
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationError"
+        assert err["Message"] == (
+            f"Stack [{existing_stack}] already exists and cannot be created again "
+            "with the changeSet [create-existing]."
+        )
+        assert [
+            s["StackName"]
+            for s in cf.describe_stacks(StackName=existing_stack)["Stacks"]
+        ] == [existing_stack]
+
+        # ...but it can for a stack that only exists to review CREATE change sets
+        first = cf.create_change_set(
+            StackName=review_stack,
+            ChangeSetName="create-1",
+            TemplateBody=template,
+            ChangeSetType="CREATE",
+        )
+        stacks_created.append(review_stack)
+        cf.get_waiter("change_set_create_complete").wait(ChangeSetName=first["Id"])
+        second = cf.create_change_set(
+            StackName=review_stack,
+            ChangeSetName="create-2",
+            TemplateBody=template,
+            ChangeSetType="CREATE",
+        )
+        assert second["StackId"] == first["StackId"]
+    finally:
+        for stack_name in stacks_created:
+            cf.delete_stack(StackName=stack_name)
+        for stack_name in stacks_created:
+            cf.get_waiter("stack_delete_complete").wait(StackName=stack_name)
+
+
+@mock_aws
 def test_create_change_set_twice__using_s3__no_changes():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
         raise SkipTest("Parameters only available in newer versions")

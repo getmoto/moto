@@ -1090,6 +1090,14 @@ class CloudFormationBackend(BaseBackend, TaggableResourcesMixin):
                     break
             else:
                 raise ValidationError(stack_name)
+        elif existing_stack := next(
+            (s for s in self.stacks.values() if s.name == stack_name), None
+        ):
+            if existing_stack.status != "REVIEW_IN_PROGRESS":
+                raise ValidationError(
+                    message=f"Stack [{stack_name}] already exists and cannot be created again with the changeSet [{change_set_name}]."
+                )
+            stack = existing_stack
         else:
             stack_id = generate_stack_id(stack_name, self.region_name, self.account_id)
             stack = Stack(
