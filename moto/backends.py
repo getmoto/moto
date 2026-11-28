@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from moto.devopsagent.models import DevOpsAgentBackend
     from moto.directconnect.models import DirectConnectBackend
     from moto.dms.models import DatabaseMigrationServiceBackend
+    from moto.docdbelastic.models import DocDBElasticBackend
     from moto.ds.models import DirectoryServiceBackend
     from moto.dsql.models import AuroraDSQLBackend
     from moto.dynamodb.models import DynamoDBBackend
@@ -250,6 +251,7 @@ SERVICE_NAMES = Union[
     "Literal['devopsagent']",
     "Literal['directconnect']",
     "Literal['dms']",
+    "Literal['docdb-elastic']",
     "Literal['ds']",
     "Literal['dsql']",
     "Literal['dynamodb']",
@@ -501,6 +503,10 @@ def get_backend(
 def get_backend(
     name: "Literal['directconnect']",
 ) -> "BackendDict[DirectConnectBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['docdb-elastic']",
+) -> "BackendDict[DocDBElasticBackend]": ...
 @overload
 def get_backend(name: "Literal['ds']") -> "BackendDict[DirectoryServiceBackend]": ...
 @overload
