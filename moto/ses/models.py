@@ -170,7 +170,8 @@ class ConfigurationSet(BaseModel):
         self.tracking_options = tracking_options or {}
         self.delivery_options = delivery_options or {}
         self.reputation_options = reputation_options or {}
-        self.enabled = sending_options or {}  # Enabled in v1, SendingOptions in v2
+        # Enabled in v1, SendingOptions.SendingEnabled in v2
+        self.enabled = (sending_options or {}).get("SendingEnabled", True)
         # SESv2 specific fields
         self.tags = tags or []
         self.suppression_options = suppression_options or {}
