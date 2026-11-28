@@ -2,7 +2,12 @@ import os
 import re
 from typing import Any
 
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.responses import (
+    ActionResult,
+    BaseResponse,
+    EmptyResult,
+    PaginatedResult,
+)
 from moto.kms.utils import RESERVED_ALIASE_TARGET_KEY_IDS, RESERVED_ALIASES
 from moto.utilities.utils import get_partition
 
@@ -168,8 +173,8 @@ class KmsResponse(BaseResponse):
         key_id = self._get_param("KeyId")
         self._validate_cmk_id(key_id)
 
-        tags: dict[str, Any] = self.kms_backend.list_resource_tags(key_id)
-        return ActionResult({**tags, "Truncated": False})
+        tags = self.kms_backend.list_resource_tags(key_id)
+        return PaginatedResult(tags)
 
     def describe_key(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_DescribeKey.html"""
@@ -186,11 +191,8 @@ class KmsResponse(BaseResponse):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListKeys.html"""
         keys = self.kms_backend.list_keys()
 
-        return ActionResult(
-            {
-                "Keys": [{"KeyArn": key.arn, "KeyId": key.id} for key in keys],
-                "Truncated": False,
-            }
+        return PaginatedResult(
+            {"Keys": [{"KeyArn": key.arn, "KeyId": key.id} for key in keys]}
         )
 
     def create_alias(self) -> ActionResult:
@@ -286,7 +288,7 @@ class KmsResponse(BaseResponse):
                     }
                 )
 
-        return ActionResult({"Truncated": False, "Aliases": response_aliases})
+        return PaginatedResult({"Aliases": response_aliases})
 
     def create_grant(self) -> ActionResult:
         key_id = self._get_param("KeyId")
@@ -311,25 +313,13 @@ class KmsResponse(BaseResponse):
         grant_id = self._get_param("GrantId")
 
         grants = self.kms_backend.list_grants(key_id=key_id, grant_id=grant_id)
-        return ActionResult(
-            {
-                "Grants": [gr.to_json() for gr in grants],
-                "GrantCount": len(grants),
-                "Truncated": False,
-            }
-        )
+        return PaginatedResult({"Grants": [gr.to_json() for gr in grants]})
 
     def list_retirable_grants(self) -> ActionResult:
         retiring_principal = self._get_param("RetiringPrincipal")
 
         grants = self.kms_backend.list_retirable_grants(retiring_principal)
-        return ActionResult(
-            {
-                "Grants": [gr.to_json() for gr in grants],
-                "GrantCount": len(grants),
-                "Truncated": False,
-            }
-        )
+        return PaginatedResult({"Grants": [gr.to_json() for gr in grants]})
 
     def revoke_grant(self) -> ActionResult:
         key_id = self._get_param("KeyId")
@@ -408,7 +398,7 @@ class KmsResponse(BaseResponse):
 
         self.kms_backend.describe_key(key_id)
 
-        return ActionResult({"Truncated": False, "PolicyNames": ["default"]})
+        return PaginatedResult({"PolicyNames": ["default"]})
 
     def encrypt(self) -> ActionResult:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_Encrypt.html"""
@@ -745,22 +735,11 @@ class KmsResponse(BaseResponse):
 
     def list_key_rotations(self) -> ActionResult:
         key_id = self._get_param("KeyId")
-        limit = self._get_param("Limit", 1000)
-        marker = self._get_param("Marker")
 
         self._validate_key_id(key_id)
 
-        rotations, next_marker = self.kms_backend.list_key_rotations(
-            key_id=key_id, limit=limit, next_marker=marker
-        )
-        is_truncated = next_marker is not None
-
-        response = {"Rotations": rotations, "Truncated": is_truncated}
-
-        if is_truncated:
-            response["NextMarker"] = next_marker
-
-        return ActionResult(response)
+        rotations = self.kms_backend.list_key_rotations(key_id=key_id)
+        return PaginatedResult({"Rotations": rotations})
 
 
 def _assert_default_policy(policy_name: str) -> None:

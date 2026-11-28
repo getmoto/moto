@@ -1,0 +1,37 @@
+{
+  "version": 1.0,
+  "merge": {
+    "pagination": {
+      "ListAliases": {
+        "unique_attribute": "AliasName",
+        "invalid_token_error": "InvalidMarkerException"
+      },
+      "ListGrants": {
+        "unique_attribute": "GrantId",
+        "invalid_token_error": "InvalidMarkerException"
+      },
+      "ListKeyPolicies": {
+        "limit_default": 1000,
+        "invalid_token_error": "InvalidMarkerException"
+      },
+      "ListKeyRotations": {
+        "limit_default": 1000,
+        "unique_attribute": "RotationDate",
+        "invalid_token_error": "InvalidMarkerException"
+      },
+      "ListKeys": {
+        "unique_attribute": "KeyId",
+        "invalid_token_error": "InvalidMarkerException"
+      },
+      "ListResourceTags": {
+        "limit_default": 50,
+        "unique_attribute": "TagKey",
+        "invalid_token_error": "InvalidMarkerException"
+      },
+      "ListRetirableGrants": {
+        "unique_attribute": "GrantId",
+        "invalid_token_error": "InvalidMarkerException"
+      }
+    }
+  }
+}
