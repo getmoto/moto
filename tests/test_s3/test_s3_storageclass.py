@@ -1,10 +1,12 @@
+from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 
@@ -304,3 +306,61 @@ def test_s3_get_object_from_glacierir():
     resp = s3_client.get_object(Bucket=bucket_name, Key="test.txt")
 
     assert resp["StorageClass"] == "GLACIER_IR"
+
+
+@mock_aws
+def test_s3_restored_object_still_readable_within_window():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("freeze_time can't simulate time passing in Server/ProxyMode")
+
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
+
+    with freeze_time("2026-01-01 00:00:00"):
+        s3_client.put_object(
+            Bucket=bucket_name, Key="a.txt", Body="contents", StorageClass="GLACIER"
+        )
+        s3_client.restore_object(
+            Bucket=bucket_name, Key="a.txt", RestoreRequest={"Days": 1}
+        )
+
+    # Still within the 1 day restore window
+    with freeze_time("2026-01-01 12:00:00"):
+        resp = s3_client.get_object(Bucket=bucket_name, Key="a.txt")
+        assert (
+            resp["Restore"]
+            == 'ongoing-request="false", expiry-date="Fri, 02 Jan 2026 00:00:00 GMT"'
+        )
+
+
+@mock_aws
+def test_s3_restored_object_expires_and_rejects_get_object_again():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("freeze_time can't simulate time passing in Server/ProxyMode")
+
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    bucket_name = str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
+
+    with freeze_time("2026-01-01 00:00:00"):
+        s3_client.put_object(
+            Bucket=bucket_name, Key="a.txt", Body="contents", StorageClass="GLACIER"
+        )
+        s3_client.restore_object(
+            Bucket=bucket_name, Key="a.txt", RestoreRequest={"Days": 1}
+        )
+        # Confirm it's readable right after restoring
+        s3_client.get_object(Bucket=bucket_name, Key="a.txt")
+
+    # Past the 1 day restore window
+    with freeze_time("2026-01-03 00:00:00"):
+        with pytest.raises(ClientError) as exc:
+            s3_client.get_object(Bucket=bucket_name, Key="a.txt")
+        err = exc.value.response["Error"]
+        assert err["Code"] == "InvalidObjectState"
+        assert err["StorageClass"] == "GLACIER"
+
+        # head_object should no longer report a Restore header at all
+        resp = s3_client.head_object(Bucket=bucket_name, Key="a.txt")
+        assert "Restore" not in resp
