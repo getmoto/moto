@@ -52,7 +52,7 @@ jobs:
           pip install botocore==1.29.126 boto3==1.26.126
       - name: Run tests
         run: |
-          pytest -sv tests/test_sqs
+          pytest -sv tests/test_sqs/test_sqs.py tests/test_sqs/test_server.py
         env:
           TEST_SERVER_MODE: ${{ matrix.test-server-mode }}
       - name: "Stop MotoServer"
